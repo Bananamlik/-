@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Elemental Tactics: v2.6.3 Balance Patch</title>
+    <style>
+        :root {
+            --bg-main: #f4f7f6; --panel-bg: #ffffff;
+            --text-main: #2d3436; --accent: #00cec9;
+            --hp-high: #00b894; --hp-low: #d63031; --shield: #0984e3;
+            --shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        body { margin: 0; background: var(--bg-main); color: var(--text-main); font-family: 'Pretendard', sans-serif; overflow: hidden; user-select: none; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        #app { width: 100%; max-width: 1000px; height: 100%; position: relative; display: flex; flex-direction: column; }
+        button { font-family: inherit; border: none; cursor: pointer; }
+        .btn-restart { background: #fff; border: 1px solid #dfe6e9; padding: 6px 14px; border-radius: 20px; font-size: 13px; color: #636e72; transition: 0.2s; }
+        .btn-restart:hover { background: #e0f7fa; color: var(--accent); border-color: var(--accent); }
+        .screen { position: absolute; inset: 0; background: var(--bg-main); display: flex; flex-direction: column; padding: 20px; z-index: 10; }
+        #battle-screen { display: none; padding: 10px; }
+        .hero-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; overflow-y: auto; padding: 5px; flex: 1; }
+        .hero-card { background: var(--panel-bg); border: 2px solid #e0e0e0; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: var(--shadow); transition: 0.2s; cursor: pointer; }
+        .hero-card.selected { border-color: var(--accent); background: #e0f7fa; transform: translateY(-3px); }
+        .field-row { flex: 1; display: flex; justify-content: space-around; align-items: center; }
+        .unit { width: 135px; background: var(--panel-bg); border: 3px solid #dfe6e9; border-radius: 18px; padding: 12px; position: relative; transition: 0.3s; text-align: center; box-shadow: var(--shadow); }
+        .unit.active-turn { border-color: var(--accent); transform: scale(1.05); z-index: 5; box-shadow: 0 0 25px rgba(0, 206, 201, 0.4); }
+        .unit.dead { opacity: 0.5; filter: grayscale(1); transform: scale(0.95); pointer-events: none; }
+        .unit.target-enemy:hover { border-color: #d63031; background: #fff5f5; cursor: crosshair; }
+        .unit.target-ally:hover { border-color: #00b894; background: #e6fffa; cursor: pointer; }
+        .attr-icon { width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 6px; display: flex; justify-content: center; align-items: center; font-size: 26px; color: #fff; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .sub-attr-icon { position: absolute; bottom: -2px; right: -2px; width: 20px; height: 20px; background: #2d3436; color: #fff; border: 2px solid #fff; border-radius: 50%; font-size: 11px; display: flex; justify-content: center; align-items: center; }
+        .tag-container { position: absolute; top: -24px; left: 0; width: 100%; display: flex; justify-content: center; gap: 2px; flex-wrap: wrap; }
+        .tag { padding: 2px 5px; border-radius: 4px; font-size: 9px; color: #fff; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .tag.poison { background: #8e44ad; } .tag.stun { background: #f1c40f; color:#333; }
+        .tag.freeze { background: #00cec9; } .tag.silence { background: #2d3436; }
+        .tag.evade { background: #74b9ff; } .tag.burn { background: #d63031; }
+        .tag.banish { background: #000; } .tag.bind { background: #27ae60; } .tag.trap { background: #e67e22; }
+        .tag.atkdown { background: #34495e; } .tag.growth { background: #2ecc71; }
+        .tag.blind { background: #95a5a6; color:#333; }
+        .status-bar { width: 100%; height: 6px; background: #dfe6e9; border-radius: 3px; overflow: hidden; position: relative; margin-top: 5px; }
+        .hp-fill { height: 100%; background: var(--hp-high); transition: width 0.3s; }
+        .shield-fill { position: absolute; top:0; left:0; height: 100%; background: var(--shield); opacity: 0.8; transition: width 0.3s; }
+        .control-panel { height: 260px; background: var(--panel-bg); border-radius: 16px; box-shadow: var(--shadow); margin: 15px 0; display: flex; flex-direction: column; overflow: hidden; }
+        .cp-header { padding: 10px 15px; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .log-container { flex: 1; padding: 10px; overflow-y: auto; font-size: 13px; background: #fff; line-height: 1.6; }
+        .log-entry { border-bottom: 1px dashed #f1f2f6; padding-bottom: 4px; margin-bottom: 4px; }
+        .log-ally { color: #2980b9; font-weight: bold; } .log-enemy { color: #c0392b; font-weight: bold; }
+        .log-sys { color: #7f8c8d; font-style: italic; } .log-crit { color: #e67e22; font-weight: bold; }
+        .btn-group { display: flex; height: 90px; }
+        .skill-btn { flex: 1; background: #fff; border-right: 1px solid #eee; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.2s; }
+        .skill-btn.selected { background: #e0f7fa; border-top: 3px solid var(--accent); }
+        .skill-btn:disabled { background: #fdfdfd; color: #ccc; cursor: not-allowed; }
+        .btn-start { background: var(--accent); color: white; padding: 16px; border-radius: 12px; font-weight: bold; width: 100%; margin-top: 15px; font-size: 16px; box-shadow: 0 4px 10px rgba(0, 206, 201, 0.3); }
+        .btn-rnd { background:#6c5ce7; color:#fff; padding:8px 12px; border-radius:8px; font-weight:bold; margin-left:5px; }
+        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: none; justify-content: center; align-items: center; }
+        .modal-content { background: #fff; padding: 25px; border-radius: 16px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+        .bg-Fire{background:linear-gradient(135deg,#ff7675,#d63031)}.bg-Water{background:linear-gradient(135deg,#74b9ff,#0984e3)}
+        .bg-Tree{background:linear-gradient(135deg,#55efc4,#00b894)}.bg-Metal{background:linear-gradient(135deg,#b2bec3,#636e72)}
+        .bg-Earth{background:linear-gradient(135deg,#ffeaa7,#e17055)}.bg-Light{background:linear-gradient(135deg,#fff7d6,#fdcb6e);color:#333}
+        .bg-Dark{background:linear-gradient(135deg,#a29bfe,#6c5ce7)}.bg-Normal{background:linear-gradient(135deg,#dfe6e9,#b2bec3);color:#333}
+        .bg-Light-Enhanced{background:radial-gradient(circle,#fff,#f1c40f);border:2px solid #f1c40f;color:#333}
+        .bg-Dark-Enhanced{background:radial-gradient(circle,#636e72,#000);border:2px solid #636e72;color:#fff}
+        .float-text { position: absolute; font-weight: 900; font-size: 20px; pointer-events: none; z-index: 100; animation: floatUp 0.8s forwards; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        @keyframes floatUp { 0%{transform:translate(-50%,0);opacity:0} 20%{transform:translate(-50%,-20px);opacity:1} 100%{transform:translate(-50%,-50px);opacity:0} }
+        .ft-dmg { color:#ff7675; } .ft-crit { color:#ffeaa7; font-size:24px; } .ft-heal { color:#55efc4; } .ft-miss { color:#b2bec3; }
+        .shake { animation:shake 0.4s; } @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+        .chart-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        .chart-table th, .chart-table td { border: 1px solid #ddd; padding: 4px; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div id="modal-overlay"><div class="modal-content"><div id="modal-body"></div><button onclick="UI.closeModal()" style="width:100%;padding:10px;background:var(--accent);color:#fff;border-radius:8px;margin-top:15px;">확인</button></div></div>
+    <div id="selection-screen" class="screen">
+        <h2 style="text-align:center;color:var(--accent);margin:0 0 15px 0;">팀 구성 (3명)</h2>
+        <div class="hero-grid" id="hero-grid"></div>
+        <div style="background:#fff;padding:15px;border-radius:12px;margin-top:15px;box-shadow:var(--shadow);">
+            <div id="preview-info" style="font-size:13px;color:#636e72;margin-bottom:10px;">영웅을 선택하세요.</div>
+            <div style="display:flex;gap:5px;"><select id="diff-select" class="diff-select" style="flex:1;padding:10px;border-radius:8px;border:1px solid #ddd;"><option value="easy">쉬움</option><option value="normal" selected>보통</option><option value="hard">어려움</option><option value="hell">지옥 🔥 (TOP 7 덱)</option></select><button class="btn-rnd" onclick="Game.randomPick()">🎲 랜덤</button></div>
+        </div>
+        <button id="btn-start" class="btn-start" onclick="Game.start()" disabled>전투 시작 (0/3)</button>
+    </div>
+    <div id="battle-screen" class="screen">
+        <div class="field-row" id="enemy-row"></div>
+        <div class="control-panel">
+            <div class="cp-header"><span id="turn-indicator" style="font-weight:bold;color:var(--accent);">Ready</span><div style="display:flex;gap:8px;"><button class="btn-restart" onclick="UI.showChart()">📊</button><button class="btn-restart" onclick="Game.reset()">🔄 처음으로</button></div></div>
+            <div class="log-container" id="logs"></div>
+            <div class="btn-group"><button id="sk-0" class="skill-btn" onclick="Game.prepareSkill(0)">기본공격</button><button id="sk-1" class="skill-btn" onclick="Game.prepareSkill(1)">스킬 1</button><button id="sk-2" class="skill-btn" onclick="Game.prepareSkill(2)">스킬 2</button></div>
+        </div>
+        <div class="field-row" id="player-row"></div>
+    </div>
+</div>
+  <script>
+const ATTR = { 'Fire':{i:'🔥',n:'불'}, 'Water':{i:'💧',n:'물'}, 'Tree':{i:'🌿',n:'나무'}, 'Metal':{i:'⚔️',n:'쇠'}, 'Earth':{i:'⛰️',n:'흙'}, 'Light':{i:'☀️',n:'빛'}, 'Dark':{i:'🌙',n:'어둠'}, 'Normal':{i:'☀️🌙',n:'노말'} };
+const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light':'숲', 'Metal-Light':'독가스', 'Earth-Light':'모래', 'Water-Dark':'얼음', 'Fire-Dark':'검은불', 'Tree-Dark':'가시', 'Metal-Dark':'전기', 'Earth-Dark':'바위', 'Light-Light':'빛(강화)', 'Dark-Dark':'어둠(강화)', 'Normal':'노말' };
+
+const SKILL_DB = {
+    // [v2.6.3 패치] 불(화상확률), 쇠(흡혈), 빛(공버프) 설명 업데이트
+    'Fire': { s1:'화염방사', s1d:'1.3배+화상', s2:'메테오', s2d:'광역 0.8배+화상(30%)', type:'AOE', target:'ALL_ENEMY' },
+    'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'아군전체 HP+100 (20% +50)', type:'HEAL', target:'ALL_ALLY' },
+    'Tree': { s1:'광합성', s1d:'쉴드+30/공+15 성장', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'SELF' },
+    'Metal': { s1:'강철베기', s1d:'1.3배+흡혈(40%)', s2:'결투 신청', s2d:'적 도발/쉴드+15', type:'DEBUFF', target:'ENEMY' },
+    'Earth': { s1:'암석투척', s1d:'1.3배+기절/침묵', s2:'지진', s2d:'광역 0.8배', type:'AOE', target:'ALL_ENEMY' },
+    'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'쉴드+전체공UP', type:'BUFF', target:'ALL_ALLY' },
+    'Dark': { s1:'다크볼', s1d:'1.5배', s2:'공포', s2d:'공↓/쉴드30%소멸', type:'DEBUFF', target:'ALL_ENEMY' },
+    'Normal': { s1:'균형타', s1d:'1.5배', s2:'주사위', s2d:'랜덤 피해', type:'RANDOM', target:'ENEMY' },
+    'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY' },
+    'Dark-Dark': { s1:'심연일격', s1d:'0.8배+침묵', s2:'블랙홀', s2d:'턴 스킵(80%)', type:'DEBUFF', target:'ENEMY' },
+    'Water-Light': { s1:'스팀젯', s1d:'1.4배+실명(30%)', s2:'안개', s2d:'타겟힐+회피(25%)', type:'TARGET_BUFF', target:'ALLY' },
+    'Fire-Light': { s1:'청염', s1d:'1.5배', s2:'폭주', s2d:'자신 공+40', type:'SELF_BUFF', target:'SELF' },
+    'Tree-Light': { s1:'숲의분노', s1d:'1.2배+쉴드관통+힐', s2:'축복', s2d:'아군 정화/HP+60', type:'BUFF', target:'ALL_ALLY' },
+    'Metal-Light': { s1:'가스탄', s1d:'0.5배+쉴드파괴', s2:'맹독살포', s2d:'전체 중독', type:'DEBUFF', target:'ALL_ENEMY' },
+    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배+쉴드무시', s2:'모래지옥', s2d:'치유감소+도트', type:'DEBUFF', target:'ENEMY' },
+    'Water-Dark': { s1:'고드름', s1d:'1.5배', s2:'절대영도', s2d:'빙결(40%)', type:'DEBUFF', target:'ENEMY' },
+    'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상', s2:'소각', s2d:'체력비례피해', type:'NUKE_PER', target:'ENEMY' },
+    'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+스택강화', s2:'영혼결속', s2d:'사망시 폭주/광역독', type:'TARGET_BUFF', target:'ALLY' },
+    'Metal-Dark': { s1:'전기충격', s1d:'1.5배+과부하(성장)', s2:'방전', s2d:'광역+기절15%/과부하', type:'AOE', target:'ALL_ENEMY' },
+    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+1턴기절(휴식)', type:'ATK', target:'ENEMY' }
+};
+
+class Unit {
+    constructor(id, team, base, extra) {
+        this.id = id; this.team = team;
+        this.base = base; this.extra = extra;
+        this.maxHp = 500; 
+        if(base==='Tree' && extra==='Dark') this.maxHp = 600;
+        this.hp = this.maxHp; this.shield = (base==='Metal' && !extra) ? 100 : 0;
+        this.atk = 55 + Math.floor(Math.random()*15);
+        this.status = []; this.isDead = false;
+        this.thornStack = 0; this.linkedAllyId = -1;
+        this.resist = 0; 
+        this.s2Count = 0;
+
+        this.isNormal = (this.base==='Light'&&this.extra==='Dark') || (this.base==='Dark'&&this.extra==='Light');
+        this.isEnhanced = (this.base===this.extra && (this.base==='Light'||this.base==='Dark'));
+        
+        if (this.isNormal) this.name = NAME_MAP['Normal'];
+        else if (this.isEnhanced) this.name = NAME_MAP[`${this.base}-${this.extra}`];
+        else if (this.extra) this.name = `${NAME_MAP[`${this.base}-${this.extra}`]} (${ATTR[this.base].n}+${ATTR[this.extra].n})`;
+        else this.name = `${ATTR[this.base].n} (기초)`;
+    }
+    getKey() { if(this.isNormal) return 'Normal'; if(this.isEnhanced) return `${this.base}-${this.extra}`; return SKILL_DB[`${this.base}-${this.extra}`] ? `${this.base}-${this.extra}` : this.base; }
+    getAtk() { let v = this.atk; const ads = this.status.filter(s=>s.type==='ATK_DOWN'); if(ads.length>0) v -= (ads.length*15); if(this.status.some(s=>s.type==='ATK_UP_10')) v+=10; if(this.status.some(s=>s.type==='ATK_BUFF')) v+=40; return Math.max(10, v); }
+    takeDamage(dmg, isFire=false, ignoreShield=false) {
+        if (isFire && this.hasStatus('BURN')) dmg = Math.floor(dmg * 1.25);
+        if (this.hasStatus('DMG_RED')) dmg = Math.floor(dmg * 0.8);
+        if (this.hasStatus('EVADE')) { if(Math.random() < 0.25) return -1; }
+        const link = this.status.find(s => s.type.startsWith('REFLECT_LINK_'));
+        if (link) Game.recordReflectDamage(this.team, parseInt(link.type.split('_')[2]), dmg);
+        if (!ignoreShield && this.shield > 0) { if(this.shield >= dmg) {this.shield -= dmg; return 0;} else {dmg -= this.shield; this.shield = 0;} }
+        this.hp -= dmg; return dmg;
+    }
+    addStatus(type, turn, val=0) {
+        if (this.isNormal && ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN'].includes(type)) return;
+        if (this.resist > 0 && Math.random() < this.resist && ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN'].includes(type)) return;
+        if (type === 'ATK_DOWN') { const s = this.status.filter(s=>s.type==='ATK_DOWN'); if(s.length<2) this.status.push({type,turn,val}); else s[0].turn=turn; return; }
+        if(type==='BURN') { const ex = this.status.find(s=>s.type==='BURN'); if(ex) { ex.turn += turn; return; } }
+        const idx = this.status.findIndex(s=>s.type===type); if(idx >= 0) this.status[idx].turn = turn; else this.status.push({type, turn, val});
+    }
+    hasStatus(type) { return this.status.some(s=>s.type===type); }
+    cleanse() { const bad = ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN']; this.status = this.status.filter(s => !bad.includes(s.type) && !s.type.startsWith('PROVOKED')); }
+    dispel() { const buffs = ['EVADE','DMG_RED','ATK_BUFF','GROWTH','ATK_UP_10']; const has=this.status.some(s=>buffs.includes(s.type)); this.status=this.status.filter(s=>!buffs.includes(s.type)); return has; }
+    tickStatus() {
+        let log = [];
+        if(this.hasStatus('POISON')) { const d=this.takeDamage(30); UI.floatText(this, d, 'ft-dmg'); log.push(`☠️ [${this.name}] 독 피해 ${d}`); }
+        if(this.hasStatus('BURN')) { const d=this.takeDamage(20); UI.floatText(this, d, 'ft-dmg'); log.push(`🔥 [${this.name}] 화상 피해 ${d}`); }
+        if(this.hasStatus('TRAP')) { const d=this.takeDamage(40); UI.floatText(this, d, 'ft-dmg'); log.push(`⏳ [${this.name}] 모래지옥 피해 ${d}`); }
+        this.status.forEach(s => s.turn--); this.status = this.status.filter(s => s.turn > 0);
+        return log;
+    }
+    heal(amount) { if(this.hasStatus('TRAP')) amount = Math.floor(amount * 0.5); const prev=this.hp; this.hp=Math.min(this.maxHp, this.hp+amount); const diff=this.hp-prev; if(diff>0) UI.floatText(this, diff, 'ft-heal'); return diff; }
+}
+
+const AudioSys = {
+    ctx: null,
+    init: function() { try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} },
+    resume: function() { if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); },
+    playSoft: function(freq, type, dur, vol=0.1) {
+        if(!this.ctx) return;
+        const o=this.ctx.createOscillator(); const g=this.ctx.createGain(); const t=this.ctx.currentTime;
+        o.type=type; o.frequency.setValueAtTime(freq,t);
+        g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.05); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+        o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t+dur+0.1);
+    },
+    play: function(type) {
+        if(!this.ctx) return;
+        if(type==='HIT') this.playSoft(100,'triangle',0.15,0.2);
+        else if(type==='SKILL') { this.playSoft(300,'sine',0.2,0.1); setTimeout(()=>this.playSoft(500,'sine',0.3,0.1),100); }
+        else if(type==='HEAL') { this.playSoft(400,'sine',0.3,0.1); setTimeout(()=>this.playSoft(600,'sine',0.4,0.1),150); }
+        else if(type==='DEBUFF') this.playSoft(150,'sine',0.5,0.2);
+        else if(type==='MISS') this.playSoft(800,'triangle',0.05,0.05);
+        else if(type==='WIN') { setTimeout(()=>this.playSoft(400,'sine',0.3,0.2),0); setTimeout(()=>this.playSoft(600,'sine',0.6,0.2),400); }
+    }
+};
+
+const UI = {
+    showModal: function(title, content) {
+        document.getElementById('modal-overlay').style.display = 'flex';
+        document.getElementById('modal-body').innerHTML = `<h3 style="color:#00cec9; margin-top:0;">${title}</h3><div>${content}</div>`;
+    },
+    closeModal: function() { document.getElementById('modal-overlay').style.display = 'none'; },
+    showChart: function() {
+        const tableHtml = `
+            <table class="chart-table">
+                <tr><th>공격자</th><th>유리한 대상 (1.2배)</th></tr>
+                <tr><td>🔥 불</td><td>⚔️ 쇠, 🌿 나무</td></tr>
+                <tr><td>💧 물</td><td>🔥 불, ⚔️ 쇠</td></tr>
+                <tr><td>🌿 나무</td><td>💧 물, ⛰️ 흙</td></tr>
+                <tr><td>⚔️ 쇠</td><td>🌿 나무, ⛰️ 흙</td></tr>
+                <tr><td>⛰️ 흙</td><td>🔥 불, 💧 물</td></tr>
+                <tr><td>☀️/🌙</td><td>서로에게 1.2배</td></tr>
+            </table>
+            <div class="dual-chart">
+                <div style="font-weight:bold; color:#00cec9; margin-bottom:5px;">⚡ 이중 상성 (1.3배 치명타)</div>
+                <div class="dual-row" style='font-size:12px;'>기초 속성 우위 + 빛/어둠이 상대와 반대일 때 발동</div>
+                <div style="font-weight:bold; color:#0984e3; margin-top:5px;">🛡️ 상성 방어</div>
+                <div class="dual-row" style='font-size:12px;'>유리한 속성에게 피격 시 데미지 감경 (0.83배 / 0.76배)</div>
+            </div>
+        `;
+        this.showModal("📊 상성 가이드", tableHtml);
+    },
+    floatText: function(unit, text, type) {
+        const id = unit.team === 0 ? `p-card-${unit.id}` : `e-card-${unit.id}`;
+        const unitEl = document.getElementById(id); if(!unitEl) return;
+        const el = document.createElement('div'); el.className = `float-text ${type}`;
+        el.innerText = type === 'ft-heal' ? `+${text}` : text;
+        const rect = unitEl.getBoundingClientRect();
+        el.style.left = (rect.left + rect.width / 2) + 'px'; el.style.top = rect.top + 'px';
+        document.body.appendChild(el); setTimeout(() => el.remove(), 800);
+    }
+};
+
+const Game = {
+    pool: [], selected: [], pTeam: [], eTeam: [], queue: [], curr: 0, selectedSkillIdx: -1, timer: null, turnCount: 1, difficulty: 'normal', watchdog: null,
+
+    init: function() {
+        if(this.timer) clearTimeout(this.timer);
+        let combos = [];
+        const bases = ['Fire','Water','Tree','Metal','Earth','Light','Dark'];
+        const extras = [null, 'Light', 'Dark'];
+        bases.forEach(b => extras.forEach(e => combos.push({b, e})));
+        combos = combos.filter(c => !(c.b === 'Dark' && c.e === 'Light')); 
+        combos.sort(() => Math.random() - 0.5);
+
+        const grid = document.getElementById('hero-grid');
+        grid.innerHTML = '';
+        this.pool = []; this.selected = [];
+
+        for(let i=0; i<12; i++) {
+            const c = combos[i];
+            const u = new Unit(i, 0, c.b, c.e);
+            this.pool.push(u);
+            const el = document.createElement('div');
+            el.className = 'hero-card';
+            el.innerHTML = this.renderCard(u);
+            el.onclick = () => this.toggle(i, el);
+            grid.appendChild(el);
+        }
+        document.getElementById('btn-start').innerText = "전투 시작 (0/3)";
+        document.getElementById('btn-start').disabled = true;
+    },
+
+    renderCard: function(u) {
+        let bgClass = `bg-${u.base}`;
+        if(u.isEnhanced) bgClass = `bg-${u.base}-Enhanced`;
+        if(u.isNormal) bgClass = 'bg-Normal';
+        const role = SKILL_DB[u.getKey()].role || 'Unit';
+        return `<div class="attr-icon ${bgClass}">${ATTR[u.base].i}${u.extra && !u.isNormal && !u.isEnhanced ? `<div class="sub-attr-icon">${ATTR[u.extra].i}</div>` : ''}</div><div style="font-weight:bold; margin-bottom:2px;">${u.name.split(' ')[0]}</div><div style="font-size:11px; color:#aaa;">${u.name}</div><div style="margin-top:5px; font-size:10px; background:#f0f0f0; padding:2px 6px; border-radius:4px;">${role}</div>`;
+    },
+
+    toggle: function(i, el) {
+        if(this.selected.includes(i)) { this.selected = this.selected.filter(x=>x!==i); el.classList.remove('selected'); }
+        else { if(this.selected.length>=3) return; this.selected.push(i); el.classList.add('selected'); }
+        const btn = document.getElementById('btn-start');
+        btn.innerText = `전투 시작 (${this.selected.length}/3)`;
+        btn.disabled = this.selected.length !== 3;
+    },
+
+    randomPick: function() {
+        Game.selected.forEach(i => {
+            const el = document.querySelectorAll('.hero-card')[i];
+            if(el) el.classList.remove('selected');
+        });
+        Game.selected = [];
+        while(Game.selected.length < 3) {
+            const r = Math.floor(Math.random() * 12);
+            if(!Game.selected.includes(r)) {
+                Game.selected.push(r);
+                const el = document.querySelectorAll('.hero-card')[r];
+                if(el) el.classList.add('selected');
+            }
+        }
+        const btn = document.getElementById('btn-start');
+        btn.innerText = `전투 시작 (3/3)`;
+        btn.disabled = false;
+    },
+
+    start: function() {
+        AudioSys.init(); AudioSys.resume();
+        this.difficulty = document.getElementById('diff-select').value;
+        this.pTeam = this.selected.map((idx, i) => { const u = this.pool[idx]; u.id=i; u.team=0; return u; });
+        this.eTeam = [];
+        if (this.difficulty === 'hell') {
+            const decks = [
+                [{b:'Tree',e:'Light'}, {b:'Earth',e:'Light'}, {b:'Water',e:null}], 
+                [{b:'Metal',e:'Dark'}, {b:'Water',e:'Light'}, {b:'Light',e:'Dark'}], 
+                [{b:'Tree',e:'Dark'}, {b:'Metal',e:'Light'}, {b:'Tree',e:null}], 
+                [{b:'Metal',e:'Light'}, {b:'Dark',e:null}, {b:'Earth',e:'Dark'}], 
+                [{b:'Water',e:'Dark'}, {b:'Dark',e:'Dark'}, {b:'Earth',e:null}], 
+                [{b:'Fire',e:null}, {b:'Fire',e:'Dark'}, {b:'Light',e:'Light'}], 
+                [{b:'Water',e:null}, {b:'Light',e:'Dark'}, {b:'Metal',e:'Dark'}] 
+            ];
+            const d = decks[Math.floor(Math.random()*decks.length)];
+            this.eTeam = d.map((c, i) => new Unit(i, 1, c.b, c.e));
+        } else {
+            const used = new Set();
+            while(this.eTeam.length<3) {
+                const b = ['Fire','Water','Tree','Metal','Earth','Light','Dark'][Math.floor(Math.random()*7)];
+                const e = [null,'Light','Dark'][Math.floor(Math.random()*3)];
+                if(b==='Dark'&&e==='Light') continue; if(b==='Light'&&e==='Dark') { if(used.has('Normal')) continue; used.add('Normal'); }
+                const key = `${b}-${e}`;
+                if(!used.has(key)) { used.add(key); this.eTeam.push(new Unit(this.eTeam.length, 1, b, e)); }
+            }
+        }
+        this.queue = [0,1,2,3,4,5]; this.curr = Math.floor(Math.random()*6);
+        this.turnCount = 1;
+        document.getElementById('selection-screen').style.display='none';
+        document.getElementById('battle-screen').style.display='flex';
+        document.getElementById('logs').innerHTML = ''; 
+        this.log("<span class='log-sys'>⚔️ 전투 시작! (v2.6.3 Update)</span>");
+        this.render();
+        this.timer = setTimeout(()=>this.turn(), 1000);
+    },
+
+    reset: function() {
+        if(this.timer) clearTimeout(this.timer);
+        if(this.watchdog) clearTimeout(this.watchdog);
+        UI.closeModal();
+        document.getElementById('battle-screen').style.display='none';
+        document.getElementById('selection-screen').style.display='flex';
+        this.init();
+    },
+
+    recordReflectDamage: function(teamId, ownerId, amount) {},
+
+    turn: function() {
+        if(this.watchdog) clearTimeout(this.watchdog);
+        this.watchdog = setTimeout(() => {
+            console.log("AI Stuck Detected. Forcing next turn.");
+            this.endTurn();
+        }, 3000);
+
+        if(this.endCheck()) return;
+        const tVal = this.queue[this.curr];
+        const u = tVal%2===0 ? this.pTeam[tVal/2] : this.eTeam[(tVal-1)/2];
+
+        if(u.isDead) { this.endTurn(); return; }
+        
+        const tickLogs = u.tickStatus();
+        tickLogs.forEach(l => this.log(`<span class='log-sys'>${l}</span>`));
+        this.render();
+        if(u.hp<=0) { this.die(u); this.endTurn(); return; }
+
+        if(u.hasStatus('FREEZE') || u.hasStatus('STUN') || u.hasStatus('BANISH')) {
+            UI.floatText(u, "SKIP", "ft-miss");
+            u.status = u.status.filter(s=>!['FREEZE','STUN','BANISH'].includes(s.type));
+            this.endTurn(); return;
+        }
+
+        document.getElementById('turn-indicator').innerText = `Turn ${Math.ceil(this.turnCount/6)} : ${u.name}`;
+        this.turnCount++;
+        
+        if(u.team===0) { 
+            if(this.watchdog) clearTimeout(this.watchdog);
+            this.input(u); 
+        } else { 
+            this.noInput(); 
+            this.timer=setTimeout(()=>this.ai(u), 800); 
+        }
+    },
+
+    input: function(u) {
+        const k=u.getKey(); const s=SKILL_DB[k];
+        const silenced = u.hasStatus('SILENCE');
+        document.getElementById('sk-1').innerHTML = `<span class="skill-name" style="font-weight:bold">${s.s1}</span><br><span style="font-size:10px">${s.s1d}</span>`;
+        document.getElementById('sk-2').innerHTML = `<span class="skill-name" style="font-weight:bold">${s.s2}</span><br><span style="font-size:10px">${s.s2d}</span>`;
+        document.getElementById('sk-0').disabled = false;
+        document.getElementById('sk-1').disabled = silenced;
+        
+        let s2Limit = false;
+        if (k === 'Fire-Light' && u.s2Count >= 5) s2Limit = true;
+        let sk2Disable = silenced || s2Limit;
+        if(k==='Tree-Dark' && u.linkedAllyId !== -1) sk2Disable = true;
+        document.getElementById('sk-2').disabled = sk2Disable;
+        
+        if(silenced) this.log(`<span class='log-sys'>😶 [${u.name}] 침묵 상태!</span>`);
+        const provoked = u.status.find(st => st.type.startsWith('PROVOKED_BY_'));
+        if(provoked) {
+            const targetId = parseInt(provoked.type.split('_')[2]);
+            this.log(`<span class='log-sys'>💢 [${u.name}] 도발 당함!</span>`);
+            this.noInput(); 
+            const target = this.eTeam[targetId];
+            if(target && !target.isDead) setTimeout(() => this.execute(u, target, 0), 1000);
+            else setTimeout(() => { this.selectedSkillIdx=0; this.highlightTargets('ENEMY'); }, 500); 
+            return;
+        }
+        this.selectedSkillIdx = -1;
+    },
+    
+    noInput: function() { [0,1,2].forEach(i=>{ const b = document.getElementById(`sk-${i}`); b.disabled=true; b.classList.remove('selected'); }); },
+
+    prepareSkill: function(idx) {
+        [0,1,2].forEach(i => { const b = document.getElementById(`sk-${i}`); if(i===idx) b.classList.add('selected'); else b.classList.remove('selected'); });
+        this.selectedSkillIdx = idx;
+        const u = this.pTeam[this.queue[this.curr]/2]; const k = u.getKey(); const skillInfo = SKILL_DB[k];
+        let targetType = (idx === 0 || idx === 1) ? 'ENEMY' : skillInfo.target;
+        if(k==='Tree') { if(idx===1) targetType = 'SELF'; else if(idx===2) targetType = 'ALLY'; }
+        if(k==='Water-Light' && idx===2) targetType = 'ALLY';
+        this.highlightTargets(targetType);
+    },
+
+    highlightTargets: function(targetType) {
+        document.querySelectorAll('.unit').forEach(el => { el.classList.remove('target-enemy', 'target-ally'); el.onclick = null; });
+        const isAllyTarget = ['ALLY','ALL_ALLY','SELF'].includes(targetType);
+        const targets = isAllyTarget ? this.pTeam : this.eTeam;
+        const targetClass = isAllyTarget ? 'target-ally' : 'target-enemy';
+        targets.forEach((t, i) => {
+            if(!t.isDead) {
+                const el = document.getElementById(isAllyTarget ? `p-card-${i}` : `e-card-${i}`);
+                el.classList.add(targetClass);
+                el.onclick = () => {
+                    if(targetType === 'SELF' && t.id !== this.pTeam[this.queue[this.curr]/2].id) return;
+                    this.noInput();
+                    document.querySelectorAll('.unit').forEach(el => el.classList.remove('target-enemy', 'target-ally'));
+                    this.execute(this.pTeam[this.queue[this.curr]/2], t, this.selectedSkillIdx);
+                };
+            }
+        });
+    },
+
+    ai: function(u) {
+        try {
+            const silenced = u.hasStatus('SILENCE');
+            const provoked = u.status.find(st => st.type.startsWith('PROVOKED_BY_'));
+            if(provoked) {
+                const targetId = parseInt(provoked.type.split('_')[2]);
+                const target = this.pTeam[targetId];
+                if(target && !target.isDead) { this.execute(u, target, 0); return; }
+            }
+
+            const aliveP = this.pTeam.filter(p=>!p.isDead);
+            const aliveE = this.eTeam.filter(e=>!e.isDead);
+            const k = u.getKey(); 
+            const info = SKILL_DB[k];
+            
+            let blockS2 = false;
+            if (k === 'Fire-Light') {
+                const hasBuff = u.status.some(s => s.type === 'ATK_BUFF'); 
+                if (hasBuff || u.s2Count >= 5) blockS2 = true; 
+            }
+
+            if (this.difficulty === 'hell' || this.difficulty === 'hard') {
+                let target = aliveP[0];
+                let bestScore = -9999;
+                
+                // 타겟팅 개선 (힐 스킬은 아군을 봄)
+                const isHeal = ['HEAL','BUFF','TARGET_BUFF','SELF_BUFF'].includes(info.type);
+                
+                if (isHeal) {
+                    target = aliveE.sort((a,b)=>a.hp-b.hp)[0]; 
+                } else {
+                    aliveP.forEach(p => {
+                        let score = 0;
+                        if (p.hp < u.getAtk() * 1.5) score += 50; 
+                        const aff = Game.calc(u, p).v;
+                        if (aff > 1.2) score += 20; 
+                        if (p.hp < p.maxHp * 0.4) score += 10; 
+                        if (score > bestScore) { bestScore = score; target = p; }
+                    });
+                }
+
+                let action = 0; 
+                if (!silenced) {
+                    const s2IsAttack = !['BUFF','SELF_BUFF','HEAL','TARGET_BUFF'].includes(info.type);
+                    if (s2IsAttack) action = 2;
+                    else if (info.type === 'SELF_BUFF' && !blockS2) action = 2; 
+                    else action = 1;
+                }
+                if (['HEAL','BUFF','TARGET_BUFF','SELF_BUFF'].includes(info.type) && !silenced) action = 2;
+                this.execute(u, target, action);
+            } else {
+                let target = aliveP.sort((a,b) => a.hp - b.hp)[0]; 
+                if (this.difficulty === 'easy') target = aliveP[Math.floor(Math.random()*aliveP.length)];
+                let sIdx = 0;
+                if(!silenced) {
+                    if (blockS2) sIdx = 1;
+                    else sIdx = Math.random()>0.4 ? 2 : 1;
+                }
+                this.execute(u, target, sIdx);
+            }
+        } catch (e) {
+            this.endTurn(); 
+        }
+    },
+
+    execute: function(atk, def, sIdx) {
+        document.querySelectorAll('.unit').forEach(el=>el.onclick=null);
+        const k = atk.getKey(); const s = SKILL_DB[k];
+        
+        const aff = (def && def.team !== atk.team) ? this.calc(atk, def) : {v:1, t:''};
+        let defMod = 1.0;
+        if (def && def.team !== atk.team) {
+            const defAff = this.calc(def, atk); 
+            if (defAff.v === 1.3) defMod = 0.76; 
+            else if (defAff.v === 1.2) defMod = 0.83;
+        }
+
+        let m = `<b class="${atk.team===0?'log-ally':'log-enemy'}">[${atk.name}]</b> ${sIdx===0?'공격':(sIdx===1?s.s1:s.s2)} ➔ `;
+        if(def && def.team !== atk.team) m += `<b class="${def.team===0?'log-ally':'log-enemy'}">[${def.name}]</b> `;
+
+        if (atk.hasStatus('BLIND') && Math.random() < 0.30) {
+            m += " (실명으로 빗나감!)"; UI.floatText(atk, "MISS", "ft-miss"); AudioSys.play('MISS');
+            this.log(m); this.endTurn(); return;
+        }
+
+        if(sIdx<2) AudioSys.play('HIT');
+        else {
+             if(['HEAL','BUFF','SELF_BUFF','TARGET_BUFF'].includes(s.type)) AudioSys.play('HEAL');
+             else if(s.type==='DEBUFF') AudioSys.play('DEBUFF'); else AudioSys.play('SKILL');
+        }
+
+        const baseAtk = atk.getAtk();
+
+        if(sIdx === 0) {
+            const dmg = Math.floor(baseAtk * 1.0 * aff.v * defMod);
+            const act = def.takeDamage(dmg);
+            if(act===-1) { m+="빗나감!"; UI.floatText(def, "MISS", "ft-miss"); AudioSys.play('MISS'); }
+            else { m += `${act} 피해 ${aff.t||''}`; this.shake(def); UI.floatText(def, act, aff.v>1.2?"ft-crit":"ft-dmg"); }
+        } else if (sIdx === 1) {
+            if(k === 'Tree') {
+                atk.shield += 30; // [패치4]
+                atk.atk += 15; atk.addStatus('GROWTH', 99); 
+                m = `<b class="${atk.team===0?'log-ally':'log-enemy'}">[${atk.name}]</b> 광합성! (성장)`;
+                UI.floatText(atk, "GROWTH", "ft-heal");
+            } else {
+                // [v2.6.3 쇠 흡혈 및 데미지 하향]
+                let mult = 1.5; 
+                if (atk.base === 'Metal') mult = 1.3;
+                if(k==='Tree-Dark') mult += atk.thornStack; if(k==='Water-Light') mult = 1.4;
+                
+                let rawDmg = Math.floor(baseAtk * (s.s1d.includes('0.7')?0.7:(s.s1d.includes('0.5')?0.5:mult)) * aff.v * defMod);
+                
+                if(k==='Earth') { if(Math.random() < 0.25) { def.addStatus('STUN', 1, 0, atk); m+='(기절) '; } else if(Math.random() < 0.20) { def.addStatus('SILENCE', 2, 0, atk); m+='(침묵) '; } }
+                if(k==='Metal-Light') { def.shield=0; def.addStatus('POISON', 3, 0, atk); m+='(쉴드파괴+중독) '; }
+                if(k==='Dark-Dark') { def.addStatus('SILENCE', 2, 0, atk); m+='(침묵) '; }
+                if(k==='Water-Light' && Math.random()<0.3) { def.addStatus('BLIND', 1, 0, atk); m+='(실명 성공) '; }
+                if(k==='Fire') { def.addStatus('BURN', 2, 0, atk); m+='(화상) '; }
+                if(k==='Fire-Dark') { (atk.team===0 ? this.eTeam : this.pTeam).forEach(e => { if(!e.isDead) e.addStatus('BURN', 2, 0, atk); }); m += '(전체 화상) '; }
+                if(k==='Tree-Light') {
+                    const allies = atk.team===0 ? this.pTeam : this.eTeam;
+                    const alive = allies.filter(a=>!a.isDead);
+                    if(alive.length > 0) { const lucky = alive[Math.floor(Math.random()*alive.length)]; lucky.heal(20); m+=`(아군 회복) `; }
+                }
+                if(k==='Metal-Dark' && Math.random()<0.1) { 
+                    const extra = Math.floor(baseAtk * 1.0 * aff.v * defMod); 
+                    rawDmg += extra; 
+                    atk.atk += 25; // [패치2]
+                    m += `<span class='log-crit'>(⚡과부하!+${extra})</span>`; 
+                }
+
+                if (k === 'Earth-Light' || k === 'Tree-Light') { // [패치3]
+                    let d = Math.floor(baseAtk * (k==='Earth-Light'?1.3:1.2) * aff.v * defMod);
+                    let actual = def.takeDamage(d, false, true);
+                    m += `${actual} 피해 (쉴드무시) ${aff.t||''}`; this.shake(def); UI.floatText(def, actual, "ft-crit");
+                } else {
+                    let actDmg = k==='Fire-Dark' ? Math.floor(baseAtk * 1.0 * aff.v * defMod) : rawDmg;
+                    const act = def.takeDamage(actDmg, k==='Fire');
+                    if(act===-1) { m+="빗나감!"; UI.floatText(def, "MISS", "ft-miss"); }
+                    else { 
+                        m += `${act} 피해 ${aff.t||''}`; this.shake(def); UI.floatText(def, act, aff.v>1.2?"ft-crit":"ft-dmg"); 
+                        // [v2.6.3] 쇠 흡혈 로직
+                        if (atk.base === 'Metal' && act > 0) {
+                            const healAmt = Math.floor(act * 0.4);
+                            atk.heal(healAmt);
+                            m += ` (🩸흡혈 ${healAmt})`;
+                        }
+                    }
+                }
+            }
+        } else {
+            if (k === 'Fire-Light') atk.s2Count++;
+
+            const allies = atk.team===0?this.pTeam:this.eTeam;
+            const enemies = atk.team===0?this.eTeam:this.pTeam;
+            if(s.type === 'AOE') {
+                m += "전체 공격!";
+                enemies.forEach(e => { if(!e.isDead) {
+                    let indDefMod = 1.0;
+                    const da = Game.calc(e, atk);
+                    if(da.v===1.3) indDefMod=0.76; else if(da.v===1.2) indDefMod=0.83;
+                    const dmg = Math.floor(baseAtk * 0.8 * Game.calc(atk, e).v * indDefMod);
+                    const act = e.takeDamage(dmg, k==='Fire');
+                    if(act !== -1) { 
+                        this.shake(e); UI.floatText(e, act, "ft-dmg"); 
+                        if(k==='Earth-Light') e.addStatus('BLIND', 2); 
+                        if(k==='Metal-Dark'&&Math.random()<0.15) e.addStatus('STUN', 1); 
+                        // [v2.6.3 불 메테오 광역 화상]
+                        if(k==='Fire' && Math.random()<0.3) e.addStatus('BURN', 2, 0, atk);
+                    }
+                }});
+            } else if(s.type === 'HEAL') { 
+                allies.forEach(a=>{if(!a.isDead) a.heal(100)}); 
+                m+="아군 회복 (+100)"; 
+                if(k==='Water' && Math.random() < 0.2) { // [패치1]
+                    const lowest = allies.filter(a=>!a.isDead).sort((a,b)=>a.hp-b.hp)[0];
+                    if(lowest) { lowest.heal(50); m+=` (💧대박힐 +50)`; UI.floatText(lowest, "+50", "ft-heal"); }
+                }
+            }
+            else if(s.type.includes('BUFF')) {
+                m += "아군 강화!";
+                if(k==='Light') {
+                    allies.forEach(a=>{
+                        if(!a.isDead) {
+                            a.shield=Math.min(300, a.shield+90);
+                            // [v2.6.3] 빛 아군 공버프
+                            a.addStatus('ATK_UP_10', 1);
+                        }
+                    }); 
+                }
+                else if(k==='Light-Light') allies.forEach(a=>{if(!a.isDead) {a.shield=Math.min(300, a.shield+50); a.cleanse();}}); 
+                else if(k==='Fire-Light') { atk.atk+=40; atk.addStatus('ATK_BUFF', 99); m="자신 공격력 +40"; }
+                else if(k==='Tree-Light') allies.forEach(a=>{if(!a.isDead) {a.heal(50); a.cleanse();}});
+            } else if(s.type === 'TARGET_BUFF' || s.type === 'SELF_BUFF') {
+                if(def) { 
+                    if(k==='Tree') { def.heal(150); def.cleanse(); m+=`치유/정화`; }
+                    else if(k==='Tree-Dark') { 
+                        atk.linkedAllyId = def.id; def.addStatus('BIND', 99); 
+                        atk.resist += 0.3; 
+                        m+=`${def.name} 결속! (폭주대기/저항↑)`; 
+                    }
+                    else if(k==='Water-Light') {
+                        allies.forEach(a=>{if(!a.isDead) a.addStatus('EVADE', 2)});
+                        const missing = def.maxHp - def.hp;
+                        const healAmt = Math.floor(missing * 0.15);
+                        def.heal(healAmt); m += ` (회피증가+치유)`;
+                    }
+                }
+            } else if(s.type === 'DEBUFF') {
+                if(k==='Metal') { def.addStatus(`PROVOKED_BY_${atk.id}`, 2); atk.addStatus('DMG_RED', 2); atk.shield+=15; m += `도발! (쉴드+15)`; }
+                else if(k==='Dark') { enemies.forEach(e=>{if(!e.isDead){ e.addStatus('ATK_DOWN', 2); e.shield=Math.floor(e.shield*0.7); if(Math.random()<0.2) e.dispel(); }}); m+="적 전체 공포"; }
+                else if(k==='Metal-Light') { enemies.forEach(e=>{if(!e.isDead) e.addStatus('POISON', 3)}); m+="광역 중독"; }
+                else if(k==='Earth-Light') { def.addStatus('TRAP', 2); m+=`모래지옥`; }
+                else if(k==='Dark-Dark') { atk.takeDamage(20); if(Math.random()<0.8) { def.addStatus('BANISH', 1); m+=`블랙홀 성공!`; UI.floatText(def, "BANISHED", "ft-miss"); } else m+=`블랙홀 실패!`; }
+                else if(k==='Water-Dark') { const act=def.takeDamage(Math.floor(baseAtk)); m+=`${act} 피해`; UI.floatText(def, act, "ft-dmg"); if(Math.random()<0.4) { def.addStatus('FREEZE', 1); m+=" (빙결)"; } }
+            } else if(s.type === 'NUKE' || s.type === 'NUKE_PER' || s.type === 'ATK') {
+                let dmg = k==='Earth-Dark' ? Math.floor(baseAtk * 2.5 * aff.v * defMod) : (s.type==='NUKE_PER' ? Math.floor(baseAtk * 1.2 * aff.v * defMod + def.maxHp * 0.1) : Math.floor(baseAtk * 2.0 * aff.v * defMod));
+                if(k==='Earth-Dark') atk.addStatus('STUN', 1);
+                const act = def.takeDamage(dmg, k==='Fire');
+                if(act!==-1) { m+=`${act} 폭발적 피해!`; this.shake(def); UI.floatText(def, act, "ft-crit"); } else AudioSys.play('MISS');
+            } else if(s.type === 'RANDOM') {
+                const rnd = Math.random() * 1.7 + 0.8;
+                const dmg = Math.floor(baseAtk * rnd * aff.v * defMod);
+                def.takeDamage(dmg); m+=`주사위 ${act}`; this.shake(def); UI.floatText(def, dmg, "ft-dmg");
+            }
+        }
+        if(k === 'Metal-Dark' && sIdx===2 && Math.random() < 0.1) {
+            const aliveE = enemies.filter(e=>!e.isDead);
+            if(aliveE.length>0) { const target = aliveE[Math.floor(Math.random()*aliveE.length)]; const extra = Math.floor(baseAtk); target.takeDamage(extra, false); m += `<br>⚡ 과부하! +${extra}`; UI.floatText(target, extra, "ft-crit"); }
+        }
+        this.log(m); this.endTurn();
+    },
+
+    endTurn: function() {
+        if(this.watchdog) clearTimeout(this.watchdog);
+        [...this.pTeam, ...this.eTeam].forEach(u=>{if(u.hp<=0) this.die(u)});
+        this.curr = (this.curr+1)%6;
+        if(this.curr===0) this.turnCount++;
+        this.render();
+        this.timer = setTimeout(()=>this.turn(), 1500);
+    },
+
+    calc: (a,d) => {
+        if(a.isNormal) return (d.isNormal||d.isEnhanced)?{v:1.2}:{v:1};
+        const w={'Fire':['Metal','Tree'],'Water':['Fire','Metal'],'Tree':['Water','Earth'],'Metal':['Tree','Earth'],'Earth':['Fire','Water']};
+        const ew={'Light':['Dark'],'Dark':['Light']}; let v=1.0;
+        if(!d.isNormal){ if(w[a.base]?.includes(d.base)||ew[a.base]?.includes(d.base)) v=1.2; }
+        if(v===1.2 && a.extra && d.extra && ((a.extra==='Light'&&d.extra==='Dark')||(a.extra==='Dark'&&d.extra==='Light'))) v=1.3;
+        return {v};
+    },
+    
+    die: function(u) { 
+        if(u.isDead) return; u.isDead=true; u.hp=0; u.status=[]; 
+        Game.log(`${u.name} 탈락`); 
+        
+        const allies = u.team===0 ? Game.pTeam : Game.eTeam;
+        const thorn = allies.find(a => a.base==='Tree' && a.extra==='Dark' && !a.isDead && a.linkedAllyId === u.id);
+        if(thorn) { 
+            thorn.thornStack += 0.3; thorn.atk += 20; thorn.linkedAllyId = -1; 
+            Game.log(`🌵 [${thorn.name}] 복수! (광역독)`);
+            const enemies = u.team===0 ? Game.eTeam : Game.pTeam;
+            enemies.forEach(e => { if(!e.isDead) e.addStatus('POISON', 1, 0); });
+            UI.floatText(thorn, "RAGE!", "ft-crit"); 
+        }
+    },
+    endCheck: function() {
+        const pd=this.pTeam.every(u=>u.isDead), ed=this.eTeam.every(u=>u.isDead);
+        if(pd||ed) { AudioSys.play('WIN'); UI.showModal(pd?"패배":"승리!", pd?"아군 전멸.":"적군 제압!"); return true; } return false;
+    },
+    log: function(m) { const b=document.getElementById('logs'); const d=document.createElement('div'); d.className='log-entry'; d.innerHTML=m; b.appendChild(d); b.scrollTop = b.scrollHeight; },
+    render: function() {
+        const draw = (id, team, tid) => {
+            const el=document.getElementById(id); el.innerHTML='';
+            team.forEach((u,i) => {
+                const turn = this.queue[this.curr]===(tid===0?i*2:i*2+1);
+                const d=document.createElement('div');
+                d.className = `unit ${u.isDead?'dead':''} ${turn?'active-turn':''} ${tid===1?'target-enemy':''} ${tid===0?'target-ally':''}`;
+                d.id = tid===0 ? `p-card-${i}` : `e-card-${i}`;
+                
+                const tags = u.status.map(s => {
+                    let c='tag'; 
+                    if(s.type=='POISON') c+=' poison'; else if(s.type=='FREEZE') c+=' freeze'; 
+                    else if(s.type.includes('PROVOKED')) c+=' taunt'; else if(s.type=='SILENCE') c+=' silence';
+                    else if(s.type=='EVADE') c+=' evade'; else if(s.type=='BURN') c+=' burn';
+                    else if(s.type=='BANISH') c+=' banish'; else if(s.type=='TRAP') c+=' trap';
+                    else if(s.type=='BIND') c+=' bind'; else if(s.type=='GROWTH') c+=' growth';
+                    else if(s.type=='ATK_DOWN') c+=' atkdown'; else if(s.type=='BLIND') c+=' blind';
+                    else if(s.type=='ATK_BUFF') c+=' growth'; else if(s.type=='ATK_UP_10') c+=' growth';
+                    
+                    let txt = s.type;
+                    if(s.type=='POISON') txt='독'; if(s.type=='FREEZE') txt='빙결'; 
+                    if(s.type.includes('PROVOKED')) txt='도발'; if(s.type=='SILENCE') txt='침묵';
+                    if(s.type=='DMG_RED') txt='방어↑'; if(s.type=='EVADE') txt='회피';
+                    if(s.type=='BURN') txt='화상'; if(s.type=='TRAP') txt='속박';
+                    if(s.type=='BANISH') txt='추방'; if(s.type=='BIND') txt='결속';
+                    if(s.type=='GROWTH') txt='성장'; if(s.type=='ATK_DOWN') txt='공격↓';
+                    if(s.type=='BLIND') txt='실명'; if(s.type=='ATK_BUFF') txt='폭주';
+                    if(s.type=='ATK_UP_10') txt='공UP';
+
+                    return `<span class="${c}">${txt}(${s.turn})</span>`;
+                }).join('');
+
+                let bgClass = `bg-${u.base}`;
+                if(u.isEnhanced) bgClass = `bg-${u.base}-Enhanced`;
+                if(u.isNormal) bgClass = 'bg-Normal';
+
+                d.innerHTML = `
+                    <div class="tag-container">${tags}</div>
+                    <div class="attr-icon ${bgClass}">${ATTR[u.base].i}${u.extra && !u.isNormal && !u.isEnhanced ? `<div class="sub-attr-icon">${ATTR[u.extra].i}</div>`:''}</div>
+                    <div class="unit-name">${u.name.split(' ')[0]}</div>
+                    <div class="status-bar"><div class="hp-fill" style="width:${(u.hp/u.maxHp)*100}%; background:${u.hp<150?'var(--hp-low)':'var(--hp-high)'}"></div><div class="shield-fill" style="width:${(u.shield/u.maxHp)*100}%"></div></div>
+                    <div style="font-size:10px; margin-top:3px; color:#b2bec3;">${u.hp}${u.shield>0?` (+${u.shield})`:''}</div>
+                `;
+                el.appendChild(d);
+            });
+        };
+        draw('player-row', this.pTeam, 0); draw('enemy-row', this.eTeam, 1);
+    },
+    shake: function(u) { const id = u.team === 0 ? `p-card-${u.id}` : `e-card-${u.id}`; const el = document.getElementById(id); if(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); } }
+};
+
+window.onload = function() { Game.init(); };
+</script>
