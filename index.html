@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v3.7 Final Complete</title>
+    <title>Elemental Tactics: v4.1 AI & Meta Update</title>
     <style>
         :root {
             --bg-main: #f4f7f6; --panel-bg: #ffffff;
@@ -67,7 +67,7 @@
         .unit.target-aoe { border-color: #d63031; background: #ffebee; animation: pulse 1s infinite; cursor: pointer; }
         .unit.dead { opacity: 0.5; filter: grayscale(1); pointer-events: none; border-color: #b2bec3; transform: scale(0.95); }
 
-        /* [Visual] Unit Role Shapes */
+        /* Role Shapes */
         .unit.role-tank { border-radius: 6px; border-width: 4px; }
         .unit.role-nuker { border-radius: 16px 4px; }
         .unit.role-supp { border-radius: 20px; }
@@ -85,12 +85,19 @@
             font-size: 10px; display: flex; justify-content: center; align-items: center;
         }
         
+        .mini-attr-box {
+            position: absolute; bottom: -6px; right: -6px; 
+            display: flex; gap: 1px; background: rgba(0,0,0,0.7); 
+            padding: 2px; border-radius: 8px; border: 1px solid #fff;
+        }
+        .mini-icon { font-size: 10px; line-height: 1; }
+        
         .status-bar { width: 90%; height: 6px; background: #dfe6e9; border-radius: 3px; overflow: hidden; position: relative; margin-top: 4px; }
         .hp-fill { height: 100%; background: var(--hp-high); transition: width 0.3s; }
         .shield-fill { position: absolute; top:0; left:0; height: 100%; background: var(--shield); opacity: 0.8; transition: width 0.3s; }
 
         .control-panel { 
-            flex: 0 0 auto; max-height: 35vh; 
+            flex: 0 0 auto; max-height: 40vh; 
             background: var(--panel-bg); border-radius: 16px 16px 0 0; 
             box-shadow: 0 -5px 20px rgba(0,0,0,0.05); 
             display: flex; flex-direction: column; overflow: hidden; width: 100%;
@@ -104,12 +111,12 @@
         .tl-node.ally { border-color: #74b9ff; background: #eaf4ff; }
         .tl-node.enemy { border-color: #ff7675; background: #fff0f0; }
 
-        .log-container { flex: 1; padding: 8px; overflow-y: auto; font-size: 12px; border-bottom: 1px solid #eee; background: #fff; line-height: 1.5; display: flex; flex-direction: column; min-height: 60px; }
+        .log-container { flex: 1; padding: 8px; overflow-y: auto; font-size: 12px; border-bottom: 1px solid #eee; background: #fff; line-height: 1.5; display: flex; flex-direction: column; min-height: 50px; }
         .log-entry { margin-bottom: 3px; padding-bottom: 3px; border-bottom: 1px dashed #f1f2f6; word-break: keep-all; }
         .log-ally { color: #2980b9; } .log-enemy { color: #c0392b; } .log-sys { color: #7f8c8d; font-style: italic; }
         .log-crit { color: #e67e22; font-weight: bold; }
         
-        .btn-group { display: flex; height: 80px; flex-shrink: 0; }
+        .btn-group { display: flex; height: 75px; flex-shrink: 0; }
         .skill-btn { 
             flex: 1; border: none; background: #fff; border-right: 1px solid #eee; 
             cursor: pointer; transition: 0.2s; color: var(--text-main); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; padding: 5px;
@@ -119,6 +126,12 @@
         .skill-btn:disabled { background: #fdfdfd; color: #ccc; cursor: not-allowed; }
         .skill-name { font-size: 13px; font-weight: bold; margin-bottom: 2px; }
         .skill-desc { font-size: 10px; color: #666; line-height: 1.1; }
+
+        .passive-panel {
+            background: #f1f2f6; padding: 6px 12px; font-size: 11px; color: #555;
+            display: flex; align-items: center; border-top: 1px solid #dfe6e9;
+        }
+        .passive-icon { margin-right: 6px; font-size: 14px; }
         
         .btn-start { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; width: 100%; margin-top: 15px; cursor: pointer; font-size: 16px; box-shadow: 0 4px 10px rgba(0, 206, 201, 0.3); }
         .btn-start:disabled { background: #b2bec3; cursor: not-allowed; box-shadow: none; }
@@ -148,6 +161,7 @@
         .tag.blind { background: #95a5a6; color:#333; text-shadow:none; }
         .tag.immunity { background: #fff; color:#333; border:1px solid #333; text-shadow:none; }
         .tag.healdown { background: #8B4513; color:#fff; }
+        .tag.atkup { background: #c0392b; color:#fff; }
 
         .float-text {
             position: absolute; font-weight: 900; font-size: 24px; pointer-events: none; z-index: 100;
@@ -169,14 +183,6 @@
         .chart-table th { background: #f8f9fa; color: #2d3436; }
 
         .diff-select { margin: 15px 0; padding: 10px; width: 100%; border-radius: 8px; border: 1px solid #dfe6e9; font-size: 14px; }
-        
-        /* [New] Mini Attribute Container */
-        .mini-attr-box {
-            position: absolute; bottom: -6px; right: -6px; 
-            display: flex; gap: 1px; background: rgba(0,0,0,0.7); 
-            padding: 2px; border-radius: 8px; border: 1px solid #fff;
-        }
-        .mini-icon { font-size: 10px; line-height: 1; }
         .atk-text { font-size: 12px; font-weight: bold; color: #636e72; background: rgba(255,255,255,0.8); padding: 1px 4px; border-radius: 4px; }
     </style>
 </head>
@@ -229,6 +235,12 @@
             </div>
 
             <div class="log-container" id="logs"></div>
+            
+            <div id="passive-panel" class="passive-panel">
+                <span id="p-icon" class="passive-icon">❓</span>
+                <span id="p-desc">패시브 정보가 여기에 표시됩니다.</span>
+            </div>
+
             <div class="btn-group">
                 <button id="sk-0" class="skill-btn" onclick="Game.prepareSkill(0)">기본공격</button>
                 <button id="sk-1" class="skill-btn" onclick="Game.prepareSkill(1)">스킬 1</button>
@@ -242,36 +254,35 @@
 const ATTR = { 'Fire':{i:'🔥', n:'불', c:'#e74c3c'}, 'Water':{i:'💧', n:'물', c:'#3498db'}, 'Tree':{i:'🌿', n:'나무', c:'#2ecc71'}, 'Metal':{i:'⚔️', n:'쇠', c:'#95a5a6'}, 'Earth':{i:'⛰️', n:'흙', c:'#e67e22'}, 'Light':{i:'☀️', n:'빛', c:'#f1c40f'}, 'Dark':{i:'🌙', n:'어둠', c:'#9b59b6'}, 'Normal':{i:'☀️🌙', n:'노말', c:'#ecf0f1'} };
 const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light':'숲', 'Metal-Light':'독가스', 'Earth-Light':'모래', 'Water-Dark':'얼음', 'Fire-Dark':'검은불', 'Tree-Dark':'가시', 'Metal-Dark':'전기', 'Earth-Dark':'바위', 'Light-Light':'빛(강화)', 'Dark-Dark':'어둠(강화)', 'Normal':'노말' };
 
-// [Patch Note: Icons Updated]
 const SKILL_DB = {
-    'Fire': { s1:'화염방사', s1d:'1.3배+화상', s2:'메테오', s2d:'광역 0.8배+화상(25%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥' },
-    'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'아군전체 HP+100 (20%확률 +50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳' },
-    'Tree': { s1:'광합성', s1d:'쉴드+30/공+22 성장', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳' },
-    'Metal': { s1:'강철베기', s1d:'1.3배+피해흡수(30%)', s2:'결투 신청', s2d:'적 도발/쉴드+15', type:'DEBUFF', target:'ENEMY', role:'tank', icon:'🛡️' },
-    'Earth': { s1:'암석투척', s1d:'1.3배+기절25%/침묵20%', s2:'지진', s2d:'광역 0.8배', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'🏜️' },
-    'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+90', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨' },
-    'Dark': { s1:'다크볼', s1d:'1.5배', s2:'공포', s2d:'공↓/쉴드30%소멸', type:'DEBUFF', target:'ALL_ENEMY', role:'supp', icon:'👻' },
-    'Normal': { s1:'균형타', s1d:'1.5배/아군보호(HP소모)', s2:'주사위', s2d:'랜덤 피해', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'🎲' },
-    'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'👼' },
-    'Dark-Dark': { s1:'심연일격', s1d:'0.8배+침묵', s2:'블랙홀', s2d:'턴 스킵(80%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🕳️' },
-    'Water-Light': { s1:'스팀젯', s1d:'1.4배+실명(20%)', s2:'안개', s2d:'타겟힐+회피(15%)', type:'TARGET_BUFF', target:'ALLY', role:'supp', icon:'☁️' },
-    'Fire-Light': { s1:'청염', s1d:'1.5배', s2:'폭주', s2d:'자신 공+40 (최대5회)', type:'BUFF', target:'SELF', role:'nuker', icon:'🔷' },
-    'Tree-Light': { s1:'숲의분노', s1d:'1.2배+쉴드관통+힐', s2:'축복', s2d:'아군 정화/HP+60', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚' },
-    'Metal-Light': { s1:'가스탄', s1d:'0.5배+쉴드파괴(성공시 쉴드)', s2:'맹독살포', s2d:'전체 중독', type:'DEBUFF', target:'ALL_ENEMY', role:'tank', icon:'☣️' },
-    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배+쉴드무시', s2:'모래지옥', s2d:'치유감소+도트', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🦂' },
-    'Water-Dark': { s1:'고드름', s1d:'1.5배', s2:'절대영도', s2d:'빙결(40%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'❄️' },
-    'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상', s2:'소각', s2d:'체력비례피해', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲' },
-    'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+스택강화', s2:'영혼결속', s2d:'사망시 폭주/광역독', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🥀' },
-    'Metal-Dark': { s1:'전기충격', s1d:'1.5배+과부하(최대5회)', s2:'방전', s2d:'광역+기절15%/과부하', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'⚡' },
-    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+1턴기절(휴식)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿' }
+    'Fire': { s1:'화염방사', s1d:'1.3배+화상', s2:'메테오', s2d:'광역 0.8배+화상(25%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', passive:'🩸 흡혈: 모든 공격 시 피해량의 20%를 회복합니다.' },
+    'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'아군전체 HP+110 (20%확률 +50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', passive:null },
+    'Tree': { s1:'광합성', s1d:'쉴드+30/공+18 성장', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', passive:'🌿 성장: 광합성 사용 시 영구적으로 공격력과 쉴드가 증가합니다.' },
+    'Metal': { s1:'강철베기', s1d:'1.3배+피해흡수(30%)', s2:'결투 신청', s2d:'적 도발/쉴드+15', type:'DEBUFF', target:'ENEMY', role:'tank', icon:'🛡️', passive:null },
+    'Earth': { s1:'암석투척', s1d:'1.3배+기절25%/침묵20%', s2:'지진', s2d:'광역 0.8배', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'🏜️', passive:null },
+    'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+60/공+10(1턴)', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', passive:null },
+    'Dark': { s1:'다크볼', s1d:'1.5배', s2:'공포', s2d:'공↓/쉴드30%소멸', type:'DEBUFF', target:'ALL_ENEMY', role:'supp', icon:'👻', passive:null },
+    'Normal': { s1:'균형타', s1d:'1.5배/아군보호(HP소모)', s2:'주사위', s2d:'랜덤 피해', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'🎲', passive:null },
+    'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'👼', passive:null },
+    'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵', s2:'블랙홀', s2d:'턴 스킵(80%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🕳️', passive:'🌑 심연의 힘: 블랙홀 성공 시 공격력이 10 영구 증가합니다.' },
+    'Water-Light': { s1:'스팀젯', s1d:'1.4배+실명(20%)', s2:'안개', s2d:'타겟힐+회피(15%)', type:'TARGET_BUFF', target:'ALLY', role:'supp', icon:'☁️', passive:'☁️ 증기: 회피 시 기절/빙결 CC기를 15% 확률로 무효화합니다 (회피소멸).' },
+    'Fire-Light': { s1:'청염', s1d:'1.5배', s2:'폭주', s2d:'자신 공+40 (최대5회)', type:'BUFF', target:'SELF', role:'nuker', icon:'🔷', passive:'🔥 폭주: 스킬 사용 시 공격력이 누적됩니다 (최대 5회).' },
+    'Tree-Light': { s1:'숲의분노', s1d:'1.2배+쉴드관통+힐', s2:'축복', s2d:'아군 정화/HP+70', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚', passive:null },
+    'Metal-Light': { s1:'가스탄', s1d:'0.5배+쉴드파괴(성공시 쉴드)', s2:'맹독살포', s2d:'전체 중독', type:'DEBUFF', target:'ALL_ENEMY', role:'tank', icon:'☣️', passive:null },
+    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배+쉴드무시', s2:'모래지옥', s2d:'치유감소+도트', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🦂', passive:null },
+    'Water-Dark': { s1:'고드름', s1d:'1.5배', s2:'절대영도', s2d:'빙결(35%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'❄️', passive:null },
+    'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상', s2:'소각', s2d:'체력비례피해', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', passive:'🩸 흡혈: 모든 공격 시 피해량의 20%를 회복합니다.' },
+    'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+스택강화', s2:'영혼결속', s2d:'사망시 폭주/광역독', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🥀', passive:'🥀 복수: 사망 시 적 전체에게 맹독을 걸고 아군 하나를 강화합니다.' },
+    'Metal-Dark': { s1:'전기충격', s1d:'1.5배+과부하(최대5회)', s2:'방전', s2d:'광역+기절15%/과부하', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'⚡', passive:'⚡ 과부하: 공격 시 스택이 쌓이며 공격력이 증가합니다.' },
+    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+1턴기절(휴식)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', passive:null }
 };
 
 class Unit {
     constructor(id, team, base, extra) {
         this.id = id; this.team = team;
         this.base = base; this.extra = extra;
-        this.maxHp = 500; 
-        if(base==='Tree' && extra==='Dark') this.maxHp = 600;
+        this.maxHp = 600; 
+        if(base==='Tree' && extra==='Dark') this.maxHp = 700;
         this.hp = this.maxHp; this.shield = (base==='Metal' && !extra) ? 100 : 0;
         this.atk = 55 + Math.floor(Math.random()*15);
         this.status = []; this.isDead = false;
@@ -279,7 +290,6 @@ class Unit {
         this.resist = 0; 
         this.s2Count = 0;
         this.elecStacks = 0;
-        
         this.stats = { dmg: 0, heal: 0, shieldGiven: 0, taken: 0 }; 
 
         this.isNormal = (this.base==='Light'&&this.extra==='Dark') || (this.base==='Dark'&&this.extra==='Light');
@@ -291,7 +301,14 @@ class Unit {
         else this.name = `${ATTR[this.base].n} (기초)`;
     }
     getKey() { if(this.isNormal) return 'Normal'; if(this.isEnhanced) return `${this.base}-${this.extra}`; return SKILL_DB[`${this.base}-${this.extra}`] ? `${this.base}-${this.extra}` : this.base; }
-    getAtk() { let v = this.atk; const ads = this.status.filter(s=>s.type==='ATK_DOWN'); if(ads.length>0) v -= (ads.length*15); return Math.max(10, v); }
+    
+    getAtk() { 
+        let v = this.atk; 
+        const ads = this.status.filter(s=>s.type==='ATK_DOWN'); 
+        if(ads.length>0) v -= (ads.length*15); 
+        if(this.hasStatus('LIGHT_MIGHT')) v += 10;
+        return Math.max(10, v); 
+    }
     
     takeDamage(dmg, isFire=false, ignoreShield=false) {
         if (isFire && this.hasStatus('BURN')) dmg = Math.floor(dmg * 1.25);
@@ -318,6 +335,17 @@ class Unit {
     addStatus(type, turn, val=0, source=null) {
         if (this.isNormal && ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN'].includes(type)) return;
         
+        if (this.hasStatus('EVADE') && ['STUN', 'FREEZE'].includes(type)) {
+            // Self-inflicted check
+            if (source && source.id !== this.id) {
+                if (Math.random() < 0.15) {
+                    UI.floatText(this, "CC회피!", "ft-miss");
+                    this.status = this.status.filter(s => s.type !== 'EVADE');
+                    return; 
+                }
+            }
+        }
+
         const HARD_CC = ['STUN', 'FREEZE', 'BANISH'];
         if (HARD_CC.includes(type)) {
             if (this.hasStatus('IMMUNITY')) {
@@ -332,6 +360,7 @@ class Unit {
         
         if(type==='BURN') { const ex = this.status.find(s=>s.type==='BURN'); if(ex) { ex.turn = turn; return; } }
         if(type==='HEAL_DOWN') { const ex = this.status.find(s=>s.type==='HEAL_DOWN'); if(ex) { ex.turn = turn; return; } }
+        if(type==='LIGHT_MIGHT') { const ex = this.status.find(s=>s.type==='LIGHT_MIGHT'); if(ex) { ex.turn = turn; return; } }
 
         if (type.startsWith('PROVOKED_BY_') && source) type = `PROVOKED_BY_${source.id}`;
 
@@ -343,7 +372,8 @@ class Unit {
         const bad = ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN']; 
         this.status = this.status.filter(s => !bad.includes(s.type) && !s.type.startsWith('PROVOKED')); 
     }
-    dispel() { const buffs = ['EVADE','DMG_RED','ATK_BUFF','GROWTH']; const has=this.status.some(s=>buffs.includes(s.type)); this.status=this.status.filter(s=>!buffs.includes(s.type)); return has; }
+    dispel() { const buffs = ['EVADE','DMG_RED','ATK_BUFF','GROWTH','LIGHT_MIGHT']; const has=this.status.some(s=>buffs.includes(s.type)); this.status=this.status.filter(s=>!buffs.includes(s.type)); return has; }
+    
     tickStatus() {
         let log = [];
         if(this.hasStatus('POISON')) { const d=this.takeDamage(30); UI.floatText(this, d, 'ft-dmg'); log.push(`☠️ [${this.name}] 독 피해 ${d}`); }
@@ -383,19 +413,15 @@ const AudioSys = {
     },
     play: function(type) {
         if(!this.ctx) return;
-        // [Sound Fix] Softened & Differentiated Sounds
         if(type==='HIT') this.playSoft(100,'triangle',0.15,0.2);
         else if(type==='SKILL') { this.playSoft(300,'sine',0.2,0.1); setTimeout(()=>this.playSoft(500,'sine',0.3,0.1),100); }
         else if(type==='HEAL') { this.playSoft(400,'sine',0.3,0.1); setTimeout(()=>this.playSoft(600,'sine',0.4,0.1),150); }
-        // Debuff: Soft Sine Wave
         else if(type==='DEBUFF') { this.playSoft(200,'sine',0.3,0.15); setTimeout(()=>this.playSoft(150,'sine',0.4,0.15), 150); }
         else if(type==='MISS') this.playSoft(800,'triangle',0.05,0.05);
         else if(type==='WIN') { setTimeout(()=>this.playSoft(400,'sine',0.3,0.2),0); setTimeout(()=>this.playSoft(600,'sine',0.6,0.2),400); }
-        // Power Up: Harmonized Sine
         else if(type==='POWER_UP') { 
             this.playSoft(261,'sine',0.4,0.1); setTimeout(()=>this.playSoft(329,'sine',0.4,0.1), 100); setTimeout(()=>this.playSoft(392,'sine',0.6,0.1), 200); 
         }
-        // Critical: Low Triangle (Thud)
         else if(type==='CRITICAL') { this.playSoft(80,'triangle',0.1,0.4); setTimeout(()=>this.playSoft(60,'triangle',0.3,0.4), 50); }
     }
 };
@@ -575,13 +601,13 @@ const Game = {
         // Hell Mode Decks (Top 7)
         if (this.difficulty === 'hell') {
             const decks = [
-                [{b:'Earth',e:'Dark'}, {b:'Light',e:'Dark'}, {b:'Light',e:'Light'}], 
-                [{b:'Metal',e:'Light'}, {b:'Tree',e:'Dark'}, {b:'Metal',e:null}], 
-                [{b:'Metal',e:'Dark'}, {b:'Fire',e:'Light'}, {b:'Water',e:null}], 
-                [{b:'Water',e:'Dark'}, {b:'Light',e:'Dark'}, {b:'Earth',e:null}], 
-                [{b:'Fire',e:'Dark'}, {b:'Fire',e:null}, {b:'Fire',e:'Light'}], 
-                [{b:'Metal',e:'Light'}, {b:'Tree',e:'Light'}, {b:'Earth',e:'Light'}], 
-                [{b:'Earth',e:'Light'}, {b:'Tree',e:'Dark'}, {b:'Water',e:'Dark'}]
+                [{b:'Earth',e:'Light'}, {b:'Earth',e:'Dark'}, {b:'Light',e:'Light'}], // 사막의 폭풍
+                [{b:'Fire',e:null}, {b:'Tree',e:null}, {b:'Water',e:null}], // 불사조
+                [{b:'Metal',e:'Light'}, {b:'Tree',e:'Dark'}, {b:'Metal',e:null}], // 독성 벙커
+                [{b:'Water',e:'Dark'}, {b:'Normal',e:null}, {b:'Earth',e:null}], // 빙결 로또
+                [{b:'Metal',e:'Dark'}, {b:'Fire',e:'Light'}, {b:'Normal',e:null}], // 왕귀 듀오
+                [{b:'Fire',e:'Dark'}, {b:'Tree',e:'Light'}, {b:'Earth',e:'Light'}], // 탱커 분쇄기
+                [{b:'Fire',e:null}, {b:'Water',e:null}, {b:'Tree',e:null}] // 클래식
             ];
             const d = decks[Math.floor(Math.random()*decks.length)];
             this.eTeam = d.map((c, i) => makeEnemy(i, c.b, c.e));
@@ -606,7 +632,7 @@ const Game = {
         document.getElementById('selection-screen').style.display='none';
         document.getElementById('battle-screen').style.display='flex';
         document.getElementById('logs').innerHTML = ''; 
-        this.log("<span class='log-sys'>⚔️ 전투 시작! (v3.6 Final Perfected)</span>");
+        this.log("<span class='log-sys'>⚔️ 전투 시작! (v4.1 AI & Meta Update)</span>");
         this.render();
         this.timer = setTimeout(()=>this.turn(), 1000);
     },
@@ -629,7 +655,6 @@ const Game = {
     },
 
     turn: function() {
-        // [Bug Fix] Stop loop if game over
         if (this.isOver) return;
 
         if(this.watchdog) clearTimeout(this.watchdog);
@@ -671,6 +696,10 @@ const Game = {
     input: function(u) {
         const k=u.getKey(); const s=SKILL_DB[k];
         const silenced = u.hasStatus('SILENCE');
+        
+        document.getElementById('p-icon').innerText = s.icon;
+        document.getElementById('p-desc').innerText = s.passive || '패시브: 없음';
+
         document.getElementById('sk-1').innerHTML = `<span class="skill-name">${s.s1}</span><br><span class="skill-desc">${s.s1d}</span>`;
         document.getElementById('sk-2').innerHTML = `<span class="skill-name">${s.s2}</span><br><span class="skill-desc">${s.s2d}</span>`;
         document.getElementById('sk-0').disabled = false;
@@ -680,7 +709,11 @@ const Game = {
         if (k === 'Fire-Light' && u.s2Count >= 5) s2Limit = true;
         let sk2Disable = silenced || s2Limit;
         
-        if(k==='Tree-Dark' && u.linkedAllyId !== -1) sk2Disable = true;
+        // [Logic] Disable Self-Target S2 for Thorn if alone
+        if (k === 'Tree-Dark') {
+            const aliveAllies = Game.pTeam.filter(a => !a.isDead && a.id !== u.id);
+            if (aliveAllies.length === 0 || u.linkedAllyId !== -1) sk2Disable = true;
+        }
         
         document.getElementById('sk-2').disabled = sk2Disable;
         
@@ -760,16 +793,26 @@ const Game = {
                 const hasBuff = u.status.some(s => s.type === 'ATK_BUFF'); 
                 if (hasBuff || u.s2Count >= 5) blockS2 = true; 
             }
-            if (k === 'Tree-Dark' && u.linkedAllyId !== -1) blockS2 = true;
+            if (k === 'Tree-Dark') {
+                if (u.linkedAllyId !== -1 || aliveAllies.length <= 1) blockS2 = true; // [Logic] Thorn AI fix
+            }
 
             let attackTarget = aliveEnemies[0];
             let bestScore = -9999;
             aliveEnemies.forEach(e => {
                 let score = 0;
+                // [AI] Execution Logic
+                const potentialDmg = u.getAtk() * (info.type==='NUKE_PER'?1.5:1.0) * Game.calc(u, e).v;
+                if (e.hp <= potentialDmg) score += 500; 
+
                 if (e.hp < u.getAtk() * 1.5) score += 50; 
                 const aff = Game.calc(u, e).v;
                 if (aff > 1.2) score += 20; 
-                if (e.hp < e.maxHp * 0.4) score += 10; 
+                if (e.hp < e.maxHp * 0.4) score += 10;
+                
+                // [AI] Don't waste CC
+                if (['STUN','FREEZE','BANISH'].some(s => e.hasStatus(s))) score -= 30;
+
                 if (score > bestScore) { bestScore = score; attackTarget = e; }
             });
             if (this.difficulty === 'easy') attackTarget = aliveEnemies[Math.floor(Math.random()*aliveEnemies.length)];
@@ -784,6 +827,8 @@ const Game = {
                 let useS2 = false;
                 if (this.difficulty === 'hell' || this.difficulty === 'hard') {
                      useS2 = true; 
+                     // [AI] Don't Overheal
+                     if (isS2Support && info.type === 'HEAL' && supportTarget.hp > supportTarget.maxHp * 0.8) useS2 = false;
                 } else {
                      useS2 = Math.random() > 0.4;
                 }
@@ -840,6 +885,7 @@ const Game = {
         const baseAtk = atk.getAtk();
         let playedSound = false;
 
+        // [Logic] Skill Execution
         if(sIdx === 0) {
             AudioSys.play('HIT'); playedSound=true;
             const dmg = Math.floor(baseAtk * 1.0 * aff.v * defMod);
@@ -850,12 +896,18 @@ const Game = {
                 m += ` ${act} 피해 ${aff.t}`; this.shake(def); 
                 UI.floatText(def, act, aff.v>1.2?"ft-crit":"ft-dmg");
                 if (aff.v > 1.2 || act > 150) { AudioSys.play('CRITICAL'); UI.screenShake(); UI.flash(); playedSound=true; } 
+                
+                // [Fire Passive: Lifesteal]
+                if (k.startsWith('Fire')) {
+                    const healAmt = Math.floor(act * 0.2);
+                    atk.heal(healAmt);
+                }
             }
         } 
         else if (sIdx === 1) {
             if(k === 'Tree') {
                 atk.shield += 30; Game.recordStat(atk, 'shield', 30);
-                atk.atk += 22; atk.addStatus('GROWTH', 99); 
+                atk.atk += 18; atk.addStatus('GROWTH', 99); 
                 m = `<b class="${atk.team===0?'log-ally':'log-enemy'}">[${atk.name}]</b> 광합성! (성장)`;
                 UI.floatText(atk, "GROWTH", "ft-heal");
                 AudioSys.play('POWER_UP'); playedSound=true;
@@ -863,6 +915,7 @@ const Game = {
                 let mult = 1.5; if(k==='Tree-Dark') mult += atk.thornStack; if(k==='Water-Light') mult = 1.4;
                 if (k==='Metal-Light') mult = 0.5;
                 if (k==='Metal') mult = 1.3;
+                if (k==='Dark-Dark') mult = 0.9; 
 
                 let rawDmg = Math.floor(baseAtk * mult * aff.v * defMod);
                 
@@ -919,6 +972,10 @@ const Game = {
                         if (k === 'Metal') {
                             const absorb = Math.floor(act * 0.3); atk.shield += absorb; Game.recordStat(atk, 'shield', absorb); UI.floatText(atk, `+${absorb}`, "ft-heal");
                         }
+                        if (k.startsWith('Fire')) {
+                            const healAmt = Math.floor(act * 0.2);
+                            atk.heal(healAmt);
+                        }
                     }
                 }
             }
@@ -928,12 +985,15 @@ const Game = {
 
             if (k === 'Dark-Dark') {
                 atk.takeDamage(20); AudioSys.play('DEBUFF'); playedSound=true;
-                if(Math.random() < 0.8) { def.addStatus('BANISH', 1); m += " (🌌추방 성공)"; UI.floatText(def,"추방!","ft-miss"); } 
+                if(Math.random() < 0.8) { 
+                    def.addStatus('BANISH', 1); m += " (🌌추방 성공)"; UI.floatText(def,"추방!","ft-miss"); 
+                    atk.atk += 10;
+                } 
                 else { m += " (추방 실패)"; UI.floatText(def,"저항","ft-miss"); }
             }
             else if (k === 'Water-Dark') {
                 const act = def.takeDamage(Math.floor(baseAtk)); Game.recordStat(atk, 'dmg', act); m += ` ${act} 피해`; UI.floatText(def, act, "ft-dmg");
-                if(Math.random() < 0.4) { def.addStatus('FREEZE', 1); m += " (❄️빙결)"; UI.floatText(def,"빙결","ft-miss"); }
+                if(Math.random() < 0.35) { def.addStatus('FREEZE', 1); m += " (❄️빙결)"; UI.floatText(def,"빙결","ft-miss"); }
             }
             else if (k === 'Normal') {
                 const rnd = Math.random() * 1.7 + 0.8;
@@ -955,13 +1015,17 @@ const Game = {
                         if(k==='Earth-Light') e.addStatus('BLIND', 2); 
                         if(k==='Metal-Dark'&&Math.random()<0.15) e.addStatus('STUN', 1);
                         if(k==='Fire' && Math.random()<0.25) e.addStatus('BURN', 2, 0, atk); 
+                        if (k.startsWith('Fire')) {
+                            const healAmt = Math.floor(act * 0.2);
+                            atk.heal(healAmt);
+                        }
                     }
                 }});
             } 
             else if(s.type === 'HEAL') { 
                 AudioSys.play('HEAL'); playedSound=true;
-                (atk.team===0?this.pTeam:this.eTeam).forEach(a=>{if(!a.isDead) a.heal(100)}); 
-                m+=" (아군 전체 회복 +100)"; 
+                (atk.team===0?this.pTeam:this.eTeam).forEach(a=>{if(!a.isDead) a.heal(110)});
+                m+=" (아군 전체 회복 +110)"; 
                 if(k==='Water' && Math.random() < 0.2) {
                     const lowest = (atk.team===0?this.pTeam:this.eTeam).filter(a=>!a.isDead).sort((a,b)=>a.hp-b.hp)[0];
                     if(lowest) { lowest.heal(50); m+=` (💧대박힐 +50)`; UI.floatText(lowest, "+50", "ft-heal"); }
@@ -971,16 +1035,27 @@ const Game = {
                 AudioSys.play('HEAL'); playedSound=true;
                 m += " (아군 전체 강화)";
                 const allies = atk.team===0?this.pTeam:this.eTeam;
-                if(k==='Light') allies.forEach(a=>{if(!a.isDead) { a.shield=Math.min(300, a.shield+90); Game.recordStat(atk,'shield',90); }}); 
+                if(k==='Light') allies.forEach(a=>{if(!a.isDead) { 
+                    a.shield=Math.min(300, a.shield+60); 
+                    a.addStatus('LIGHT_MIGHT', 1); 
+                    Game.recordStat(atk,'shield',60); 
+                }}); 
                 else if(k==='Light-Light') allies.forEach(a=>{if(!a.isDead) {a.shield=Math.min(300, a.shield+50); Game.recordStat(atk,'shield',50); a.cleanse();}}); 
                 else if(k==='Fire-Light') { atk.atk+=40; atk.addStatus('ATK_BUFF', 99); m="자신 공격력 +40"; }
-                else if(k==='Tree-Light') allies.forEach(a=>{if(!a.isDead) {a.heal(50); a.cleanse();}});
+                else if(k==='Tree-Light') allies.forEach(a=>{if(!a.isDead) {a.heal(70); a.cleanse();}});
             } 
             else if(s.type === 'TARGET_BUFF' || s.type === 'SELF_BUFF') {
                 AudioSys.play('HEAL'); playedSound=true;
                 if(def) { 
                     if(k==='Tree') { def.heal(150); def.cleanse(); m+=` 치유/정화`; }
-                    else if(k==='Tree-Dark') { atk.linkedAllyId = def.id; def.addStatus('BIND', 99); atk.resist += 0.3; m+=` 결속! (폭주대기/저항↑)`; }
+                    else if(k==='Tree-Dark') { 
+                        // [Future] Self-cast logic prepared
+                        if (atk.id === def.id) {
+                            // m += " (자신에게 사용 불가)"; 
+                        } else {
+                            atk.linkedAllyId = def.id; def.addStatus('BIND', 99); atk.resist += 0.3; m+=` 결속! (폭주대기/저항↑)`; 
+                        }
+                    }
                     else if(k==='Water-Light') {
                         (atk.team===0?this.pTeam:this.eTeam).forEach(a=>{if(!a.isDead) a.addStatus('EVADE', 2)});
                         const healAmt = Math.floor((def.maxHp - def.hp) * 0.15); def.heal(healAmt); m += ` (회피증가+치유)`;
@@ -1009,7 +1084,6 @@ const Game = {
                 else if (k === 'Earth-Dark') dmg = Math.floor(baseAtk * 2.5 * aff.v * defMod);
                 else dmg = Math.floor(baseAtk * 2.0 * aff.v * defMod);
 
-                // [Bug Fix] Stun duration set to 2 so it lasts until next turn
                 if(k==='Earth-Dark') atk.addStatus('STUN', 2);
                 
                 const act = def.takeDamage(dmg, k.startsWith('Fire'));
@@ -1017,6 +1091,10 @@ const Game = {
                 if(act!==-1) { 
                     m+=` ${act} 폭발적 피해!`; this.shake(def); UI.floatText(def, act, "ft-crit"); 
                     AudioSys.play('CRITICAL'); UI.screenShake(); UI.flash(); playedSound=true;
+                    if (k.startsWith('Fire')) {
+                        const healAmt = Math.floor(act * 0.2);
+                        atk.heal(healAmt);
+                    }
                 } else AudioSys.play('MISS');
             }
         }
@@ -1031,7 +1109,7 @@ const Game = {
     },
 
     endTurn: function() {
-        if(this.isOver) return; // [Loop Fix] Double check
+        if(this.isOver) return; 
         if(this.watchdog) clearTimeout(this.watchdog);
         
         const u = this.queue[this.curr]%2===0 ? this.pTeam[this.queue[this.curr]/2] : this.eTeam[(this.queue[this.curr]-1)/2];
@@ -1078,7 +1156,7 @@ const Game = {
     endCheck: function() {
         const pd=this.pTeam.every(u=>u.isDead), ed=this.eTeam.every(u=>u.isDead);
         if(pd||ed) { 
-            this.isOver = true; // [Loop Fix] Set flag immediately
+            this.isOver = true; 
             if(this.timer) clearTimeout(this.timer);
             AudioSys.play('WIN'); 
             UI.showResult(pd ? "적군" : "아군"); 
@@ -1101,7 +1179,8 @@ const Game = {
             const n = document.createElement('div');
             n.className = `tl-node ${isP?'ally':'enemy'} ${i===0?'curr':''}`;
             if(u.isDead) n.style.opacity = 0.3;
-            n.innerText = ATTR[u.base].i;
+            // [Patch] Use Character Icon for Timeline
+            n.innerText = SKILL_DB[u.getKey()].icon || ATTR[u.base].i;
             tl.appendChild(n);
         }
 
@@ -1127,7 +1206,7 @@ const Game = {
                     else if(s.type=='BIND') c+=' bind'; else if(s.type=='GROWTH') c+=' growth';
                     else if(s.type=='ATK_DOWN') c+=' atkdown'; else if(s.type=='BLIND') c+=' blind';
                     else if(s.type=='ATK_BUFF') c+=' growth'; else if(s.type=='IMMUNITY') c+=' immunity';
-                    else if(s.type=='HEAL_DOWN') c+=' healdown';
+                    else if(s.type=='HEAL_DOWN') c+=' healdown'; else if(s.type=='LIGHT_MIGHT') c+=' atkup';
                     
                     let txt = s.type;
                     if(s.type=='POISON') txt='독'; if(s.type=='FREEZE') txt='빙결'; 
@@ -1138,6 +1217,7 @@ const Game = {
                     if(s.type=='GROWTH') txt='성장'; if(s.type=='ATK_DOWN') txt='공격↓';
                     if(s.type=='BLIND') txt='실명'; if(s.type=='ATK_BUFF') txt='폭주';
                     if(s.type=='IMMUNITY') txt='면역'; if(s.type=='HEAL_DOWN') txt='치유↓';
+                    if(s.type=='LIGHT_MIGHT') txt='공격↑';
 
                     return `<span class="${c}">${txt}(${s.turn})</span>`;
                 }).join('');
