@@ -3,187 +3,267 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v4.1 AI & Meta Update</title>
+    <title>Elemental Tactics: v5.0 Smart AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-main: #f4f7f6; --panel-bg: #ffffff;
-            --text-main: #2d3436; --accent: #00cec9;
-            --hp-high: #00b894; --hp-low: #d63031; --shield: #0984e3;
-            --shadow: 0 4px 15px rgba(0,0,0,0.1);
+            /* [Theme] Jelly Cat Palette */
+            --bg-main: #fff5f8;
+            --panel-bg: #ffffff;
+            --text-main: #5d4037;
+            
+            --accent: #ff80ab;
+            --hp-high: #80deea;
+            --hp-low: #ffcc80;
+            --shield: #ce93d8;
+            
+            --font-main: 'Jua', sans-serif;
+            --jelly-shadow: inset 0 3px 6px rgba(255,255,255,0.8), inset 0 -3px 6px rgba(0,0,0,0.05), 0 5px 15px rgba(255, 128, 171, 0.25);
+            --paw-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 100 100'%3E%3Ctext y='50%25' x='50%25' dominant-baseline='middle' text-anchor='middle' font-size='24' fill='%23ffcdd2' opacity='0.5'%3E🐾%3C/text%3E%3C/svg%3E");
         }
 
         body { 
-            margin: 0; background: var(--bg-main); color: var(--text-main); 
-            font-family: 'Pretendard', 'Malgun Gothic', sans-serif; 
+            margin: 0; background-color: var(--bg-main); 
+            background-image: var(--paw-pattern);
+            background-size: 80px 80px; 
+            color: var(--text-main); 
+            font-family: var(--font-main);
             overflow: hidden; user-select: none;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             height: 100vh; height: 100dvh; 
         }
 
-        .screen-shake { animation: screenShake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes screenShake { 
-            10%, 90% { transform: translate3d(-1px, 0, 0); } 
-            20%, 80% { transform: translate3d(2px, 0, 0); } 
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 
-            40%, 60% { transform: translate3d(4px, 0, 0); } 
+        .screen-shake { animation: jelly-bounce 0.5s both; }
+        @keyframes jelly-bounce { 
+            0% { transform: scale(1, 1); } 
+            30% { transform: scale(1.15, 0.85); } 
+            40% { transform: scale(0.9, 1.1); }   
+            50% { transform: scale(1.05, 0.95); } 
+            65% { transform: scale(0.98, 1.02); } 
+            100% { transform: scale(1, 1); } 
         }
 
-        #flash-overlay { position: fixed; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 999; transition: opacity 0.1s; }
+        #flash-overlay { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 999; transition: opacity 0.1s; }
 
         #app { width: 100%; max-width: 600px; height: 100%; position: relative; display: flex; flex-direction: column; }
         
-        button { font-family: inherit; }
-        .btn-restart { 
-            background: #fff; border: 1px solid #dfe6e9; padding: 6px 14px; 
-            border-radius: 20px; cursor: pointer; font-size: 13px; color: #636e72; transition: 0.2s; 
+        button { 
+            font-family: var(--font-main); border-radius: 25px; border: none; 
+            background: #fff; color: #777; cursor: pointer; transition: 0.1s; 
+            box-shadow: var(--jelly-shadow); 
+            transform: translateY(0); 
+            position: relative; overflow: hidden;
         }
-        .btn-restart:hover { background: #e0f7fa; color: var(--accent); border-color: var(--accent); }
+        button::before {
+            content: ''; position: absolute; top: 5px; left: 10px; right: 10px; height: 40%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0));
+            border-radius: 20px; pointer-events: none;
+        }
+        button:active { transform: translateY(3px) scale(0.98); box-shadow: inset 0 2px 5px rgba(0,0,0,0.1); }
+        
+        .btn-restart { padding: 8px 16px; font-size: 14px; color: var(--accent); }
+        .btn-restart:hover { background: #fff0f5; }
 
-        .screen { position: absolute; inset: 0; background: var(--bg-main); display: flex; flex-direction: column; padding: 15px; z-index: 10; }
+        .screen { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 15px; z-index: 10; }
+        #selection-screen { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); }
         #battle-screen { display: none; padding: 5px; }
 
-        .hero-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; overflow-y: auto; padding: 5px; flex: 1; }
+        .hero-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; overflow-y: auto; padding: 10px; flex: 1; }
+        
         .hero-card { 
-            background: var(--panel-bg); border: 2px solid #e0e0e0; border-radius: 12px; 
-            padding: 8px; cursor: pointer; transition: 0.2s; 
+            background: #fff; border-radius: 20px; padding: 8px; 
+            cursor: pointer; transition: 0.2s; 
             display: flex; flex-direction: column; align-items: center;
-            box-shadow: var(--shadow); position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05), inset 0 0 0 3px #fce4ec; 
+            position: relative;
         }
-        .hero-card.selected { border-color: var(--accent); background: #e0f7fa; transform: translateY(-3px); }
+        .hero-card:active { transform: scale(0.95); }
+        .hero-card.selected { 
+            background: #e1bee7; 
+            box-shadow: 0 0 0 3px var(--accent), 0 8px 20px rgba(255, 128, 171, 0.4);
+            transform: translateY(-5px);
+        }
+        .hero-card.selected::after {
+            content: '🐾'; position: absolute; top: -10px; right: -5px;
+            background: var(--accent); color: #fff; width: 28px; height: 28px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 16px; box-shadow: 0 3px 6px rgba(0,0,0,0.2); z-index: 5;
+            border: 2px solid #fff;
+        }
 
-        .field-row { flex: 1; display: flex; justify-content: space-evenly; align-items: center; width: 100%; }
+        .field-row { flex: 1; display: flex; justify-content: space-evenly; align-items: center; width: 100%; perspective: 1000px; }
         
         .unit { 
-            width: 29vw; max-width: 130px; 
-            background: var(--panel-bg); border: 3px solid #dfe6e9; 
-            border-radius: 12px; padding: 8px 4px; position: relative; transition: 0.3s; 
-            cursor: default; box-shadow: var(--shadow); text-align: center;
+            width: 28vw; max-width: 120px; 
+            background: #fff; 
+            border-radius: 25px; padding: 8px 5px; position: relative; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            cursor: default; 
+            box-shadow: inset 0 4px 10px rgba(255,255,255,1), 0 8px 0 #e0e0e0, 0 15px 20px rgba(0,0,0,0.1);
+            text-align: center;
             display: flex; flex-direction: column; align-items: center;
+            min-height: 115px; justify-content: flex-end;
+            border: 2px solid #f8bbd0;
         }
         
-        .unit.active-turn { border-color: var(--accent); transform: scale(1.05); z-index: 5; box-shadow: 0 0 20px rgba(0, 206, 201, 0.5); }
-        .unit.target-enemy:hover { border-color: #d63031; background: #fff5f5; cursor: crosshair; }
-        .unit.target-ally:hover { border-color: #00b894; background: #e6fffa; cursor: pointer; }
-        .unit.target-aoe { border-color: #d63031; background: #ffebee; animation: pulse 1s infinite; cursor: pointer; }
-        .unit.dead { opacity: 0.5; filter: grayscale(1); pointer-events: none; border-color: #b2bec3; transform: scale(0.95); }
+        .unit.active-turn { 
+            border-color: var(--accent); 
+            transform: translateY(-12px) scale(1.05); 
+            z-index: 5; 
+            box-shadow: 0 0 0 3px var(--accent), 0 15px 0 #f48fb1, 0 20px 30px rgba(255, 64, 129, 0.3); 
+        }
+        .unit.target-enemy:hover { border-color: #ff7043; background: #ffebee; cursor: crosshair; transform: scale(1.05) rotate(2deg); }
+        .unit.target-ally:hover { border-color: #66bb6a; background: #e8f5e9; cursor: pointer; transform: scale(1.05) rotate(-2deg); }
+        .unit.target-aoe { border-color: #ff7043; background: #ffebee; animation: jelly-bounce 1s infinite; cursor: pointer; }
+        .unit.dead { opacity: 0.6; filter: grayscale(1); pointer-events: none; border-color: #cfd8dc; transform: scale(0.9) rotate(5deg); box-shadow: none; }
 
-        /* Role Shapes */
-        .unit.role-tank { border-radius: 6px; border-width: 4px; }
-        .unit.role-nuker { border-radius: 16px 4px; }
-        .unit.role-supp { border-radius: 20px; }
-
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); box-shadow: 0 0 15px rgba(214, 48, 49, 0.5); } 100% { transform: scale(1); } }
+        .unit.role-tank { border-radius: 20px; }
+        .unit.role-nuker { border-radius: 35px 15px; }
+        .unit.role-supp { border-radius: 50px; }
 
         .attr-icon { 
-            width: 42px; height: 42px; border-radius: 50%; margin-bottom: 4px; 
-            display: flex; justify-content: center; align-items: center; font-size: 26px; 
-            color: #fff; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        .sub-attr-icon {
-            position: absolute; bottom: -2px; right: -2px; width: 18px; height: 18px;
-            background: #2d3436; color: #fff; border: 2px solid #fff; border-radius: 50%;
-            font-size: 10px; display: flex; justify-content: center; align-items: center;
+            width: 48px; height: 48px; border-radius: 50%; margin-bottom: 4px; 
+            display: flex; justify-content: center; align-items: center; font-size: 28px; 
+            color: #fff; position: relative; 
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1); 
+            border: 3px solid #fff;
         }
         
         .mini-attr-box {
-            position: absolute; bottom: -6px; right: -6px; 
-            display: flex; gap: 1px; background: rgba(0,0,0,0.7); 
-            padding: 2px; border-radius: 8px; border: 1px solid #fff;
+            position: absolute; bottom: -2px; right: -2px; 
+            display: flex; gap: 1px; background: rgba(255,255,255,0.95); 
+            padding: 2px; border-radius: 12px; border: 2px solid #eee;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .mini-icon { font-size: 10px; line-height: 1; }
+        .mini-icon { font-size: 12px; line-height: 1; }
         
-        .status-bar { width: 90%; height: 6px; background: #dfe6e9; border-radius: 3px; overflow: hidden; position: relative; margin-top: 4px; }
-        .hp-fill { height: 100%; background: var(--hp-high); transition: width 0.3s; }
-        .shield-fill { position: absolute; top:0; left:0; height: 100%; background: var(--shield); opacity: 0.8; transition: width 0.3s; }
+        .status-bar { width: 85%; height: 12px; background: #eceff1; border-radius: 12px; overflow: hidden; position: relative; margin-top: 4px; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .hp-fill { height: 100%; background: var(--hp-high); border-radius: 10px; transition: width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .hp-fill::after { content:''; position:absolute; top:2px; left:2px; right:2px; height:3px; background:rgba(255,255,255,0.4); border-radius:10px; }
+        .shield-fill { position: absolute; top:0; left:0; height: 100%; background: var(--shield); opacity: 0.8; border-radius: 10px; transition: width 0.3s; }
 
         .control-panel { 
-            flex: 0 0 auto; max-height: 40vh; 
-            background: var(--panel-bg); border-radius: 16px 16px 0 0; 
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.05); 
+            flex: 0 0 auto; max-height: 45vh; 
+            background: rgba(255,255,255,0.9); border-radius: 35px 35px 0 0; 
+            box-shadow: 0 -10px 40px rgba(255, 128, 171, 0.15); 
             display: flex; flex-direction: column; overflow: hidden; width: 100%;
+            border-top: 6px solid #ff80ab;
+            backdrop-filter: blur(10px);
         }
-        .cp-header { padding: 8px 12px; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .cp-header { padding: 12px 20px; background: #fff8e1; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #ffe082; }
         
-        .timeline-container { height: 36px; background: #fff; border-bottom: 1px solid #eee; display: flex; align-items: center; padding: 0 10px; overflow: hidden; gap: 5px; }
-        .timeline-label { font-size: 10px; font-weight: bold; color: #b2bec3; margin-right: 5px; }
-        .tl-node { width: 26px; height: 26px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; border: 2px solid #ddd; position: relative; flex-shrink: 0; }
-        .tl-node.curr { border-color: var(--accent); transform: scale(1.1); z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .tl-node.ally { border-color: #74b9ff; background: #eaf4ff; }
-        .tl-node.enemy { border-color: #ff7675; background: #fff0f0; }
+        .timeline-container { height: 50px; background: #fff; border-bottom: 2px dashed #ffcdd2; display: flex; align-items: center; padding: 0 15px; overflow: hidden; gap: 10px; }
+        .timeline-label { font-size: 13px; font-weight: bold; color: var(--accent); margin-right: 5px; }
+        .tl-node { 
+            width: 32px; height: 32px; border-radius: 50%; 
+            display: flex; justify-content: center; align-items: center; font-size: 18px; 
+            border: 3px solid #eee; position: relative; flex-shrink: 0; transition:0.3s; 
+            background: #fff; box-shadow: 0 3px 0 #ddd;
+        }
+        .tl-node.curr { 
+            border-color: var(--accent); transform: scale(1.2); z-index: 2; 
+            box-shadow: 0 0 0 3px #ffecb3, 0 5px 10px rgba(255,64,129,0.2); 
+        }
+        .tl-node.ally { border-color: #81d4fa; background: #e1f5fe; }
+        .tl-node.enemy { border-color: #ffcc80; background: #fff3e0; }
 
-        .log-container { flex: 1; padding: 8px; overflow-y: auto; font-size: 12px; border-bottom: 1px solid #eee; background: #fff; line-height: 1.5; display: flex; flex-direction: column; min-height: 50px; }
-        .log-entry { margin-bottom: 3px; padding-bottom: 3px; border-bottom: 1px dashed #f1f2f6; word-break: keep-all; }
-        .log-ally { color: #2980b9; } .log-enemy { color: #c0392b; } .log-sys { color: #7f8c8d; font-style: italic; }
-        .log-crit { color: #e67e22; font-weight: bold; }
+        .log-container { flex: 1; padding: 15px; overflow-y: auto; font-size: 14px; border-bottom: 2px solid #f0f0f0; background: #fff; line-height: 1.6; display: flex; flex-direction: column; min-height: 60px; }
+        .log-entry { margin-bottom: 6px; padding: 8px 12px; background: #fafafa; border-radius: 15px; word-break: keep-all; border-left: 4px solid #eee; }
+        .log-ally { color: #29b6f6; font-weight:bold; } .log-enemy { color: #ff7043; font-weight:bold; } .log-sys { color: #90a4ae; font-style: italic; }
+        .log-crit { color: #fb8c00; font-weight: bold; font-size: 1.1em; }
         
-        .btn-group { display: flex; height: 75px; flex-shrink: 0; }
+        .btn-group { display: flex; height: 90px; flex-shrink: 0; padding: 8px; gap: 8px; background: #fff5f8; }
         .skill-btn { 
-            flex: 1; border: none; background: #fff; border-right: 1px solid #eee; 
+            flex: 1; border: none; background: #fff; border-radius: 20px;
             cursor: pointer; transition: 0.2s; color: var(--text-main); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; padding: 5px;
+            box-shadow: var(--jelly-shadow); transform: translateY(0);
         }
-        .skill-btn:hover:not(:disabled) { background: #f3e5f5; }
-        .skill-btn.selected { background: #e0f7fa; border-top: 3px solid var(--accent); }
-        .skill-btn:disabled { background: #fdfdfd; color: #ccc; cursor: not-allowed; }
-        .skill-name { font-size: 13px; font-weight: bold; margin-bottom: 2px; }
-        .skill-desc { font-size: 10px; color: #666; line-height: 1.1; }
+        .skill-btn::before {
+            content: ''; position: absolute; top: 5px; left: 10px; right: 10px; height: 40%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0));
+            border-radius: 15px; pointer-events: none;
+        }
+        .skill-btn:hover:not(:disabled) { transform: translateY(-2px); }
+        .skill-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 3px 5px rgba(0,0,0,0.1); }
+        .skill-btn.selected { background: #e3f2fd; color: #1e88e5; box-shadow: inset 0 0 0 2px #42a5f5, var(--jelly-shadow); }
+        .skill-btn:disabled { background: #f5f5f5; color: #ccc; cursor: not-allowed; box-shadow: none; transform:none; }
+        .skill-name { font-size: 15px; font-weight: bold; margin-bottom: 3px; }
+        .skill-desc { font-size: 11px; color: #90a4ae; line-height: 1.2; }
 
         .passive-panel {
-            background: #f1f2f6; padding: 6px 12px; font-size: 11px; color: #555;
-            display: flex; align-items: center; border-top: 1px solid #dfe6e9;
+            background: #e0f2f1; padding: 8px 15px; font-size: 13px; color: #00695c;
+            display: flex; align-items: center; border-radius: 15px; margin: 5px 15px;
+            border: 2px solid #b2dfdb;
         }
-        .passive-icon { margin-right: 6px; font-size: 14px; }
+        .passive-icon { margin-right: 8px; font-size: 16px; }
         
-        .btn-start { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; width: 100%; margin-top: 15px; cursor: pointer; font-size: 16px; box-shadow: 0 4px 10px rgba(0, 206, 201, 0.3); }
-        .btn-start:disabled { background: #b2bec3; cursor: not-allowed; box-shadow: none; }
+        .btn-start { 
+            background: var(--accent); color: white; border: none; padding: 18px; 
+            border-radius: 35px; font-weight: bold; width: 100%; margin-top: 15px; 
+            cursor: pointer; font-size: 22px; box-shadow: 0 8px 0 #c2185b, 0 15px 20px rgba(0,0,0,0.15); 
+            transition: 0.2s; position: relative; overflow: hidden;
+        }
+        .btn-start::after { content:'🐾'; font-size:24px; margin-left:10px; opacity:0.8; }
+        .btn-start:hover { transform: translateY(-3px); }
+        .btn-start:active { transform: translateY(6px); box-shadow: 0 2px 0 #c2185b; }
+        .btn-start:disabled { background: #b0bec5; cursor: not-allowed; box-shadow: none; transform:none; }
 
-        .btn-rnd { background:#6c5ce7; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:bold; margin-left:5px; }
-        .btn-rnd:hover { background:#a29bfe; }
+        .btn-rnd { background:#b39ddb; color:#fff; border:none; padding:10px 20px; border-radius:25px; cursor:pointer; font-weight:bold; margin-left:5px; box-shadow: 0 5px 0 #7e57c2; }
+        .btn-rnd:active { transform: translateY(5px); box-shadow:none; }
 
-        .bg-Fire { background: linear-gradient(135deg, #ff7675, #d63031); }
-        .bg-Water { background: linear-gradient(135deg, #74b9ff, #0984e3); }
-        .bg-Tree { background: linear-gradient(135deg, #55efc4, #00b894); }
-        .bg-Metal { background: linear-gradient(135deg, #b2bec3, #636e72); }
-        .bg-Earth { background: linear-gradient(135deg, #ffeaa7, #e17055); }
-        .bg-Light { background: linear-gradient(135deg, #fff7d6, #fdcb6e); color: #2d3436; }
-        .bg-Dark { background: linear-gradient(135deg, #a29bfe, #6c5ce7); }
-        .bg-Normal { background: linear-gradient(135deg, #dfe6e9, #b2bec3); color:#2d3436; }
-        .bg-Light-Enhanced { background: radial-gradient(circle, #fff, #f1c40f); border: 2px solid #f1c40f; color:#333; box-shadow: 0 0 10px #ffeaa7; }
-        .bg-Dark-Enhanced { background: radial-gradient(circle, #636e72, #000); border: 2px solid #636e72; box-shadow: 0 0 10px #2d3436; }
+        .tag-container { 
+            position: relative; top: 0; left: 0; 
+            width: 100%; display: flex; justify-content: center; 
+            gap: 3px; flex-wrap: wrap; margin-bottom: 5px; 
+            z-index: 10; 
+        }
+        .tag { padding: 4px 8px; border-radius: 12px; font-size: 10px; color: #fff; font-weight: bold; box-shadow: 0 2px 0 rgba(0,0,0,0.1); margin-bottom:2px; }
+        
+        /* Pastel Colors */
+        .tag.poison { background: #ab47bc; } .tag.stun { background: #ffd54f; color:#5d4037; }
+        .tag.freeze { background: #29b6f6; } .tag.silence { background: #78909c; }
+        .tag.evade { background: #42a5f5; } .tag.burn { background: #ff7043; }
+        .tag.banish { background: #263238; } .tag.bind { background: #66bb6a; } .tag.trap { background: #d4e157; color:#5d4037; }
+        .tag.atkdown { background: #5c6bc0; } .tag.growth { background: #9ccc65; color:#33691e; }
+        .tag.blind { background: #bdbdbd; color:#5d4037; }
+        .tag.immunity { background: #fff; color:#5d4037; border:2px solid #5d4037; }
+        .tag.healdown { background: #8d6e63; color:#fff; }
+        .tag.atkup { background: #ef5350; color:#fff; }
+        .tag.karma { background: #512da8; color:#fff; border: 1px solid #d1c4e9; animation: jelly-bounce 2s infinite; } /* Karma UI Improved */
 
-        .tag-container { position: absolute; top: -22px; left: 0; width: 100%; display: flex; justify-content: center; gap: 2px; flex-wrap: wrap; z-index: 10; }
-        .tag { padding: 3px 6px; border-radius: 4px; font-size: 11px; color: #fff; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
-        .tag.poison { background: #8e44ad; } .tag.stun { background: #f1c40f; color:#333; text-shadow:none; }
-        .tag.freeze { background: #00cec9; } .tag.silence { background: #2d3436; }
-        .tag.evade { background: #74b9ff; } .tag.burn { background: #d63031; }
-        .tag.banish { background: #000; } .tag.burn { background: #d63031; }
-        .tag.bind { background: #27ae60; } .tag.trap { background: #e67e22; }
-        .tag.atkdown { background: #34495e; } .tag.growth { background: #2ecc71; }
-        .tag.blind { background: #95a5a6; color:#333; text-shadow:none; }
-        .tag.immunity { background: #fff; color:#333; border:1px solid #333; text-shadow:none; }
-        .tag.healdown { background: #8B4513; color:#fff; }
-        .tag.atkup { background: #c0392b; color:#fff; }
+        /* Pastel Gradients */
+        .bg-Fire { background: linear-gradient(135deg, #ff8a80, #ef5350); }
+        .bg-Water { background: linear-gradient(135deg, #80d8ff, #29b6f6); }
+        .bg-Tree { background: linear-gradient(135deg, #b9f6ca, #66bb6a); color:#1b5e20; }
+        .bg-Metal { background: linear-gradient(135deg, #eceff1, #90a4ae); }
+        .bg-Earth { background: linear-gradient(135deg, #ffe0b2, #ffa726); }
+        .bg-Light { background: linear-gradient(135deg, #ffff8d, #ffee58); color: #5d4037; }
+        .bg-Dark { background: linear-gradient(135deg, #ea80fc, #ab47bc); }
+        .bg-Normal { background: linear-gradient(135deg, #fafafa, #bdbdbd); color:#5d4037; }
+        
+        .bg-Light-Enhanced { background: radial-gradient(circle, #fff, #fdd835); border: 3px solid #fdd835; color:#5d4037; box-shadow: 0 0 15px #fff9c4; }
+        .bg-Dark-Enhanced { background: radial-gradient(circle, #e1bee7, #8e24aa); border: 3px solid #8e24aa; box-shadow: 0 0 15px #e1bee7; }
 
         .float-text {
-            position: absolute; font-weight: 900; font-size: 24px; pointer-events: none; z-index: 100;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8); animation: floatUp 0.8s forwards;
+            position: absolute; font-weight: 900; font-size: 28px; pointer-events: none; z-index: 100;
+            text-shadow: 2px 2px 0px #fff; animation: floatUp 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
         }
         @keyframes floatUp { 
             0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; } 
-            20% { transform: translate(-50%, -20px) scale(1.2); opacity: 1; } 
-            100% { transform: translate(-50%, -50px) scale(1); opacity: 0; } 
+            30% { transform: translate(-50%, -30px) scale(1.3); opacity: 1; } 
+            100% { transform: translate(-50%, -60px) scale(1); opacity: 0; } 
         }
-        .ft-dmg { color: #ff7675; } .ft-crit { color: #ffeaa7; font-size: 32px; } 
-        .ft-heal { color: #55efc4; } .ft-miss { color: #b2bec3; font-size: 18px; }
+        .ft-dmg { color: #ff7043; } .ft-crit { color: #ffa726; font-size: 36px; } 
+        .ft-heal { color: #26a69a; } .ft-miss { color: #b0bec5; font-size: 20px; }
 
-        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: none; justify-content: center; align-items: center; }
-        .modal-content { background: #fff; padding: 25px; border-radius: 16px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); overflow-y:auto; max-height:80vh;}
+        #modal-overlay { position: fixed; inset: 0; background: rgba(255, 248, 225, 0.85); backdrop-filter:blur(5px); z-index: 100; display: none; justify-content: center; align-items: center; }
+        .modal-content { background: #fff; padding: 25px; border-radius: 35px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 15px 50px rgba(255, 128, 171, 0.3); overflow-y:auto; max-height:80vh; border: 5px solid #ffcc80;}
         
-        .chart-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 13px; }
-        .chart-table th, .chart-table td { border: 1px solid #ddd; padding: 6px; text-align: center; }
-        .chart-table th { background: #f8f9fa; color: #2d3436; }
+        .chart-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 15px; font-size: 14px; border: 3px solid #ffcc80; border-radius: 20px; overflow: hidden; }
+        .chart-table th, .chart-table td { border-bottom: 1px solid #ffcc80; padding: 8px; text-align: center; }
+        .chart-table th { background: #fff3e0; color: #ff9800; }
 
-        .diff-select { margin: 15px 0; padding: 10px; width: 100%; border-radius: 8px; border: 1px solid #dfe6e9; font-size: 14px; }
-        .atk-text { font-size: 12px; font-weight: bold; color: #636e72; background: rgba(255,255,255,0.8); padding: 1px 4px; border-radius: 4px; }
+        .diff-select { margin: 0; padding: 10px; width: 100%; border-radius: 20px; border: 3px solid #b2dfdb; font-size: 14px; font-family: var(--font-main); color: #555; background: #fff; outline:none; }
+        .atk-text { font-size: 12px; font-weight: bold; color: #fff; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -193,24 +273,26 @@
     <div id="modal-overlay">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div id="modal-body"></div>
-            <button onclick="UI.closeModal()" style="width:100%; padding:10px; background:var(--accent); color:#fff; border:none; cursor:pointer; border-radius:8px; font-weight:bold; margin-top:15px;">확인</button>
+            <button onclick="UI.closeModal()" style="width:100%; padding:15px; background:var(--accent); color:#fff; border:none; cursor:pointer; border-radius:25px; font-weight:bold; margin-top:15px; font-size:18px; box-shadow: 0 6px 0 #c2185b;">확인! 🐾</button>
         </div>
     </div>
 
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
-            <h2 style="margin:0 0 10px 0; color:var(--accent);">팀 구성 (3명)</h2>
+            <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
+            <p style="margin:0 0 15px 0; font-size:15px; color:#8d6e63;">말랑말랑 전략 배틀! v5.0 Smart AI</p>
             <button class="btn-restart" onclick="UI.showChart()">📊 상성표 보기</button>
         </div>
         <div class="hero-grid" id="hero-grid"></div>
-        <div style="background:#fff; padding:15px; border-radius:12px; margin-top:15px; box-shadow:var(--shadow);">
-            <div id="preview-info" style="font-size:13px; color:#636e72;">영웅을 클릭하여 정보를 확인하세요.</div>
+        <div style="background:#fff; padding:15px; border-radius:30px; margin-top:15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 4px solid #ffe0b2;">
+            <div id="preview-info" style="font-size:14px; color:#888; margin-bottom: 10px;">영웅을 클릭하면 정보가 나와요!</div>
             <div style="display:flex; align-items:center; gap:5px;">
-                <select id="diff-select" class="diff-select" style="flex:1;">
-                    <option value="easy">난이도: 쉬움 (랜덤)</option>
-                    <option value="normal" selected>난이도: 보통</option>
-                    <option value="hard">난이도: 어려움</option>
-                    <option value="hell">난이도: 지옥 🔥 (TOP 7 덱)</option>
+                <select id="diff-select" class="diff-select" style="flex:1;" onchange="Game.checkMode()">
+                    <option value="normal" selected>🤖 난이도: 보통</option>
+                    <option value="easy">🐣 난이도: 쉬움 (랜덤)</option>
+                    <option value="hard">🔥 난이도: 어려움</option>
+                    <option value="hell">👿 난이도: 지옥 (NEW 7)</option>
+                    <option value="pvp">⚔️ 2인 대전 (친구랑)</option>
                 </select>
                 <button class="btn-rnd" onclick="Game.randomPick()">🎲 랜덤</button>
             </div>
@@ -222,16 +304,16 @@
         <div class="field-row" id="enemy-row"></div>
         <div class="control-panel">
             <div class="cp-header">
-                <span id="turn-indicator" style="font-weight:bold; font-size:14px; color:var(--accent);">Ready</span>
+                <span id="turn-indicator" style="font-weight:bold; font-size:16px; color:var(--accent);">Ready... 🐱</span>
                 <div style="display:flex; gap:8px;">
                     <button class="btn-restart" onclick="UI.showChart()">📊</button>
-                    <button class="btn-restart" onclick="Game.reset()">🔄 처음으로</button>
+                    <button class="btn-restart" onclick="Game.reset()">🏠 홈</button>
                 </div>
             </div>
             
             <div class="timeline-container" id="timeline">
                 <span class="timeline-label">NEXT:</span>
-                <div id="tl-track" style="display:flex; gap:5px;"></div>
+                <div id="tl-track" style="display:flex; gap:8px;"></div>
             </div>
 
             <div class="log-container" id="logs"></div>
@@ -255,13 +337,15 @@ const ATTR = { 'Fire':{i:'🔥', n:'불', c:'#e74c3c'}, 'Water':{i:'💧', n:'�
 const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light':'숲', 'Metal-Light':'독가스', 'Earth-Light':'모래', 'Water-Dark':'얼음', 'Fire-Dark':'검은불', 'Tree-Dark':'가시', 'Metal-Dark':'전기', 'Earth-Dark':'바위', 'Light-Light':'빛(강화)', 'Dark-Dark':'어둠(강화)', 'Normal':'노말' };
 
 const SKILL_DB = {
-    'Fire': { s1:'화염방사', s1d:'1.3배+화상', s2:'메테오', s2d:'광역 0.8배+화상(25%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', passive:'🩸 흡혈: 모든 공격 시 피해량의 20%를 회복합니다.' },
+    // [Balanced] Fire: s1 dmg up to 1.5x
+    'Fire': { s1:'화염방사', s1d:'1.5배+화상', s2:'메테오', s2d:'광역 0.8배+화상(25%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', passive:'🩸 흡혈: 모든 공격 시 피해량의 20%를 회복합니다.' },
     'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'아군전체 HP+110 (20%확률 +50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', passive:null },
     'Tree': { s1:'광합성', s1d:'쉴드+30/공+18 성장', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', passive:'🌿 성장: 광합성 사용 시 영구적으로 공격력과 쉴드가 증가합니다.' },
     'Metal': { s1:'강철베기', s1d:'1.3배+피해흡수(30%)', s2:'결투 신청', s2d:'적 도발/쉴드+15', type:'DEBUFF', target:'ENEMY', role:'tank', icon:'🛡️', passive:null },
     'Earth': { s1:'암석투척', s1d:'1.3배+기절25%/침묵20%', s2:'지진', s2d:'광역 0.8배', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'🏜️', passive:null },
     'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+60/공+10(1턴)', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', passive:null },
-    'Dark': { s1:'다크볼', s1d:'1.5배', s2:'공포', s2d:'공↓/쉴드30%소멸', type:'DEBUFF', target:'ALL_ENEMY', role:'supp', icon:'👻', passive:null },
+    // [Balanced] Dark: Karma added
+    'Dark': { s1:'다크볼', s1d:'1.5배+업보(반사)', s2:'공포', s2d:'공↓/쉴드30%소멸', type:'DEBUFF', target:'ALL_ENEMY', role:'supp', icon:'👻', passive:'👁️ 업보: 다크볼 피격자가 상태이상을 걸면 되돌려줍니다.' },
     'Normal': { s1:'균형타', s1d:'1.5배/아군보호(HP소모)', s2:'주사위', s2d:'랜덤 피해', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'🎲', passive:null },
     'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'👼', passive:null },
     'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵', s2:'블랙홀', s2d:'턴 스킵(80%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🕳️', passive:'🌑 심연의 힘: 블랙홀 성공 시 공격력이 10 영구 증가합니다.' },
@@ -336,12 +420,32 @@ class Unit {
         if (this.isNormal && ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN'].includes(type)) return;
         
         if (this.hasStatus('EVADE') && ['STUN', 'FREEZE'].includes(type)) {
-            // Self-inflicted check
             if (source && source.id !== this.id) {
                 if (Math.random() < 0.15) {
-                    UI.floatText(this, "CC회피!", "ft-miss");
+                    UI.floatText(this, "회피!", "ft-miss");
                     this.status = this.status.filter(s => s.type !== 'EVADE');
                     return; 
+                }
+            }
+        }
+
+        // [Karma System] Reflect CC Logic
+        if (source && source.id !== this.id && !source.isDead) {
+            const karma = source.status.find(s => s.type.startsWith('KARMA_VICTIM_'));
+            if (karma) {
+                const ownerId = parseInt(karma.type.split('_')[2]);
+                if (ownerId === this.id) {
+                    const isDarkVsDark = (this.base === 'Dark' && source.base === 'Dark');
+                    const isBanish = type === 'BANISH';
+                    const isReflectable = ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','ATK_DOWN'].includes(type);
+
+                    if (!isDarkVsDark && !isBanish && isReflectable) {
+                        UI.floatText(this, "반사! ↩️", "ft-crit");
+                        Game.log(`<span class='log-crit'>👁️ [${this.name}] 업보 발동! ${type} 반사 ➔ [${source.name}]</span>`);
+                        // Reflect to source
+                        source.addStatus(type, turn, val, null); 
+                        return; 
+                    }
                 }
             }
         }
@@ -356,11 +460,27 @@ class Unit {
         }
 
         if (this.resist > 0 && Math.random() < this.resist && ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN'].includes(type)) return;
-        if (type === 'ATK_DOWN') { const s = this.status.filter(s=>s.type==='ATK_DOWN'); if(s.length<2) this.status.push({type,turn,val}); else s[0].turn=turn; return; }
+        
+        if (type === 'ATK_DOWN') { 
+            const s = this.status.filter(s=>s.type==='ATK_DOWN'); 
+            if(s.length < 2) {
+                this.status.push({type, turn, val}); 
+            } else { 
+                const shortest = s.sort((a,b) => a.turn - b.turn)[0];
+                shortest.turn = turn;
+            }
+            return; 
+        }
         
         if(type==='BURN') { const ex = this.status.find(s=>s.type==='BURN'); if(ex) { ex.turn = turn; return; } }
         if(type==='HEAL_DOWN') { const ex = this.status.find(s=>s.type==='HEAL_DOWN'); if(ex) { ex.turn = turn; return; } }
         if(type==='LIGHT_MIGHT') { const ex = this.status.find(s=>s.type==='LIGHT_MIGHT'); if(ex) { ex.turn = turn; return; } }
+        
+        // Karma check
+        if (type.startsWith('KARMA_VICTIM_')) {
+             const ex = this.status.find(s => s.type === type);
+             if(ex) { ex.turn = turn; return; }
+        }
 
         if (type.startsWith('PROVOKED_BY_') && source) type = `PROVOKED_BY_${source.id}`;
 
@@ -369,8 +489,8 @@ class Unit {
     hasStatus(type) { return this.status.some(s=>s.type===type); }
     
     cleanse() { 
-        const bad = ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN']; 
-        this.status = this.status.filter(s => !bad.includes(s.type) && !s.type.startsWith('PROVOKED')); 
+        const bad = ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN','KARMA_VICTIM']; 
+        this.status = this.status.filter(s => !bad.includes(s.type) && !s.type.startsWith('PROVOKED') && !s.type.startsWith('KARMA_VICTIM')); 
     }
     dispel() { const buffs = ['EVADE','DMG_RED','ATK_BUFF','GROWTH','LIGHT_MIGHT']; const has=this.status.some(s=>buffs.includes(s.type)); this.status=this.status.filter(s=>!buffs.includes(s.type)); return has; }
     
@@ -402,9 +522,12 @@ class Unit {
 
 const AudioSys = {
     ctx: null,
-    init: function() { try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} },
+    init: function() { 
+        if(this.ctx) return;
+        try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} 
+    },
     resume: function() { if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); },
-    playSoft: function(freq, type, dur, vol=0.1) {
+    playSoft: function(freq, type, dur, vol=0.2) {
         if(!this.ctx) return;
         const o=this.ctx.createOscillator(); const g=this.ctx.createGain(); const t=this.ctx.currentTime;
         o.type=type; o.frequency.setValueAtTime(freq,t);
@@ -413,23 +536,23 @@ const AudioSys = {
     },
     play: function(type) {
         if(!this.ctx) return;
-        if(type==='HIT') this.playSoft(100,'triangle',0.15,0.2);
-        else if(type==='SKILL') { this.playSoft(300,'sine',0.2,0.1); setTimeout(()=>this.playSoft(500,'sine',0.3,0.1),100); }
-        else if(type==='HEAL') { this.playSoft(400,'sine',0.3,0.1); setTimeout(()=>this.playSoft(600,'sine',0.4,0.1),150); }
-        else if(type==='DEBUFF') { this.playSoft(200,'sine',0.3,0.15); setTimeout(()=>this.playSoft(150,'sine',0.4,0.15), 150); }
-        else if(type==='MISS') this.playSoft(800,'triangle',0.05,0.05);
-        else if(type==='WIN') { setTimeout(()=>this.playSoft(400,'sine',0.3,0.2),0); setTimeout(()=>this.playSoft(600,'sine',0.6,0.2),400); }
+        if(type==='HIT') this.playSoft(600,'sine',0.1,0.3); 
+        else if(type==='SKILL') { this.playSoft(500,'sine',0.15,0.25); setTimeout(()=>this.playSoft(800,'sine',0.2,0.25),100); } 
+        else if(type==='HEAL') { this.playSoft(500,'sine',0.2,0.25); setTimeout(()=>this.playSoft(700,'sine',0.3,0.25),150); }
+        else if(type==='DEBUFF') { this.playSoft(300,'triangle',0.2,0.3); setTimeout(()=>this.playSoft(200,'triangle',0.2,0.3), 150); } 
+        else if(type==='MISS') this.playSoft(900,'square',0.05,0.15); 
+        else if(type==='WIN') { setTimeout(()=>this.playSoft(523,'sine',0.2,0.4),0); setTimeout(()=>this.playSoft(659,'sine',0.2,0.4),200); setTimeout(()=>this.playSoft(784,'sine',0.4,0.4),400); }
         else if(type==='POWER_UP') { 
-            this.playSoft(261,'sine',0.4,0.1); setTimeout(()=>this.playSoft(329,'sine',0.4,0.1), 100); setTimeout(()=>this.playSoft(392,'sine',0.6,0.1), 200); 
+            this.playSoft(440,'sine',0.2,0.3); setTimeout(()=>this.playSoft(554,'sine',0.2,0.3), 100); setTimeout(()=>this.playSoft(659,'sine',0.3,0.3), 200); 
         }
-        else if(type==='CRITICAL') { this.playSoft(80,'triangle',0.1,0.4); setTimeout(()=>this.playSoft(60,'triangle',0.3,0.4), 50); }
+        else if(type==='CRITICAL') { this.playSoft(150,'triangle',0.1,0.5); setTimeout(()=>this.playSoft(880,'sine',0.3,0.6), 50); } 
     }
 };
 
 const UI = {
     showModal: function(title, content) {
         document.getElementById('modal-overlay').style.display = 'flex';
-        document.getElementById('modal-body').innerHTML = `<h3 style="color:#00cec9; margin-top:0;">${title}</h3><div>${content}</div>`;
+        document.getElementById('modal-body').innerHTML = `<h3 style="color:#ff80ab; margin-top:0;">${title}</h3><div>${content}</div>`;
     },
     closeModal: function() { document.getElementById('modal-overlay').style.display = 'none'; },
     showChart: function() {
@@ -442,12 +565,13 @@ const UI = {
                 <tr><td>⚔️ 쇠</td><td>🌿 나무, ⛰️ 흙</td></tr>
                 <tr><td>⛰️ 흙</td><td>🔥 불, 💧 물</td></tr>
                 <tr><td>☀️/🌙</td><td>서로에게 1.2배</td></tr>
+                <tr><td>🎲 노말</td><td>노말(자신), 강화된 빛/어둠</td></tr>
             </table>
             <div class="dual-chart">
                 <div style="font-weight:bold; color:#00cec9; margin-bottom:5px;">⚡ 이중 상성 (1.3배 치명타)</div>
-                <div class="dual-row" style='font-size:12px;'>기초 속성 우위 + 빛/어둠이 상대와 반대일 때 발동</div>
+                <div class="dual-row" style='font-size:12px; color:#666;'>기초 속성 우위 + 빛/어둠이 상대와 반대일 때</div>
                 <div style="font-weight:bold; color:#0984e3; margin-top:5px;">🛡️ 상성 방어</div>
-                <div class="dual-row" style='font-size:12px;'>유리한 속성에게 피격 시 데미지 감경 (0.83배 / 0.76배)</div>
+                <div class="dual-row" style='font-size:12px; color:#666;'>유리한 속성에게 피격 시 데미지 감경</div>
             </div>
         `;
         this.showModal("📊 상성 가이드", tableHtml);
@@ -476,8 +600,8 @@ const UI = {
         const maxDmg = Math.max(...allUnits.map(u => u.stats.dmg), 1);
         const maxHeal = Math.max(...allUnits.map(u => u.stats.heal + u.stats.shieldGiven), 1);
 
-        let html = `<h2 style="color:${winnerTeamStr==='아군'?'#00b894':'#d63031'}">${winnerTeamStr} 승리!</h2>`;
-        html += `<div style="max-height:60vh; overflow-y:auto; text-align:left;">`;
+        let html = `<h2 style="color:${winnerTeamStr.includes('아군')?'#80deea':'#ffcc80'}">${winnerTeamStr} 승리! 🎉</h2>`;
+        html += `<div style="max-height:50vh; overflow-y:auto; text-align:left;">`;
         
         const mvp = allUnits.sort((a,b)=>(b.stats.dmg+b.stats.heal+b.stats.shieldGiven)-(a.stats.dmg+a.stats.heal+a.stats.shieldGiven))[0];
 
@@ -487,43 +611,46 @@ const UI = {
             const isMVP = u.id === mvp.id;
             
             return `
-            <div style="margin-bottom:12px; padding:8px; background:${u.team===0?'#f0f8ff':'#fff0f0'}; border-radius:8px; border:1px solid #eee; position:relative;">
-                ${isMVP ? '<span style="position:absolute; top:5px; right:5px; font-size:20px;">👑</span>' : ''}
-                <div style="display:flex; align-items:center; gap:5px; margin-bottom:4px;">
-                    <div class="attr-icon" style="width:24px; height:24px; font-size:14px; background:${ATTR[u.base].c}">${SKILL_DB[u.getKey()].icon || ATTR[u.base].i}</div>
-                    <div style="font-weight:bold; font-size:13px;">${u.name.split(' ')[0]}</div>
+            <div style="margin-bottom:12px; padding:10px; background:${u.team===0?'#e0f7fa':'#fff3e0'}; border-radius:15px; border:2px solid #fff; position:relative; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                ${isMVP ? '<span style="position:absolute; top:-5px; right:-5px; font-size:24px;">👑</span>' : ''}
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                    <div class="attr-icon" style="width:28px; height:28px; font-size:16px; background:${ATTR[u.base].c}">${SKILL_DB[u.getKey()].icon || ATTR[u.base].i}</div>
+                    <div style="font-weight:bold; font-size:14px; color:#555;">${u.name.split(' ')[0]}</div>
                 </div>
-                <div style="display:flex; align-items:center; font-size:11px; margin-bottom:2px;">
-                    <span style="width:30px; color:#555;">딜</span>
-                    <div style="flex:1; background:#eee; height:8px; border-radius:4px; overflow:hidden;">
-                        <div style="width:${dmgPct}%; background:#ff7675; height:100%;"></div>
+                <div style="display:flex; align-items:center; font-size:11px; margin-bottom:4px;">
+                    <span style="width:30px; color:#888;">딜</span>
+                    <div style="flex:1; background:#fff; height:10px; border-radius:5px; overflow:hidden;">
+                        <div style="width:${dmgPct}%; background:#ff8a80; height:100%;"></div>
                     </div>
-                    <span style="width:35px; text-align:right;">${u.stats.dmg}</span>
+                    <span style="width:35px; text-align:right; font-weight:bold; color:#ff8a80;">${u.stats.dmg}</span>
                 </div>
                 <div style="display:flex; align-items:center; font-size:11px;">
-                    <span style="width:30px; color:#555;">힐/쉴</span>
-                    <div style="flex:1; background:#eee; height:8px; border-radius:4px; overflow:hidden;">
-                        <div style="width:${healPct}%; background:#55efc4; height:100%;"></div>
+                    <span style="width:30px; color:#888;">힐</span>
+                    <div style="flex:1; background:#fff; height:10px; border-radius:5px; overflow:hidden;">
+                        <div style="width:${healPct}%; background:#4db6ac; height:100%;"></div>
                     </div>
-                    <span style="width:35px; text-align:right;">${u.stats.heal + u.stats.shieldGiven}</span>
+                    <span style="width:35px; text-align:right; font-weight:bold; color:#4db6ac;">${u.stats.heal + u.stats.shieldGiven}</span>
                 </div>
             </div>`;
         };
 
-        html += `<h4 style="margin:5px 0;">아군 (Player)</h4>`;
+        html += `<h4 style="margin:5px 0; color:#80deea;">💙 팀 1 (Player)</h4>`;
         Game.pTeam.forEach(u => html += renderBar(u));
-        html += `<h4 style="margin:10px 0 5px;">적군 (Enemy)</h4>`;
+        html += `<h4 style="margin:15px 0 5px; color:#ffcc80;">🧡 팀 2 (Enemy/2P)</h4>`;
         Game.eTeam.forEach(u => html += renderBar(u));
         html += `</div>`;
         
         document.getElementById('modal-overlay').style.display = 'flex';
         document.getElementById('modal-body').innerHTML = html;
+    },
+    checkMode: function() {
+        Game.checkMode();
     }
 };
 
 const Game = {
     pool: [], selected: [], pTeam: [], eTeam: [], queue: [], curr: 0, selectedSkillIdx: -1, timer: null, turnCount: 1, difficulty: 'normal', watchdog: null,
-    isOver: false, 
+    isOver: false, mode: 'pve',
 
     init: function() {
         if(this.timer) clearTimeout(this.timer);
@@ -559,7 +686,7 @@ const Game = {
         if(u.isNormal) bgClass = 'bg-Normal';
         const role = SKILL_DB[u.getKey()].role || 'Unit';
         const icon = SKILL_DB[u.getKey()].icon || ''; 
-        return `<div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div><div style="font-weight:bold; margin-bottom:2px;">${u.name.split(' ')[0]}</div><div style="font-size:11px; color:#aaa;">${u.name}</div><div style="margin-top:5px; font-size:10px; background:#f0f0f0; padding:2px 6px; border-radius:4px;">${role}</div>`;
+        return `<div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div><div style="font-weight:bold; margin-bottom:2px; font-size:15px;">${u.name.split(' ')[0]}</div><div style="font-size:11px; color:#999;">${u.name}</div><div style="margin-top:8px; font-size:11px; background:#f5f5f5; padding:4px 8px; border-radius:10px; border:1px solid #eee;">${role}</div>`;
     },
 
     toggle: function(i, el) {
@@ -588,30 +715,38 @@ const Game = {
         btn.innerText = `전투 시작 (3/3)`;
         btn.disabled = false;
     },
+    
+    checkMode: function() {
+        // UI Interaction placeholder
+    },
 
     start: function() {
         AudioSys.init(); AudioSys.resume();
-        this.difficulty = document.getElementById('diff-select').value;
+        const diffVal = document.getElementById('diff-select').value;
+        this.difficulty = diffVal;
+        this.mode = diffVal === 'pvp' ? 'pvp' : 'pve';
+
         this.pTeam = this.selected.map((idx, i) => { const u = this.pool[idx]; u.id=i; u.team=0; return u; });
         this.eTeam = [];
         this.isOver = false;
         
         const makeEnemy = (idx, b, e) => { const u = new Unit(idx + 3, 1, b, e); return u; };
 
-        // Hell Mode Decks (Top 7)
+        // [Logic] Enemy Generation (Updated Hell Decks v5.0)
         if (this.difficulty === 'hell') {
             const decks = [
-                [{b:'Earth',e:'Light'}, {b:'Earth',e:'Dark'}, {b:'Light',e:'Light'}], // 사막의 폭풍
-                [{b:'Fire',e:null}, {b:'Tree',e:null}, {b:'Water',e:null}], // 불사조
-                [{b:'Metal',e:'Light'}, {b:'Tree',e:'Dark'}, {b:'Metal',e:null}], // 독성 벙커
-                [{b:'Water',e:'Dark'}, {b:'Normal',e:null}, {b:'Earth',e:null}], // 빙결 로또
-                [{b:'Metal',e:'Dark'}, {b:'Fire',e:'Light'}, {b:'Normal',e:null}], // 왕귀 듀오
-                [{b:'Fire',e:'Dark'}, {b:'Tree',e:'Light'}, {b:'Earth',e:'Light'}], // 탱커 분쇄기
-                [{b:'Fire',e:null}, {b:'Water',e:null}, {b:'Tree',e:null}] // 클래식
+                [{b:'Earth',e:'Dark'}, {b:'Light',e:'Light'}, {b:'Light',e:null}], // 1. 바위-빛강화-빛
+                [{b:'Normal',e:null}, {b:'Water',e:'Light'}, {b:'Light',e:'Light'}], // 2. 노말-증기-빛강화
+                [{b:'Fire',e:null}, {b:'Fire',e:'Dark'}, {b:'Metal',e:null}], // 3. 불-흑염-쇠
+                [{b:'Dark',e:null}, {b:'Dark',e:'Dark'}, {b:'Normal',e:null}], // 4. 어둠-어둠강화-노말
+                [{b:'Metal',e:'Light'}, {b:'Earth',e:'Light'}, {b:'Fire',e:null}], // 5. 독가스-모래-불
+                [{b:'Tree',e:null}, {b:'Water',e:null}, {b:'Metal',e:null}], // 6. 나무-물-쇠
+                [{b:'Fire',e:'Light'}, {b:'Metal',e:null}, {b:'Tree',e:'Dark'}] // 7. 청염-쇠-가시
             ];
             const d = decks[Math.floor(Math.random()*decks.length)];
             this.eTeam = d.map((c, i) => makeEnemy(i, c.b, c.e));
         } else {
+            // Random for Easy, Normal, Hard, PVP
             const used = new Set();
             while(this.eTeam.length<3) {
                 const b = ['Fire','Water','Tree','Metal','Earth','Light','Dark'][Math.floor(Math.random()*7)];
@@ -632,7 +767,7 @@ const Game = {
         document.getElementById('selection-screen').style.display='none';
         document.getElementById('battle-screen').style.display='flex';
         document.getElementById('logs').innerHTML = ''; 
-        this.log("<span class='log-sys'>⚔️ 전투 시작! (v4.1 AI & Meta Update)</span>");
+        this.log(`<span class='log-sys'>✨ 전투 시작! (${this.mode==='pvp'?'2인 대전':'vs AI'})</span>`);
         this.render();
         this.timer = setTimeout(()=>this.turn(), 1000);
     },
@@ -681,15 +816,22 @@ const Game = {
         this.render();
         if(u.hp<=0) { this.die(u); this.endTurn(); return; }
 
-        document.getElementById('turn-indicator').innerText = `Turn ${Math.ceil(this.turnCount/6)} : ${u.name}`;
+        let turnName = u.name.split(' ')[0];
+        if (this.mode === 'pvp') turnName += (u.team === 0 ? " (1P)" : " (2P)");
+        document.getElementById('turn-indicator').innerText = `Turn ${Math.ceil(this.turnCount/6)} : ${turnName}`;
         this.turnCount++;
         
         if(u.team===0) { 
             if(this.watchdog) clearTimeout(this.watchdog);
             this.input(u); 
         } else { 
-            this.noInput(); 
-            this.timer=setTimeout(()=>this.ai(u), 800); 
+            if (this.mode === 'pvp') {
+                if(this.watchdog) clearTimeout(this.watchdog);
+                this.input(u); 
+            } else {
+                this.noInput(); 
+                this.timer=setTimeout(()=>this.ai(u), 800); 
+            }
         }
     },
 
@@ -709,9 +851,10 @@ const Game = {
         if (k === 'Fire-Light' && u.s2Count >= 5) s2Limit = true;
         let sk2Disable = silenced || s2Limit;
         
-        // [Logic] Disable Self-Target S2 for Thorn if alone
+        // [Logic Update] Tree-Dark Self-cast Ban
         if (k === 'Tree-Dark') {
-            const aliveAllies = Game.pTeam.filter(a => !a.isDead && a.id !== u.id);
+            const myTeam = u.team === 0 ? Game.pTeam : Game.eTeam;
+            const aliveAllies = myTeam.filter(a => !a.isDead && a.id !== u.id); // Exclude self
             if (aliveAllies.length === 0 || u.linkedAllyId !== -1) sk2Disable = true;
         }
         
@@ -721,11 +864,14 @@ const Game = {
         const provoked = u.status.find(st => st.type.startsWith('PROVOKED_BY_'));
         if(provoked) {
             const targetId = parseInt(provoked.type.split('_')[2]);
-            const target = this.eTeam.find(e => e.id === targetId) || this.pTeam.find(p => p.id === targetId);
+            const enemies = u.team === 0 ? this.eTeam : this.pTeam;
+            const allies = u.team === 0 ? this.pTeam : this.eTeam;
+            const target = enemies.find(e => e.id === targetId) || allies.find(p => p.id === targetId);
+            
             this.log(`<span class='log-sys'>💢 [${u.name}] 도발 당함!</span>`);
             this.noInput(); 
             if(target && !target.isDead) setTimeout(() => this.execute(u, target, 0), 1000);
-            else setTimeout(() => { this.selectedSkillIdx=0; this.highlightTargets('ENEMY'); }, 500); 
+            else setTimeout(() => { this.selectedSkillIdx=0; this.highlightTargets('ENEMY', u); }, 500); 
             return;
         }
         this.selectedSkillIdx = -1;
@@ -736,35 +882,50 @@ const Game = {
     prepareSkill: function(idx) {
         [0,1,2].forEach(i => { const b = document.getElementById(`sk-${i}`); if(i===idx) b.classList.add('selected'); else b.classList.remove('selected'); });
         this.selectedSkillIdx = idx;
-        const u = this.pTeam[this.queue[this.curr]/2]; const k = u.getKey(); const skillInfo = SKILL_DB[k];
+        
+        const tVal = this.queue[this.curr];
+        const u = tVal % 2 === 0 ? this.pTeam[tVal/2] : this.eTeam[(tVal-1)/2];
+        
+        const k = u.getKey(); const skillInfo = SKILL_DB[k];
         let targetType = (idx === 0 || idx === 1) ? 'ENEMY' : skillInfo.target;
         if(k==='Tree') { if(idx===1) targetType = 'SELF'; else if(idx===2) targetType = 'ALLY'; }
         if(k==='Water-Light' && idx===2) targetType = 'ALLY';
-        this.highlightTargets(targetType);
+        this.highlightTargets(targetType, u);
     },
 
-    highlightTargets: function(targetType) {
+    highlightTargets: function(targetType, actingUnit) {
+        if (!actingUnit) {
+            const tVal = this.queue[this.curr];
+            actingUnit = tVal%2===0 ? this.pTeam[tVal/2] : this.eTeam[(tVal-1)/2];
+        }
+
         document.querySelectorAll('.unit').forEach(el => { 
             el.classList.remove('target-enemy', 'target-ally', 'target-aoe'); 
             el.onclick = null; 
         });
 
         const isAOE = ['ALL_ENEMY', 'ALL_ALLY', 'AOE'].includes(targetType);
-        const isAllyTarget = ['ALLY','ALL_ALLY','SELF'].includes(targetType);
+        const isAllyTarget = ['ALLY','ALL_ALLY','SELF','SELF_BUFF'].includes(targetType);
         
-        const targets = isAllyTarget ? this.pTeam : this.eTeam;
+        const myTeam = actingUnit.team === 0 ? this.pTeam : this.eTeam;
+        const oppTeam = actingUnit.team === 0 ? this.eTeam : this.pTeam;
+        
+        const targets = isAllyTarget ? myTeam : oppTeam;
         let targetClass = isAllyTarget ? 'target-ally' : 'target-enemy';
         if (isAOE && !isAllyTarget) targetClass = 'target-aoe'; 
 
         targets.forEach((t) => {
             if(!t.isDead) {
-                const el = document.getElementById(isAllyTarget ? `p-card-${t.id}` : `e-card-${t.id}`);
+                // [Update] Tree-Dark S2 Self-Target Ban
+                if (actingUnit.getKey() === 'Tree-Dark' && this.selectedSkillIdx === 2 && t.id === actingUnit.id) return;
+
+                const el = document.getElementById(t.team === 0 ? `p-card-${t.id}` : `e-card-${t.id}`);
                 el.classList.add(targetClass);
                 el.onclick = () => {
-                    if(targetType === 'SELF' && t.id !== this.pTeam[this.queue[this.curr]/2].id) return;
+                    if(targetType === 'SELF' && t.id !== actingUnit.id) return;
                     this.noInput();
                     document.querySelectorAll('.unit').forEach(el => el.classList.remove('target-enemy', 'target-ally', 'target-aoe'));
-                    this.execute(this.pTeam[this.queue[this.curr]/2], t, this.selectedSkillIdx);
+                    this.execute(actingUnit, t, this.selectedSkillIdx);
                 };
             }
         });
@@ -788,36 +949,87 @@ const Game = {
             const k = u.getKey(); 
             const info = SKILL_DB[k];
             
+            // [AI UPDATE v5.0] Smart Target Logic
+            let attackTarget = aliveEnemies[0];
+            let bestScore = -9999;
+
+            aliveEnemies.forEach(e => {
+                let score = 0;
+                
+                // 1. Elemental Advantage (1.2x, 1.3x, 1.5x)
+                let multi = Game.calc(u, e).v;
+                if (multi >= 1.5) score += 150;
+                else if (multi >= 1.2) score += 80;
+                else if (multi < 1.0) score -= 50;
+
+                // 2. Kill Potential
+                // Basic estimation. Does not account for shields perfectly but good enough.
+                let estDmg = u.getAtk() * multi;
+                if (e.hp <= estDmg) score += 500;
+
+                // 3. High Value Targets (Hell Mode Specific)
+                if (this.difficulty === 'hell') {
+                    const role = SKILL_DB[e.getKey()].role;
+                    if (role === 'supp') score += 100; // Kill Healers
+                    else if (role === 'nuker') score += 50; // Kill DPS
+                }
+
+                // 4. Unit Specific Logic
+                if (k === 'Earth-Dark') {
+                    // Rock stuns self, so hitting low HP is waste unless it kills
+                    if (e.hp < 200 && e.hp > estDmg) score -= 50; 
+                }
+                if (k === 'Metal-Light') {
+                    // Poison Gas loves shields
+                    if (e.shield > 0) score += 100;
+                }
+                if (k === 'Fire-Dark') {
+                    // HP% Damage loves high HP
+                    if (e.hp > 400) score += 60;
+                }
+
+                // Avoid hitting CC'd targets with more CC
+                if (['STUN','FREEZE','BANISH'].some(s => e.hasStatus(s))) score -= 40;
+
+                if (score > bestScore) { bestScore = score; attackTarget = e; }
+            });
+
+            // Fallback for Easy Mode
+            if (this.difficulty === 'easy') attackTarget = aliveEnemies[Math.floor(Math.random()*aliveEnemies.length)];
+
+            // [AI Logic v4.9] Tree Hell Mode logic: Force S1(Growth) for first 4 rounds (approx 24 turns total / 6 units = 4 rounds per unit)
+            // Using a simplified check: turnCount <= 24
+            if (this.difficulty === 'hell' && k === 'Tree') {
+                if (this.turnCount <= 24) { 
+                    this.execute(u, u, 1); // Force Growth
+                    return; 
+                }
+                // After turn 24, revert to standard logic (HP > 40% -> Growth)
+                else if (u.hp > u.maxHp * 0.4) {
+                    this.execute(u, u, 1);
+                    return;
+                }
+            } else if (k === 'Tree' && u.hp > u.maxHp * 0.4) {
+                // Normal mode Tree logic
+                this.execute(u, u, 1);
+                return;
+            }
+
+            let supportTarget = aliveAllies.sort((a,b) => a.hp - b.hp)[0]; 
             let blockS2 = false;
+
             if (k === 'Fire-Light') {
                 const hasBuff = u.status.some(s => s.type === 'ATK_BUFF'); 
                 if (hasBuff || u.s2Count >= 5) blockS2 = true; 
             }
             if (k === 'Tree-Dark') {
-                if (u.linkedAllyId !== -1 || aliveAllies.length <= 1) blockS2 = true; // [Logic] Thorn AI fix
+                const otherAllies = aliveAllies.filter(a => a.id !== u.id);
+                if (otherAllies.length === 0 || u.linkedAllyId !== -1) blockS2 = true; 
+                // Target ally with highest HP for link? No, usually protect weak. 
+                // Let's stick to protecting lowest HP ally who isn't self.
+                const others = aliveAllies.filter(a => a.id !== u.id).sort((a,b) => a.hp - b.hp);
+                if (others.length > 0) supportTarget = others[0];
             }
-
-            let attackTarget = aliveEnemies[0];
-            let bestScore = -9999;
-            aliveEnemies.forEach(e => {
-                let score = 0;
-                // [AI] Execution Logic
-                const potentialDmg = u.getAtk() * (info.type==='NUKE_PER'?1.5:1.0) * Game.calc(u, e).v;
-                if (e.hp <= potentialDmg) score += 500; 
-
-                if (e.hp < u.getAtk() * 1.5) score += 50; 
-                const aff = Game.calc(u, e).v;
-                if (aff > 1.2) score += 20; 
-                if (e.hp < e.maxHp * 0.4) score += 10;
-                
-                // [AI] Don't waste CC
-                if (['STUN','FREEZE','BANISH'].some(s => e.hasStatus(s))) score -= 30;
-
-                if (score > bestScore) { bestScore = score; attackTarget = e; }
-            });
-            if (this.difficulty === 'easy') attackTarget = aliveEnemies[Math.floor(Math.random()*aliveEnemies.length)];
-
-            let supportTarget = aliveAllies.sort((a,b) => a.hp - b.hp)[0]; 
 
             let action = 0;
             let finalTarget = attackTarget; 
@@ -827,7 +1039,6 @@ const Game = {
                 let useS2 = false;
                 if (this.difficulty === 'hell' || this.difficulty === 'hard') {
                      useS2 = true; 
-                     // [AI] Don't Overheal
                      if (isS2Support && info.type === 'HEAL' && supportTarget.hp > supportTarget.maxHp * 0.8) useS2 = false;
                 } else {
                      useS2 = Math.random() > 0.4;
@@ -897,7 +1108,6 @@ const Game = {
                 UI.floatText(def, act, aff.v>1.2?"ft-crit":"ft-dmg");
                 if (aff.v > 1.2 || act > 150) { AudioSys.play('CRITICAL'); UI.screenShake(); UI.flash(); playedSound=true; } 
                 
-                // [Fire Passive: Lifesteal]
                 if (k.startsWith('Fire')) {
                     const healAmt = Math.floor(act * 0.2);
                     atk.heal(healAmt);
@@ -916,6 +1126,9 @@ const Game = {
                 if (k==='Metal-Light') mult = 0.5;
                 if (k==='Metal') mult = 1.3;
                 if (k==='Dark-Dark') mult = 0.9; 
+
+                // [Updated] Fire Buff
+                if(k==='Fire') mult = 1.5;
 
                 let rawDmg = Math.floor(baseAtk * mult * aff.v * defMod);
                 
@@ -959,6 +1172,11 @@ const Game = {
                     m += ` (HP소모/보호)`;
                 }
 
+                if (k === 'Dark') {
+                    def.addStatus(`KARMA_VICTIM_${atk.id}`, 2, 0, atk);
+                    m += ' (업보 심기)';
+                }
+
                 if (k === 'Earth-Light' || k === 'Tree-Light') { 
                     let actual = def.takeDamage(rawDmg, false, true);
                     Game.recordStat(atk, 'dmg', actual);
@@ -981,7 +1199,15 @@ const Game = {
             }
         } 
         else {
-            if (k === 'Fire-Light') { atk.s2Count++; if(atk.s2Count<=5) AudioSys.play('POWER_UP'); playedSound=true; }
+            if (k === 'Fire-Light') { 
+                if(atk.s2Count < 5) {
+                    atk.s2Count++; 
+                    atk.atk += 10;
+                    AudioSys.play('POWER_UP'); 
+                    m += " (🔥폭주: 공+10)";
+                }
+                playedSound=true; 
+            }
 
             if (k === 'Dark-Dark') {
                 atk.takeDamage(20); AudioSys.play('DEBUFF'); playedSound=true;
@@ -1049,7 +1275,6 @@ const Game = {
                 if(def) { 
                     if(k==='Tree') { def.heal(150); def.cleanse(); m+=` 치유/정화`; }
                     else if(k==='Tree-Dark') { 
-                        // [Future] Self-cast logic prepared
                         if (atk.id === def.id) {
                             // m += " (자신에게 사용 불가)"; 
                         } else {
@@ -1126,7 +1351,8 @@ const Game = {
         let v = 1.0;
         let t = '';
         if(a.isNormal) {
-            if(d.isNormal||d.isEnhanced) { v=1.2; t='(강타)'; }
+            // [Updated Balance] Normal vs Normal = 1.2x
+            if(d.isNormal || d.isEnhanced) { v=1.2; t='(강타)'; }
         } else {
             const w={'Fire':['Metal','Tree'],'Water':['Fire','Metal'],'Tree':['Water','Earth'],'Metal':['Tree','Earth'],'Earth':['Fire','Water']};
             const ew={'Light':['Dark'],'Dark':['Light']};
@@ -1159,7 +1385,7 @@ const Game = {
             this.isOver = true; 
             if(this.timer) clearTimeout(this.timer);
             AudioSys.play('WIN'); 
-            UI.showResult(pd ? "적군" : "아군"); 
+            UI.showResult(pd ? "🧡 적군 (Team 2)" : "💙 아군 (Team 1)"); 
             return true; 
         } 
         return false;
@@ -1197,7 +1423,7 @@ const Game = {
                 d.className = `unit role-${role} ${u.isDead?'dead':''} ${isActive?'active-turn':''} ${tid===1?'target-enemy':''} ${tid===0?'target-ally':''}`;
                 d.id = tid===0 ? `p-card-${u.id}` : `e-card-${u.id}`;
                 
-                const tags = u.status.map(s => {
+                let tags = u.status.map(s => {
                     let c='tag'; 
                     if(s.type=='POISON') c+=' poison'; else if(s.type=='FREEZE') c+=' freeze'; 
                     else if(s.type.includes('PROVOKED')) c+=' taunt'; else if(s.type=='SILENCE') c+=' silence';
@@ -1207,6 +1433,7 @@ const Game = {
                     else if(s.type=='ATK_DOWN') c+=' atkdown'; else if(s.type=='BLIND') c+=' blind';
                     else if(s.type=='ATK_BUFF') c+=' growth'; else if(s.type=='IMMUNITY') c+=' immunity';
                     else if(s.type=='HEAL_DOWN') c+=' healdown'; else if(s.type=='LIGHT_MIGHT') c+=' atkup';
+                    else if(s.type.startsWith('KARMA_VICTIM')) c+=' karma';
                     
                     let txt = s.type;
                     if(s.type=='POISON') txt='독'; if(s.type=='FREEZE') txt='빙결'; 
@@ -1218,9 +1445,14 @@ const Game = {
                     if(s.type=='BLIND') txt='실명'; if(s.type=='ATK_BUFF') txt='폭주';
                     if(s.type=='IMMUNITY') txt='면역'; if(s.type=='HEAL_DOWN') txt='치유↓';
                     if(s.type=='LIGHT_MIGHT') txt='공격↑';
+                    if(s.type.startsWith('KARMA_VICTIM')) txt='👁️업보';
 
                     return `<span class="${c}">${txt}(${s.turn})</span>`;
                 }).join('');
+
+                if (u.linkedAllyId !== -1) {
+                    tags += `<span class="tag bind" style="background:#27ae60; border:1px solid #fff;">🔗Link</span>`;
+                }
 
                 let bgClass = `bg-${u.base}`;
                 if(u.isEnhanced) bgClass = `bg-${u.base}-Enhanced`;
@@ -1232,7 +1464,7 @@ const Game = {
                     <div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div>
                     <div class="unit-name">${u.name.split(' ')[0]} <span class="atk-text">⚔️${u.getAtk()}</span></div>
                     <div class="status-bar"><div class="hp-fill" style="width:${(u.hp/u.maxHp)*100}%; background:${u.hp<150?'var(--hp-low)':'var(--hp-high)'}"></div><div class="shield-fill" style="width:${(u.shield/u.maxHp)*100}%"></div></div>
-                    <div style="font-size:10px; margin-top:3px; color:#b2bec3;">${u.hp}${u.shield>0?` (+${u.shield})`:''}</div>
+                    <div style="font-size:10px; margin-top:3px; color:#aaa;">${u.hp}${u.shield>0?` (+${u.shield})`:''}</div>
                 `;
                 el.appendChild(d);
             });
