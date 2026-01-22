@@ -1406,7 +1406,7 @@ const Game = {
         const u = this.queue[this.curr]%2===0 ? this.pTeam[this.queue[this.curr]/2] : this.eTeam[(this.queue[this.curr]-1)/2];
         if(u && !u.isDead) u.decayStatus();
 
-        if (this.curr === 0 && this.turnCount > 20) {
+        if (this.curr === 0 && this.turnCount > 120) {
             [...this.pTeam, ...this.eTeam].forEach(u => {
                 if(!u.isDead) u.atk += 10;
             });
