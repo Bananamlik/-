@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v5.6 Death Match</title>
+    <title>Elemental Tactics: v5.8 Guidebook Update</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* [Theme] Jelly Cat Palette v5.6 */
+            /* [Theme] Jelly Cat Palette v5.8 */
             --bg-main: #fff5f8;
             --panel-bg: #ffffff;
             --text-main: #5d4037;
@@ -265,8 +265,21 @@
         .ft-heal { color: #26a69a; } .ft-miss { color: #b0bec5; font-size: 20px; }
 
         #modal-overlay { position: fixed; inset: 0; background: rgba(255, 248, 225, 0.85); backdrop-filter:blur(5px); z-index: 100; display: none; justify-content: center; align-items: center; }
-        .modal-content { background: #fff; padding: 25px; border-radius: 35px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 15px 50px rgba(255, 128, 171, 0.3); overflow-y:auto; max-height:80vh; border: 5px solid #ffcc80;}
+        .modal-content { background: #fff; padding: 25px; border-radius: 35px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 15px 50px rgba(255, 128, 171, 0.3); overflow-y:auto; max-height:80vh; border: 5px solid #ffcc80; position: relative;}
         
+        /* Guidebook Tabs */
+        .tab-header { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .tab-btn { flex: 1; padding: 10px; border-radius: 15px; border: none; background: #f5f5f5; color: #888; font-weight: bold; cursor: pointer; }
+        .tab-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 10px rgba(255, 128, 171, 0.4); }
+        .tab-content { display: none; text-align: left; }
+        .tab-content.active { display: block; }
+        
+        .guide-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #f0f0f0; }
+        .guide-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; border: 2px solid #eee; flex-shrink: 0;}
+        .guide-info { flex: 1; font-size: 13px; }
+        .guide-name { font-weight: bold; color: var(--text-main); margin-bottom: 2px; }
+        .guide-desc { color: #888; font-size: 11px; }
+
         .chart-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 15px; font-size: 14px; border: 3px solid #ffcc80; border-radius: 20px; overflow: hidden; }
         .chart-table th, .chart-table td { border-bottom: 1px solid #ffcc80; padding: 8px; text-align: center; }
         .chart-table th { background: #fff3e0; color: #ff9800; }
@@ -282,15 +295,16 @@
     <div id="modal-overlay">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div id="modal-body"></div>
-            <button onclick="UI.closeModal()" style="width:100%; padding:15px; background:var(--accent); color:#fff; border:none; cursor:pointer; border-radius:25px; font-weight:bold; margin-top:15px; font-size:18px; box-shadow: 0 6px 0 #c2185b;">확인! 🐾</button>
+            <button onclick="UI.closeModal()" style="width:100%; padding:15px; background:var(--accent); color:#fff; border:none; cursor:pointer; border-radius:25px; font-weight:bold; margin-top:15px; font-size:18px; box-shadow: 0 6px 0 #c2185b;">닫기 🐾</button>
         </div>
     </div>
 
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 15px 0; font-size:15px; color:#8d6e63;">v5.6 Death Match (Smart AI)</p>
-            <button class="btn-restart" onclick="UI.showChart()">📊 상성표 보기</button>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v5.8 Guidebook Update</p>
+            <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
+            <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
         </div>
         <div class="hero-grid" id="hero-grid"></div>
         <div style="background:#fff; padding:15px; border-radius:30px; margin-top:15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 4px solid #ffe0b2;">
@@ -315,7 +329,7 @@
             <div class="cp-header">
                 <span id="turn-indicator" style="font-weight:bold; font-size:16px; color:var(--accent);">Ready... 🐱</span>
                 <div style="display:flex; gap:8px;">
-                    <button class="btn-restart" onclick="UI.showChart()">📊</button>
+                    <button class="btn-restart" onclick="UI.showGuide()">📖</button>
                     <button class="btn-restart" onclick="Game.reset()">🏠 홈</button>
                 </div>
             </div>
@@ -345,27 +359,28 @@
 const ATTR = { 'Fire':{i:'🔥', n:'불', c:'#e74c3c'}, 'Water':{i:'💧', n:'물', c:'#3498db'}, 'Tree':{i:'🌿', n:'나무', c:'#2ecc71'}, 'Metal':{i:'⚔️', n:'쇠', c:'#95a5a6'}, 'Earth':{i:'⛰️', n:'흙', c:'#e67e22'}, 'Light':{i:'☀️', n:'빛', c:'#f1c40f'}, 'Dark':{i:'🌙', n:'어둠', c:'#9b59b6'}, 'Normal':{i:'☀️🌙', n:'노말', c:'#ecf0f1'} };
 const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light':'숲', 'Metal-Light':'독가스', 'Earth-Light':'모래', 'Water-Dark':'얼음', 'Fire-Dark':'검은불', 'Tree-Dark':'가시', 'Metal-Dark':'전기', 'Earth-Dark':'바위', 'Light-Light':'빛(강화)', 'Dark-Dark':'어둠(강화)', 'Normal':'노말' };
 
+// [수정] SKILL_DB에 desc(특징) 추가 및 Fire-Dark 패시브 수정
 const SKILL_DB = {
-    'Fire': { s1:'화염방사', s1d:'1.5배+화상', s2:'메테오', s2d:'광역 0.8배+화상(25%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', passive:'🩸 흡혈: 모든 공격 시 피해량의 20%를 회복합니다.' },
-    'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'아군전체 HP+110 (20%확률 +50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', passive:null },
-    'Tree': { s1:'광합성', s1d:'쉴드+30/공+18 성장', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', passive:'🌿 성장: 광합성 사용 시 영구적으로 공격력과 쉴드가 증가합니다.' },
-    'Metal': { s1:'강철베기', s1d:'1.3배+피해흡수(30%)', s2:'결투 신청', s2d:'적 도발/쉴드+15', type:'DEBUFF', target:'ENEMY', role:'tank', icon:'🛡️', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 받는 피해가 최대 체력의 25%를 넘지 않습니다.' },
-    'Earth': { s1:'암석투척', s1d:'1.3배+기절25%/침묵20%', s2:'지진', s2d:'광역 0.8배', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'🏜️', passive:null },
-    'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+10(1턴)', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', passive:null },
-    'Dark': { s1:'다크볼', s1d:'1.5배+업보(반사)', s2:'공포', s2d:'공↓/쉴드30%소멸', type:'DEBUFF', target:'ALL_ENEMY', role:'supp', icon:'👻', passive:'👁️ 업보: 다크볼 피격자가 상태이상을 걸면 되돌려줍니다.' },
-    'Normal': { s1:'균형타', s1d:'1.5배/아군보호(HP소모)', s2:'주사위', s2d:'랜덤 피해', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'🎲', passive:'🎲 완전 면역: 모든 해로운 상태이상(CC, 도트, 디버프)을 무시합니다.' },
-    'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'👼', passive:null },
-    'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵', s2:'블랙홀', s2d:'턴 스킵(75%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🕳️', passive:'🌑 심연의 힘: 블랙홀 성공 시 공격력이 10 영구 증가합니다.' },
-    'Water-Light': { s1:'스팀젯', s1d:'1.4배+실명(20%)', s2:'안개', s2d:'타겟힐+회피(15%)', type:'TARGET_BUFF', target:'ALLY', role:'supp', icon:'☁️', passive:'☁️ 증기: 회피 시 기절/빙결 CC기를 15% 확률로 무효화합니다 (회피소멸).' },
-    'Fire-Light': { s1:'청염', s1d:'1.5배', s2:'폭주', s2d:'자신 공+40~ (최대5회)', type:'BUFF', target:'SELF', role:'nuker', icon:'🔷', passive:'🔥 폭주: 스킬 사용 시 공격력이 대폭 증가합니다 (최대 5회).' },
-    'Tree-Light': { s1:'숲의분노', s1d:'1.2배+쉴드관통+힐', s2:'축복', s2d:'아군 정화/HP+70', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚', passive:null },
-    'Metal-Light': { s1:'가스탄', s1d:'0.5배+쉴드파괴(성공시 쉴드)', s2:'맹독살포', s2d:'전체 중독', type:'DEBUFF', target:'ALL_ENEMY', role:'tank', icon:'☣️', passive:null },
-    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배+쉴드무시', s2:'모래지옥', s2d:'치유감소(강)+도트', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🦂', passive:null },
-    'Water-Dark': { s1:'고드름', s1d:'1.5배', s2:'절대영도', s2d:'빙결(35%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'❄️', passive:null },
-    'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상', s2:'소각', s2d:'체력비례피해', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', passive:'🩸 흡혈: 모든 공격 시 피해량의 20%를 회복합니다.' },
-    'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+스택강화', s2:'영혼결속', s2d:'사망시 폭주/광역독', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🥀', passive:'🥀 복수: 사망 시 적 전체에게 맹독을 걸고 아군 하나를 강화합니다.' },
-    'Metal-Dark': { s1:'전기충격', s1d:'1.5배+과부하(최대5회)', s2:'방전', s2d:'광역+기절15%/과부하', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'⚡', passive:'⚡ 과부하: 공격 시 스택이 쌓이며 공격력이 증가합니다.' },
-    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+1턴기절(휴식)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', passive:'🗿 반동: 산사태 후 기절 상태에서는 받는 피해가 10 증가합니다.' }
+    'Fire': { s1:'화염방사', s1d:'1.5배+화상', s2:'메테오', s2d:'광역 0.8배+화상(25%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', desc:'딜러 | 흡혈+화상', passive:'🩸 흡혈: 모든 공격 시 피해량의 20%를 회복합니다.' },
+    'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'아군전체 HP+110 (20%확률 +50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'힐러 | 광역 회복', passive:null },
+    'Tree': { s1:'광합성', s1d:'쉴드+30/공+18 성장', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', desc:'탱커 | 자가 성장', passive:'🌿 성장: 광합성 사용 시 영구적으로 공격력과 쉴드가 증가합니다.' },
+    'Metal': { s1:'강철베기', s1d:'1.3배+피해흡수(30%)', s2:'결투 신청', s2d:'적 도발/쉴드+15', type:'DEBUFF', target:'ENEMY', role:'tank', icon:'🛡️', desc:'탱커 | 도발+최대피해제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 받는 피해가 최대 체력의 30%를 넘지 않습니다.' },
+    'Earth': { s1:'암석투척', s1d:'1.3배+기절25%/침묵20%', s2:'지진', s2d:'광역 0.8배', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'🏜️', desc:'서포터 | 확률형 CC', passive:null },
+    'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+10(1턴)', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', desc:'서포터 | 광역 쉴드', passive:null },
+    'Dark': { s1:'다크볼', s1d:'1.5배+업보(반사)', s2:'공포', s2d:'공↓/쉴드30%소멸', type:'DEBUFF', target:'ALL_ENEMY', role:'supp', icon:'👻', desc:'서포터 | CC반사+공포', passive:'👁️ 업보: 다크볼 피격자가 상태이상을 걸면 되돌려줍니다.' },
+    'Normal': { s1:'균형타', s1d:'1.5배/아군보호(HP소모)', s2:'주사위', s2d:'랜덤 피해', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'🎲', desc:'딜러 | 완전 면역', passive:'🎲 면역: CC기(기절,빙결,침묵 등)를 무시합니다. (도트딜 제외)' },
+    'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'👼', desc:'서포터 | 광역 정화', passive:null },
+    'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵', s2:'블랙홀', s2d:'턴 스킵(75%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🕳️', desc:'서포터 | 강력한 추방', passive:'🌑 심연의 힘: 블랙홀 성공 시 공격력이 10 영구 증가합니다.' },
+    'Water-Light': { s1:'스팀젯', s1d:'1.4배+실명(20%)', s2:'안개', s2d:'타겟힐+회피(15%)', type:'TARGET_BUFF', target:'ALLY', role:'supp', icon:'☁️', desc:'서포터 | 회피 부여', passive:'☁️ 증기: 회피 시 기절/빙결 CC기를 15% 확률로 무효화합니다 (회피소멸).' },
+    'Fire-Light': { s1:'청염', s1d:'1.5배', s2:'폭주', s2d:'자신 공+40~ (최대5회)', type:'BUFF', target:'SELF', role:'nuker', icon:'🔷', desc:'딜러 | 왕귀형 성장', passive:'🔥 폭주: 스킬 사용 시 공격력이 대폭 증가합니다 (최대 5회).' },
+    'Tree-Light': { s1:'숲의분노', s1d:'1.2배+쉴드관통+힐', s2:'축복', s2d:'아군 정화/HP+70', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚', desc:'서포터 | 쉴드관통+정화', passive:null },
+    'Metal-Light': { s1:'가스탄', s1d:'0.5배+쉴드파괴(성공시 쉴드)', s2:'맹독살포', s2d:'전체 중독', type:'DEBUFF', target:'ALL_ENEMY', role:'tank', icon:'☣️', desc:'탱커 | 쉴드파괴+중독', passive:null },
+    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배+쉴드무시', s2:'모래지옥', s2d:'치유감소(강)+도트', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🦂', desc:'서포터 | 치유감소', passive:null },
+    'Water-Dark': { s1:'고드름', s1d:'1.5배', s2:'절대영도', s2d:'빙결(35%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'❄️', desc:'딜러 | 강력한 빙결', passive:null },
+    'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상', s2:'소각', s2d:'체력비례피해', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', desc:'딜러 | 체력비례딜', passive:'🔥 소각: 적의 체력이 많을수록 더 큰 피해를 입힙니다.' }, // 흡혈 삭제
+    'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+스택강화', s2:'영혼결속', s2d:'사망시 폭주/광역독', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🥀', desc:'탱커 | 사망 시 복수', passive:'🥀 복수: 사망 시 적 전체에게 맹독을 걸고 아군 하나를 강화합니다.' },
+    'Metal-Dark': { s1:'전기충격', s1d:'1.5배+과부하(최대5회)', s2:'방전', s2d:'광역+기절15%/과부하', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'⚡', desc:'딜러 | 스택형 광역딜', passive:'⚡ 과부하: 공격 시 스택이 쌓이며 공격력이 증가합니다.' },
+    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+1턴기절(휴식)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'딜러 | 한방 폭딜', passive:'🗿 반동: 산사태 후 기절 상태에서는 받는 피해가 10 증가합니다.' }
 };
 
 class Unit {
@@ -404,8 +419,9 @@ class Unit {
     takeDamage(dmg, isFire=false, ignoreShield=false) {
         if (isFire && this.hasStatus('BURN')) dmg = Math.floor(dmg * 1.25);
         
+        // 쇠(Metal) 패시브: 최대 체력의 30%로 제한
         if (this.base === 'Metal' && !this.extra && this.shield > 0) {
-            const cap = Math.floor(this.maxHp * 0.25); 
+            const cap = Math.floor(this.maxHp * 0.30); 
             if (dmg > cap) {
                 dmg = cap;
                 UI.floatText(this, "Iron Will", "ft-heal"); 
@@ -439,7 +455,7 @@ class Unit {
     }
 
     addStatus(type, turn, val=0, source=null) {
-        if (this.isNormal && ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN','HEAL_DOWN','BIND','KARMA_VICTIM'].includes(type)) {
+        if (this.isNormal && ['FREEZE','STUN','SILENCE','BLIND','BANISH','ATK_DOWN','HEAL_DOWN','BIND','KARMA_VICTIM'].includes(type)) {
             UI.floatText(this, "Immune", "ft-miss");
             return;
         }
@@ -538,7 +554,6 @@ class Unit {
         const diff=this.hp-prev; 
         if(diff>0) {
             UI.floatText(this, diff, 'ft-heal'); 
-            this.stats.heal += diff; 
         }
         return diff; 
     }
@@ -579,27 +594,76 @@ const UI = {
         document.getElementById('modal-body').innerHTML = `<h3 style="color:#ff80ab; margin-top:0;">${title}</h3><div>${content}</div>`;
     },
     closeModal: function() { document.getElementById('modal-overlay').style.display = 'none'; },
-    showChart: function() {
-        const tableHtml = `
-            <table class="chart-table">
-                <tr><th>공격자</th><th>유리한 대상 (1.2배)</th></tr>
-                <tr><td>🔥 불</td><td>⚔️ 쇠, 🌿 나무</td></tr>
-                <tr><td>💧 물</td><td>🔥 불, ⚔️ 쇠</td></tr>
-                <tr><td>🌿 나무</td><td>💧 물, ⛰️ 흙</td></tr>
-                <tr><td>⚔️ 쇠</td><td>🌿 나무, ⛰️ 흙</td></tr>
-                <tr><td>⛰️ 흙</td><td>🔥 불, 💧 물</td></tr>
-                <tr><td>☀️/🌙</td><td>서로에게 1.2배</td></tr>
-                <tr><td>🎲 노말</td><td>노말(자신), 강화된 빛/어둠</td></tr>
-            </table>
-            <div class="dual-chart">
-                <div style="font-weight:bold; color:#00cec9; margin-bottom:5px;">⚡ 이중 상성 (1.3배 치명타)</div>
-                <div class="dual-row" style='font-size:12px; color:#666;'>기초 속성 우위 + 빛/어둠이 상대와 반대일 때</div>
-                <div style="font-weight:bold; color:#0984e3; margin-top:5px;">🛡️ 상성 방어</div>
-                <div class="dual-row" style='font-size:12px; color:#666;'>유리한 속성에게 피격 시 데미지 감경</div>
+    
+    // [수정] 가이드북 (탭 기능)
+    showGuide: function() {
+        let heroList = '';
+        Object.keys(SKILL_DB).forEach(k => {
+            const s = SKILL_DB[k];
+            let name = '';
+            if(k === 'Normal') name = NAME_MAP['Normal'];
+            else {
+                const parts = k.split('-');
+                if(parts.length===2) name = NAME_MAP[k] || k;
+                else name = `${ATTR[k].n}(기초)`;
+            }
+            
+            const base = k.split('-')[0] === 'Normal' ? 'Normal' : k.split('-')[0];
+            let icon = s.icon;
+            let bg = `bg-${base}`;
+            if (k.includes('-') && k.split('-')[0] === k.split('-')[1]) bg = `bg-${base}-Enhanced`;
+            if (k === 'Normal') bg = 'bg-Normal';
+
+            heroList += `
+            <div class="guide-item">
+                <div class="guide-icon ${bg}" style="color:#fff;">${icon}</div>
+                <div class="guide-info">
+                    <div class="guide-name">${name}</div>
+                    <div class="guide-desc">${s.desc}</div>
+                    <div style="font-size:10px; color:#555; margin-top:2px;">
+                        <div>S1: ${s.s1} (${s.s1d})</div>
+                        <div>S2: ${s.s2} (${s.s2d})</div>
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        const content = `
+            <div class="tab-header">
+                <button class="tab-btn active" onclick="UI.switchTab(0)">📊 상성표</button>
+                <button class="tab-btn" onclick="UI.switchTab(1)">📖 도감</button>
+            </div>
+            <div id="tab-0" class="tab-content active">
+                <table class="chart-table">
+                    <tr><th>공격자</th><th>유리한 대상 (1.2배)</th></tr>
+                    <tr><td>🔥 불</td><td>⚔️ 쇠, 🌿 나무</td></tr>
+                    <tr><td>💧 물</td><td>🔥 불, ⚔️ 쇠</td></tr>
+                    <tr><td>🌿 나무</td><td>💧 물, ⛰️ 흙</td></tr>
+                    <tr><td>⚔️ 쇠</td><td>🌿 나무, ⛰️ 흙</td></tr>
+                    <tr><td>⛰️ 흙</td><td>🔥 불, 💧 물</td></tr>
+                    <tr><td>☀️/🌙</td><td>서로에게 1.2배</td></tr>
+                    <tr><td>🎲 노말</td><td>노말(자신), 강화된 빛/어둠</td></tr>
+                </table>
+                <div class="dual-chart">
+                    <div style="font-weight:bold; color:#00cec9; margin-bottom:5px;">⚡ 이중 상성 (1.3배 치명타)</div>
+                    <div class="dual-row" style='font-size:12px; color:#666;'>기초 속성 우위 + 빛/어둠이 상대와 반대일 때</div>
+                </div>
+            </div>
+            <div id="tab-1" class="tab-content" style="max-height: 50vh; overflow-y:auto;">
+                ${heroList}
             </div>
         `;
-        this.showModal("📊 상성 가이드", tableHtml);
+        this.showModal("📘 가이드북", content);
     },
+    switchTab: function(idx) {
+        document.querySelectorAll('.tab-btn').forEach((b, i) => {
+            if(i===idx) b.classList.add('active'); else b.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-content').forEach((c, i) => {
+            if(i===idx) c.classList.add('active'); else c.classList.remove('active');
+        });
+    },
+
     floatText: function(unit, text, type) {
         const id = unit.team === 0 ? `p-card-${unit.id}` : `e-card-${unit.id}`;
         const unitEl = document.getElementById(id); if(!unitEl) return;
@@ -696,6 +760,7 @@ const Game = {
             this.pool.push(u);
             const el = document.createElement('div');
             el.className = 'hero-card';
+            // [수정] 카드 텍스트: 역할군 + 특징(desc) 표시
             el.innerHTML = this.renderCard(u);
             el.onclick = () => this.toggle(i, el);
             grid.appendChild(el);
@@ -708,9 +773,10 @@ const Game = {
         let bgClass = `bg-${u.base}`;
         if(u.isEnhanced) bgClass = `bg-${u.base}-Enhanced`;
         if(u.isNormal) bgClass = 'bg-Normal';
-        const role = SKILL_DB[u.getKey()].role || 'Unit';
-        const icon = SKILL_DB[u.getKey()].icon || ''; 
-        return `<div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div><div style="font-weight:bold; margin-bottom:2px; font-size:15px;">${u.name.split(' ')[0]}</div><div style="font-size:11px; color:#999;">${u.name}</div><div style="margin-top:8px; font-size:11px; background:#f5f5f5; padding:4px 8px; border-radius:10px; border:1px solid #eee;">${role}</div>`;
+        const info = SKILL_DB[u.getKey()];
+        const icon = info.icon || ''; 
+        // [수정] desc 사용
+        return `<div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div><div style="font-weight:bold; margin-bottom:2px; font-size:15px;">${u.name.split(' ')[0]}</div><div style="font-size:11px; color:#999;">${u.name}</div><div style="margin-top:8px; font-size:11px; background:#f5f5f5; padding:4px 8px; border-radius:10px; border:1px solid #eee;">${info.desc}</div>`;
     },
 
     toggle: function(i, el) {
@@ -758,14 +824,14 @@ const Game = {
 
         if (this.difficulty === 'hell') {
             const decks = [
-                [{b:'Metal',e:'Light'}, {b:'Earth',e:'Light'}, {b:'Normal',e:null}], // 1. 독가스-모래-노말
-                [{b:'Metal',e:null}, {b:'Light',e:null}, {b:'Fire',e:'Light'}], // 2. 쇠-빛-청염
-                [{b:'Normal',e:null}, {b:'Light',e:'Light'}, {b:'Tree',e:null}], // 3. 노말-빛강화-나무
-                [{b:'Fire',e:'Light'}, {b:'Earth',e:'Dark'}, {b:'Normal',e:null}], // 4. 청염-바위-노말
-                [{b:'Dark',e:'Dark'}, {b:'Water',e:'Dark'}, {b:'Earth',e:null}], // 5. 어둠강화-얼음-흙
-                [{b:'Tree',e:null}, {b:'Water',e:null}, {b:'Water',e:'Light'}], // 6. 나무-물-증기
-                [{b:'Earth',e:'Dark'}, {b:'Light',e:'Light'}, {b:'Metal',e:'Light'}], // 7. 바위-빛강화-독가스
-                [{b:'Tree',e:'Dark'}, {b:'Tree',e:null}, {b:'Water',e:'Light'}] // 8. 가시-나무-증기
+                [{b:'Metal',e:'Light'}, {b:'Earth',e:'Light'}, {b:'Normal',e:null}], 
+                [{b:'Metal',e:null}, {b:'Light',e:null}, {b:'Fire',e:'Light'}], 
+                [{b:'Normal',e:null}, {b:'Light',e:'Light'}, {b:'Tree',e:null}], 
+                [{b:'Fire',e:'Light'}, {b:'Earth',e:'Dark'}, {b:'Normal',e:null}], 
+                [{b:'Dark',e:'Dark'}, {b:'Water',e:'Dark'}, {b:'Earth',e:null}], 
+                [{b:'Tree',e:null}, {b:'Water',e:null}, {b:'Water',e:'Light'}], 
+                [{b:'Earth',e:'Dark'}, {b:'Light',e:'Light'}, {b:'Metal',e:'Light'}], 
+                [{b:'Tree',e:'Dark'}, {b:'Tree',e:null}, {b:'Water',e:'Light'}]
             ];
             const d = decks[Math.floor(Math.random()*decks.length)];
             this.eTeam = d.map((c, i) => makeEnemy(i, c.b, c.e));
@@ -811,6 +877,7 @@ const Game = {
         if(!unit || amount <= 0) return;
         if(type === 'dmg') unit.stats.dmg += amount;
         if(type === 'shield') unit.stats.shieldGiven += amount;
+        if(type === 'heal') unit.stats.heal += amount;
     },
 
     turn: function() {
@@ -1029,6 +1096,14 @@ const Game = {
 
                 if (['STUN','FREEZE','BANISH'].some(s => e.hasStatus(s))) score -= 40;
 
+                // [수정] AI 로직: 면역 대상에게 CC기 사용 방지
+                const isImmune = e.isNormal || e.hasStatus('IMMUNITY');
+                if (isImmune) {
+                    // 빙결(Water-Dark), 기절(Earth), 추방(Dark-Dark), 기절(Metal-Dark S2)
+                    if (k === 'Water-Dark' || k === 'Dark-Dark') score -= 9999;
+                    if (k === 'Earth') score -= 50; // Earth는 딜도 있으므로 약간 덜 깎음
+                }
+
                 if (score > bestScore) { bestScore = score; attackTarget = e; }
             });
 
@@ -1079,6 +1154,13 @@ const Game = {
                       useS2 = Math.random() > 0.4;
                 }
 
+                // AI가 면역 대상에게 CC 스킬(S2)을 쓰려는지 체크
+                if (useS2) {
+                     const isImmune = (info.type === 'DEBUFF' || k === 'Water-Dark' || k === 'Dark-Dark') && 
+                                      (attackTarget.isNormal || attackTarget.hasStatus('IMMUNITY'));
+                     if (isImmune) useS2 = false;
+                }
+
                 if (useS2 && !blockS2) {
                     if (isS2Support) {
                         action = 2;
@@ -1121,10 +1203,13 @@ const Game = {
         
         const aff = (def && def.team !== atk.team) ? this.calc(atk, def) : {v:1, t:''};
         let defMod = 1.0;
+        
         if (def && def.team !== atk.team) {
             const defAff = this.calc(def, atk); 
-            if (defAff.v === 1.3) defMod = 0.76; 
-            else if (defAff.v === 1.2) defMod = 0.83;
+            if (aff.v < 1.2) {
+                if (defAff.v === 1.3) defMod = 0.76; 
+                else if (defAff.v === 1.2) defMod = 0.83;
+            }
         }
 
         let m = `<b class="${atk.team===0?'log-ally':'log-enemy'}">[${atk.name}]</b> ${sIdx===0?'공격':(sIdx===1?s.s1:s.s2)}`;
@@ -1153,9 +1238,11 @@ const Game = {
                 UI.floatText(def, act, aff.v>1.2?"ft-crit":"ft-dmg");
                 if (aff.v > 1.2 || act > 150) { AudioSys.play('CRITICAL'); UI.screenShake(); UI.flash(); playedSound=true; } 
                 
-                if (k.startsWith('Fire')) {
+                // [수정] 흡혈: 기초 불(Fire)만 가능
+                if (k === 'Fire') {
                     const healAmt = Math.min(30, Math.floor(act * 0.2)); 
-                    atk.heal(healAmt);
+                    const h = atk.heal(healAmt);
+                    Game.recordStat(atk, 'heal', h); 
                 }
             }
         } 
@@ -1197,7 +1284,12 @@ const Game = {
                 if(k==='Tree-Light') {
                     const allies = atk.team===0 ? this.pTeam : this.eTeam;
                     const alive = allies.filter(a=>!a.isDead);
-                    if(alive.length > 0) { const lucky = alive[Math.floor(Math.random()*alive.length)]; lucky.heal(20); m+=`(아군 회복) `; }
+                    if(alive.length > 0) { 
+                        const lucky = alive[Math.floor(Math.random()*alive.length)]; 
+                        const h = lucky.heal(20); 
+                        Game.recordStat(atk, 'heal', h); 
+                        m+=`(아군 회복) `; 
+                    }
                 }
                 if(k==='Metal-Dark' && Math.random()<0.1) { 
                     const extra = Math.floor(baseAtk * 1.0 * aff.v * defMod); rawDmg += extra; 
@@ -1206,7 +1298,7 @@ const Game = {
                 }
 
                 if (k === 'Normal') {
-                    atk.hp = Math.max(1, atk.hp - 30); // Safe HP reduction
+                    atk.hp = Math.max(1, atk.hp - 30); 
                     const teamArr = atk.team === 0 ? Game.pTeam : Game.eTeam;
                     const lowest = teamArr.filter(a=>!a.isDead).sort((a,b)=>a.hp - b.hp)[0];
                     if (lowest) {
@@ -1235,9 +1327,11 @@ const Game = {
                         if (k === 'Metal') {
                             const absorb = Math.floor(act * 0.3); atk.shield += absorb; Game.recordStat(atk, 'shield', absorb); UI.floatText(atk, `+${absorb}`, "ft-heal");
                         }
-                        if (k.startsWith('Fire')) {
+                        // [수정] 흡혈: 기초 불(Fire)만 가능
+                        if (k === 'Fire') {
                             const healAmt = Math.min(30, Math.floor(act * 0.2)); 
-                            atk.heal(healAmt);
+                            const h = atk.heal(healAmt);
+                            Game.recordStat(atk, 'heal', h); 
                         }
                     }
                 }
@@ -1286,9 +1380,15 @@ const Game = {
                 m += " (전체 공격!)";
                 (atk.team===0?this.eTeam:this.pTeam).forEach(e => { if(!e.isDead) {
                     let indDefMod = 1.0;
-                    const da = Game.calc(e, atk);
-                    if(da.v===1.3) indDefMod=0.76; else if(da.v===1.2) indDefMod=0.83;
-                    const dmg = Math.floor(baseAtk * 0.8 * Game.calc(atk, e).v * indDefMod);
+                    const da = Game.calc(atk, e); 
+                    const dd = Game.calc(e, atk); 
+                    
+                    if (da.v < 1.2) { 
+                        if(dd.v===1.3) indDefMod=0.76; 
+                        else if(dd.v===1.2) indDefMod=0.83;
+                    }
+
+                    const dmg = Math.floor(baseAtk * 0.8 * da.v * indDefMod);
                     const act = e.takeDamage(dmg, k.startsWith('Fire'));
                     Game.recordStat(atk, 'dmg', act);
                     if(act !== -1) { 
@@ -1296,9 +1396,11 @@ const Game = {
                         if(k==='Earth-Light') e.addStatus('BLIND', 2); 
                         if(k==='Metal-Dark'&&Math.random()<0.15) e.addStatus('STUN', 1);
                         if(k==='Fire' && Math.random()<0.25) e.addStatus('BURN', 2, 0, atk); 
-                        if (k.startsWith('Fire')) {
+                        // [수정] 흡혈: 기초 불(Fire)만 가능
+                        if (k === 'Fire') {
                             const healAmt = Math.min(30, Math.floor(act * 0.2)); 
-                            atk.heal(healAmt);
+                            const h = atk.heal(healAmt);
+                            Game.recordStat(atk, 'heal', h); 
                         }
                     } else {
                         UI.floatText(e, "MISS", "ft-miss");
@@ -1307,11 +1409,20 @@ const Game = {
             } 
             else if(s.type === 'HEAL') { 
                 AudioSys.play('HEAL'); playedSound=true;
-                (atk.team===0?this.pTeam:this.eTeam).forEach(a=>{if(!a.isDead) a.heal(110)});
+                (atk.team===0?this.pTeam:this.eTeam).forEach(a=>{
+                    if(!a.isDead) {
+                        const h = a.heal(110);
+                        Game.recordStat(atk, 'heal', h); 
+                    }
+                });
                 m+=" (아군 전체 회복 +110)"; 
                 if(k==='Water' && Math.random() < 0.2) {
                     const lowest = (atk.team===0?this.pTeam:this.eTeam).filter(a=>!a.isDead).sort((a,b)=>a.hp-b.hp)[0];
-                    if(lowest) { lowest.heal(50); m+=` (💧대박힐 +50)`; UI.floatText(lowest, "+50", "ft-heal"); }
+                    if(lowest) { 
+                        const h = lowest.heal(50); 
+                        Game.recordStat(atk, 'heal', h); 
+                        m+=` (💧대박힐 +50)`; UI.floatText(lowest, "+50", "ft-heal"); 
+                    }
                 }
             }
             else if(s.type === 'BUFF') {
@@ -1325,12 +1436,20 @@ const Game = {
                     Game.recordStat(atk,'shield',70); 
                 }}); 
                 else if(k==='Light-Light') allies.forEach(a=>{if(!a.isDead) {a.shield=Math.min(300, a.shield+50); Game.recordStat(atk,'shield',50); a.cleanse();}}); 
-                else if(k==='Tree-Light') allies.forEach(a=>{if(!a.isDead) {a.heal(70); a.cleanse();}});
+                else if(k==='Tree-Light') allies.forEach(a=>{if(!a.isDead) {
+                    const h = a.heal(70); 
+                    Game.recordStat(atk, 'heal', h); 
+                    a.cleanse();
+                }});
             } 
             else if(s.type === 'TARGET_BUFF' || s.type === 'SELF_BUFF') {
                 AudioSys.play('HEAL'); playedSound=true;
                 if(def) { 
-                    if(k==='Tree') { def.heal(150); def.cleanse(); m+=` 치유/정화`; }
+                    if(k==='Tree') { 
+                        const h = def.heal(150); 
+                        Game.recordStat(atk, 'heal', h); 
+                        def.cleanse(); m+=` 치유/정화`; 
+                    }
                     else if(k==='Tree-Dark') { 
                         if (atk.id === def.id) {
                         } else {
@@ -1339,13 +1458,25 @@ const Game = {
                     }
                     else if(k==='Water-Light') {
                         (atk.team===0?this.pTeam:this.eTeam).forEach(a=>{if(!a.isDead) a.addStatus('EVADE', 2)});
-                        const healAmt = Math.floor((def.maxHp - def.hp) * 0.15); def.heal(healAmt); m += ` (회피증가+치유)`;
+                        const healAmt = Math.floor((def.maxHp - def.hp) * 0.15); 
+                        const h = def.heal(healAmt); 
+                        Game.recordStat(atk, 'heal', h); 
+                        m += ` (회피증가+치유)`;
                     }
                 }
             } 
             else if(s.type === 'DEBUFF') {
                 AudioSys.play('DEBUFF'); playedSound=true;
-                if(k==='Metal') { def.addStatus(`PROVOKED_BY_${atk.id}`, 2, 0, atk); atk.addStatus('DMG_RED', 2); atk.shield+=15; Game.recordStat(atk,'shield',15); m += ` 도발! (쉴드+15)`; }
+                if(k==='Metal') { 
+                    // [수정] 도발은 1명에게만 유지 (기존 도발 제거)
+                    const enemies = (atk.team===0?this.eTeam:this.pTeam);
+                    enemies.forEach(e => {
+                        e.status = e.status.filter(s => s.type !== `PROVOKED_BY_${atk.id}`);
+                    });
+                    
+                    def.addStatus(`PROVOKED_BY_${atk.id}`, 2, 0, atk); 
+                    atk.shield+=15; Game.recordStat(atk,'shield',15); m += ` 도발! (쉴드+15)`; 
+                }
                 else if(k==='Dark') { (atk.team===0?this.eTeam:this.pTeam).forEach(e=>{if(!e.isDead){ e.addStatus('ATK_DOWN', 2); e.shield=Math.floor(e.shield*0.7); if(Math.random()<0.2) e.dispel(); }}); m+=" (적 전체 공포)"; }
                 else if(k==='Metal-Light') { 
                     (atk.team===0?this.eTeam:this.pTeam).forEach(e=>{
@@ -1372,9 +1503,11 @@ const Game = {
                 if(act!==-1) { 
                     m+=` ${act} 폭발적 피해!`; this.shake(def); UI.floatText(def, act, "ft-crit"); 
                     AudioSys.play('CRITICAL'); UI.screenShake(); UI.flash(); playedSound=true;
-                    if (k.startsWith('Fire')) {
+                    // [수정] 흡혈: 기초 불(Fire)만 가능
+                    if (k === 'Fire') {
                         const healAmt = Math.min(30, Math.floor(act * 0.2)); 
-                        atk.heal(healAmt);
+                        const h = atk.heal(healAmt);
+                        Game.recordStat(atk, 'heal', h); 
                     }
                 } else {
                     m+=" 빗나감!"; UI.floatText(def, "MISS", "ft-miss");
@@ -1406,7 +1539,7 @@ const Game = {
         const u = this.queue[this.curr]%2===0 ? this.pTeam[this.queue[this.curr]/2] : this.eTeam[(this.queue[this.curr]-1)/2];
         if(u && !u.isDead) u.decayStatus();
 
-        if (this.curr === 0 && this.turnCount > 120) {
+        if (this.curr === 0 && this.turnCount > 20) {
             [...this.pTeam, ...this.eTeam].forEach(u => {
                 if(!u.isDead) u.atk += 10;
             });
