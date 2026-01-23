@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v6.1 Hell Rework</title>
+    <title>Elemental Tactics: v6.2 Save & Load</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* [Theme] Jelly Cat Palette v6.1 */
+            /* [Theme] Jelly Cat Palette v6.2 */
             --bg-main: #fff5f8;
             --panel-bg: #ffffff;
             --text-main: #5d4037;
@@ -70,7 +70,7 @@
         }
         button:active { transform: translateY(3px) scale(0.98); box-shadow: inset 0 2px 5px rgba(0,0,0,0.1); }
         
-        .btn-restart { padding: 8px 16px; font-size: 14px; color: var(--accent); }
+        .btn-restart { padding: 8px 12px; font-size: 14px; color: var(--accent); }
         .btn-restart:hover { background: #fff0f5; }
 
         .screen { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 15px; z-index: 10; }
@@ -302,7 +302,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v6.1 Hell Rework</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v6.2 Hell Rework + Save</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
         </div>
@@ -329,9 +329,11 @@
         <div class="control-panel">
             <div class="cp-header">
                 <span id="turn-indicator" style="font-weight:bold; font-size:16px; color:var(--accent);">Ready... 🐱</span>
-                <div style="display:flex; gap:8px;">
+                <div style="display:flex; gap:5px;">
+                    <button class="btn-restart" onclick="Game.saveGame()">💾</button>
+                    <button class="btn-restart" onclick="Game.loadGame()">📂</button>
                     <button class="btn-restart" onclick="UI.showGuide()">📖</button>
-                    <button class="btn-restart" onclick="Game.reset()">🏠 홈</button>
+                    <button class="btn-restart" onclick="Game.reset()">🏠</button>
                 </div>
             </div>
             
@@ -356,16 +358,18 @@
         <div class="field-row" id="player-row"></div>
     </div>
 </div>
-  <script>
+
+<script>
 const ATTR = { 'Fire':{i:'🔥', n:'불', c:'#e74c3c'}, 'Water':{i:'💧', n:'물', c:'#3498db'}, 'Tree':{i:'🌿', n:'나무', c:'#2ecc71'}, 'Metal':{i:'⚔️', n:'쇠', c:'#95a5a6'}, 'Earth':{i:'⛰️', n:'흙', c:'#e67e22'}, 'Light':{i:'☀️', n:'빛', c:'#f1c40f'}, 'Dark':{i:'🌙', n:'어둠', c:'#9b59b6'}, 'Normal':{i:'☀️🌙', n:'노말', c:'#ecf0f1'} };
 const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light':'숲', 'Metal-Light':'독가스', 'Earth-Light':'모래', 'Water-Dark':'얼음', 'Fire-Dark':'검은불', 'Tree-Dark':'가시', 'Metal-Dark':'전기', 'Earth-Dark':'바위', 'Light-Light':'빛(강화)', 'Dark-Dark':'어둠(강화)', 'Normal':'노말' };
 
 const SKILL_DB = {
     'Fire': { s1:'화염방사', s1d:'1.5배+화상', s2:'메테오', s2d:'광역 0.8배+화상(25%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', desc:'광역형 딜러 | 흡혈+화상', passive:'🩸 흡혈: 모든 공격 시 피해량의 20%를 회복합니다.' },
-    'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'아군전체 HP+110 (20%확률 +50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'퓨어 힐러 | 광역 회복', passive:null },
+    // [Balance] Water Heal 110 -> 125
+    'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'아군전체 HP+125 (20%확률 +50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'퓨어 힐러 | 광역 회복', passive:null },
     'Tree': { s1:'광합성', s1d:'쉴드+30/공+18 성장', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', desc:'성장형 탱커 | 자가 버프', passive:'🌿 성장: 광합성 사용 시 영구적으로 공격력과 쉴드가 증가합니다.' },
     'Metal': { s1:'강철베기', s1d:'1.3배+피해흡수(30%)', s2:'결투 신청', s2d:'적 도발/쉴드+15', type:'DEBUFF', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커 | 도발+뎀감', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 받는 피해가 최대 체력의 30%를 넘지 않습니다.' },
-    'Earth': { s1:'암석투척', s1d:'1.3배+기절25%/침묵20%', s2:'지진', s2d:'광역 0.8배', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'🏜️', desc:'제어형 딜러 | 기절/침묵', passive:null },
+    'Earth': { s1:'암석투척', s1d:'1.3배+기절25%/침묵20%', s2:'지진', s2d:'광역 0.8배 (1:1시 1.8배)', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'🏜️', desc:'제어형 딜러 | 기절/침묵', passive:null },
     'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+10(1턴)', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', desc:'버퍼 | 광역 쉴드', passive:null },
     'Dark': { s1:'다크볼', s1d:'1.5배+업보(반사)', s2:'공포', s2d:'공↓/쉴드30%소멸', type:'DEBUFF', target:'ALL_ENEMY', role:'supp', icon:'👻', desc:'카운터 서포터 | CC반사', passive:'👁️ 업보: 다크볼 피격자가 상태이상을 걸면 되돌려줍니다.' },
     'Normal': { s1:'균형타', s1d:'1.5배/아군보호(HP소모)', s2:'주사위', s2d:'랜덤 피해', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'🎲', desc:'무상성 딜러 | 완전 면역', passive:'🎲 면역: CC기(기절,빙결,침묵 등)를 무시합니다. (도트딜 제외)' },
@@ -392,13 +396,16 @@ class Unit {
         this.hp = this.maxHp; this.shield = (base==='Metal' && !extra) ? 100 : 0;
         this.atk = 55 + Math.floor(Math.random()*15);
         this.status = []; this.isDead = false;
-        this.thornStack = 0; this.linkedAllyId = -1;
-        this.resist = 0; 
+        
+        this.thornStack = 0; 
+        this.linkedAllyId = -1;
         this.s2Count = 0;
         this.elecStacks = 0;
+        this.resist = 0; 
         this.stats = { dmg: 0, heal: 0, shieldGiven: 0, taken: 0 }; 
 
-        this.isNormal = (this.base==='Light'&&this.extra==='Dark') || (this.base==='Dark'&&this.extra==='Light');
+        // [Bug Fix] Normal detection logic fixed to include pure 'Normal' base
+        this.isNormal = this.base === 'Normal' || (this.base==='Light'&&this.extra==='Dark') || (this.base==='Dark'&&this.extra==='Light');
         this.isEnhanced = (this.base===this.extra && (this.base==='Light'||this.base==='Dark'));
         
         if (this.isNormal) this.name = NAME_MAP['Normal'];
@@ -416,7 +423,7 @@ class Unit {
         return Math.max(10, v); 
     }
     
-    takeDamage(dmg, isFire=false, ignoreShield=false) {
+    takeDamage(dmg, isFire=false, ignoreShield=false, source=null) {
         if (isFire && this.hasStatus('BURN')) dmg = Math.floor(dmg * 1.25);
         
         if (this.base === 'Metal' && !this.extra && this.shield > 0) {
@@ -430,8 +437,18 @@ class Unit {
         if (this.hasStatus('DMG_RED')) dmg = Math.floor(dmg * 0.8);
         if (this.hasStatus('EVADE')) { if(Math.random() < 0.20) return -1; }
 
-        const link = this.status.find(s => s.type.startsWith('REFLECT_LINK_'));
-        if (link) Game.recordReflectDamage(this.team, parseInt(link.type.split('_')[2]), dmg);
+        // [Bug Fix] 어둠 반사 로직 수정: Source(때린 사람)의 상태를 확인해야 함
+        if (source && source.id !== this.id && !source.isDead) {
+             // 때린 사람이 나(this.id)에 의한 업보를 가지고 있는가?
+             const karma = source.status.find(s => s.type === `KARMA_VICTIM_${this.id}`);
+             if (karma) {
+                 const reflectDmg = Math.floor(dmg * 0.3);
+                 if (reflectDmg > 0) {
+                    source.takeDamage(reflectDmg, false, true, null); 
+                    UI.floatText(source, reflectDmg, "ft-crit");
+                 }
+             }
+        }
         
         this.stats.taken += dmg;
 
@@ -451,9 +468,14 @@ class Unit {
         this.hp = Math.floor(this.maxHp * hpPercent);
         this.status = [];
         this.shield = 0;
+        this.s2Count = 0;       
+        this.elecStacks = 0;    
+        this.thornStack = 0;    
+        this.linkedAllyId = -1; 
     }
 
     addStatus(type, turn, val=0, source=null) {
+        // [Bug Fix] Normal is now correctly immune because this.isNormal is fixed
         if (this.isNormal && ['FREEZE','STUN','SILENCE','BLIND','BANISH','ATK_DOWN','HEAL_DOWN','BIND','KARMA_VICTIM'].includes(type)) {
             UI.floatText(this, "Immune", "ft-miss");
             return;
@@ -535,9 +557,9 @@ class Unit {
     
     tickStatus() {
         let log = [];
-        if(this.hasStatus('POISON')) { const d=this.takeDamage(30); UI.floatText(this, d, 'ft-dmg'); log.push(`☠️ [${this.name}] 독 피해 ${d}`); }
-        if(this.hasStatus('BURN')) { const d=this.takeDamage(20); UI.floatText(this, d, 'ft-dmg'); log.push(`🔥 [${this.name}] 화상 피해 ${d}`); }
-        if(this.hasStatus('TRAP')) { const d=this.takeDamage(40); UI.floatText(this, d, 'ft-dmg'); log.push(`⏳ [${this.name}] 모래지옥 피해 ${d}`); }
+        if(this.hasStatus('POISON')) { const d=this.takeDamage(30, false, false, null); UI.floatText(this, d, 'ft-dmg'); log.push(`☠️ [${this.name}] 독 피해 ${d}`); }
+        if(this.hasStatus('BURN')) { const d=this.takeDamage(20, false, false, null); UI.floatText(this, d, 'ft-dmg'); log.push(`🔥 [${this.name}] 화상 피해 ${d}`); }
+        if(this.hasStatus('TRAP')) { const d=this.takeDamage(40, false, false, null); UI.floatText(this, d, 'ft-dmg'); log.push(`⏳ [${this.name}] 모래지옥 피해 ${d}`); }
         return log;
     }
 
@@ -818,7 +840,6 @@ const Game = {
         
         const makeEnemy = (idx, b, e) => { const u = new Unit(idx + 3, 1, b, e); return u; };
 
-        // [수정] 덱 리스트 변수화 (Hard와 Hell에서 공유)
         const decks = [
             [{b:'Metal',e:'Light'}, {b:'Earth',e:'Light'}, {b:'Normal',e:null}], 
             [{b:'Metal',e:null}, {b:'Light',e:null}, {b:'Fire',e:'Light'}], 
@@ -833,22 +854,19 @@ const Game = {
         if (this.difficulty === 'hard') {
             const d = decks[Math.floor(Math.random()*decks.length)];
             this.eTeam = d.map((c, i) => makeEnemy(i, c.b, c.e));
-        } else if (this.difficulty === 'hell') { // [NEW] 고승률 덱 기반 카운터 픽
+        } else if (this.difficulty === 'hell') { 
             let bestDeck = decks[0];
             let maxScore = -9999;
 
             decks.forEach(d => {
                 let score = 0;
-                // 임시 적 팀 생성하여 상성 점수 계산
                 const tempETeam = d.map((c, i) => new Unit(i + 3, 1, c.b, c.e));
                 
                 tempETeam.forEach(eUnit => {
                     this.pTeam.forEach(pUnit => {
-                        // 내가 때릴 때 (AI 공격) 이득이면 점수 +
                         const atk = Game.calc(eUnit, pUnit).v;
                         if (atk > 1.0) score += (atk - 1.0) * 15; 
                         
-                        // 내가 맞을 때 (AI 방어) 불리하면 점수 -
                         const def = Game.calc(pUnit, eUnit).v;
                         if (def > 1.0) score -= (def - 1.0) * 10;
                     });
@@ -906,8 +924,6 @@ const Game = {
         this.init();
     },
 
-    recordReflectDamage: function(teamId, ownerId, amount) {},
-    
     recordStat: function(unit, type, amount) {
         if(!unit || amount <= 0) return;
         if(type === 'dmg') unit.stats.dmg += amount;
@@ -916,7 +932,7 @@ const Game = {
     },
 
     turn: function() {
-        this.isProcessing = false; // Unlock input
+        this.isProcessing = false; 
 
         if (this.isOver) return;
 
@@ -1055,7 +1071,7 @@ const Game = {
                 const el = document.getElementById(t.team === 0 ? `p-card-${t.id}` : `e-card-${t.id}`);
                 el.classList.add(targetClass);
                 el.onclick = () => {
-                    if (Game.isProcessing) return; // Anti-Rapid Click
+                    if (Game.isProcessing) return; 
                     Game.isProcessing = true;
 
                     if(targetType === 'SELF' && t.id !== actingUnit.id) return;
@@ -1113,7 +1129,6 @@ const Game = {
                 let estDmg = u.getAtk() * multi;
                 if (e.hp <= estDmg) score += 1000; 
 
-                // [수정] 난이도 상향 (Normal 이상이면 역할군/킬각 점수 적용)
                 if (this.difficulty !== 'easy') {
                     const role = SKILL_DB[e.getKey()].role;
                     if (role === 'supp') score += 100; 
@@ -1140,22 +1155,24 @@ const Game = {
 
                 if (score > bestScore) { bestScore = score; attackTarget = e; }
             });
-
-            // [수정] Easy 난이도만 랜덤 타겟 사용 제거 (이제 Easy도 기본 점수제 사용 = 구 Normal)
             
             if (k === 'Tree') {
                 const lowestAlly = aliveAllies.sort((a,b) => a.hp - b.hp)[0];
-                if (lowestAlly.hp < lowestAlly.maxHp * 0.5 && !silenced) {
-                    this.execute(u, lowestAlly, 2); 
-                    return;
-                } else if (u.hp < u.maxHp * 0.4 && !silenced) {
-                    this.execute(u, u, 1); 
-                    return;
+                // [AI Fix] 나무가 혼자 남았으면(aliveAllies.length===1) 힐/버프보다 공격 우선권 부여
+                if (aliveAllies.length > 1) {
+                    if (lowestAlly.hp < lowestAlly.maxHp * 0.5 && !silenced) {
+                        this.execute(u, lowestAlly, 2); 
+                        return;
+                    } else if (u.hp < u.maxHp * 0.4 && !silenced) {
+                        this.execute(u, u, 1); 
+                        return;
+                    }
+                    if (!silenced) {
+                        this.execute(u, u, 1);
+                        return;
+                    }
                 }
-                if (!silenced) {
-                    this.execute(u, u, 1);
-                    return;
-                }
+                // 혼자 남으면 아래 공격 로직을 타게 됨
             }
 
             let supportTarget = aliveAllies.sort((a,b) => a.hp - b.hp)[0]; 
@@ -1168,8 +1185,7 @@ const Game = {
             if (k === 'Tree-Dark') {
                 const otherAllies = aliveAllies.filter(a => a.id !== u.id);
                 if (otherAllies.length === 0 || u.linkedAllyId !== -1) blockS2 = true; 
-                const others = aliveAllies.filter(a => a.id !== u.id).sort((a,b) => a.hp - b.hp);
-                if (others.length > 0) supportTarget = others[0];
+                if (otherAllies.length > 0) supportTarget = otherAllies[0];
             }
 
             let action = 0;
@@ -1183,7 +1199,6 @@ const Game = {
                     const totalMissing = aliveAllies.reduce((sum, a) => sum + (a.maxHp - a.hp), 0);
                     if (totalMissing > 300 || supportTarget.hp < supportTarget.maxHp * 0.6) useS2 = true;
                 } 
-                // [수정] 난이도 상향: Easy는 랜덤, 나머지는 적극적 스킬 사용
                 else if (this.difficulty === 'easy') {
                       useS2 = Math.random() > 0.4;
                 } else {
@@ -1191,9 +1206,9 @@ const Game = {
                 }
 
                 if (useS2) {
-                     const isImmune = (info.type === 'DEBUFF' || k === 'Water-Dark' || k === 'Dark-Dark') && 
-                                      (attackTarget.isNormal || attackTarget.hasStatus('IMMUNITY'));
-                     if (isImmune) useS2 = false;
+                      const isImmune = (info.type === 'DEBUFF' || k === 'Water-Dark' || k === 'Dark-Dark') && 
+                                       (attackTarget.isNormal || attackTarget.hasStatus('IMMUNITY'));
+                      if (isImmune) useS2 = false;
                 }
 
                 if (useS2 && !blockS2) {
@@ -1218,6 +1233,12 @@ const Game = {
                     action = 1; 
                     finalTarget = attackTarget;
                 }
+            }
+            
+            // [AI Fix] Tree 혼자 남았을 때 힐 로직 대신 공격 로직 강제
+            if (k === 'Tree' && aliveAllies.length === 1 && finalTarget === u && action !== 0) {
+                action = 0;
+                finalTarget = attackTarget;
             }
 
             if (!finalTarget) {
@@ -1265,7 +1286,8 @@ const Game = {
         if(sIdx === 0) {
             AudioSys.play('HIT'); playedSound=true;
             const dmg = Math.floor(baseAtk * 1.0 * aff.v * defMod);
-            const act = def.takeDamage(dmg);
+            // [Bug Fix] Pass atk as source
+            const act = def.takeDamage(dmg, false, false, atk);
             Game.recordStat(atk, 'dmg', act); 
             if(act===-1) { m+="빗나감!"; UI.floatText(def, "MISS", "ft-miss"); AudioSys.play('MISS'); }
             else { 
@@ -1348,12 +1370,14 @@ const Game = {
                 }
 
                 if (k === 'Earth-Light' || k === 'Tree-Light') { 
-                    let actual = def.takeDamage(rawDmg, false, true);
+                    // [Bug Fix] Pass atk as source
+                    let actual = def.takeDamage(rawDmg, false, true, atk);
                     Game.recordStat(atk, 'dmg', actual);
                     if (actual === -1) { m += " 빗나감!"; UI.floatText(def, "MISS", "ft-miss"); }
                     else { m += ` ${actual} 피해 (쉴드무시) ${aff.t}`; this.shake(def); UI.floatText(def, actual, "ft-crit"); }
                 } else {
-                    const act = def.takeDamage(rawDmg, k.startsWith('Fire'));
+                    // [Bug Fix] Pass atk as source
+                    const act = def.takeDamage(rawDmg, k.startsWith('Fire'), false, atk);
                     Game.recordStat(atk, 'dmg', act);
                     if(act===-1) { m+="빗나감!"; UI.floatText(def, "MISS", "ft-miss"); }
                     else { 
@@ -1384,7 +1408,7 @@ const Game = {
             }
 
             if (k === 'Dark-Dark') {
-                atk.takeDamage(20); AudioSys.play('DEBUFF'); playedSound=true;
+                atk.takeDamage(20, false, false, null); AudioSys.play('DEBUFF'); playedSound=true;
                 if(Math.random() < 0.75) { 
                     def.addStatus('BANISH', 1); m += " (🌌추방 성공)"; UI.floatText(def,"추방!","ft-miss"); 
                     atk.atk += 10;
@@ -1392,7 +1416,8 @@ const Game = {
                 else { m += " (추방 실패)"; UI.floatText(def,"저항","ft-miss"); }
             }
             else if (k === 'Water-Dark') {
-                const act = def.takeDamage(Math.floor(baseAtk));
+                // [Bug Fix] Pass atk
+                const act = def.takeDamage(Math.floor(baseAtk), false, false, atk);
                 if (act === -1) { m += " 빗나감!"; UI.floatText(def, "MISS", "ft-miss"); }
                 else {
                     Game.recordStat(atk, 'dmg', act); m += ` ${act} 피해`; UI.floatText(def, act, "ft-dmg");
@@ -1402,7 +1427,8 @@ const Game = {
             else if (k === 'Normal') {
                 const rnd = Math.random() * 1.7 + 0.8;
                 const dmg = Math.floor(baseAtk * rnd * aff.v * defMod);
-                const act = def.takeDamage(dmg); 
+                // [Bug Fix] Pass atk
+                const act = def.takeDamage(dmg, false, false, atk); 
                 if (act === -1) { m += " 주사위 빗나감!"; UI.floatText(def, "MISS", "ft-miss"); }
                 else {
                     Game.recordStat(atk, 'dmg', act); m += ` 주사위(x${rnd.toFixed(2)}) ${act}`; this.shake(def); UI.floatText(def, act, "ft-dmg");
@@ -1411,6 +1437,18 @@ const Game = {
             }
             else if(s.type === 'AOE') {
                 m += " (전체 공격!)";
+                
+                // [Balance] Earth 1v1 Buff Logic
+                let earthMult = 0.8;
+                if (k === 'Earth') {
+                    const pAlive = this.pTeam.filter(u => !u.isDead).length;
+                    const eAlive = this.eTeam.filter(u => !u.isDead).length;
+                    if (pAlive === 1 && eAlive === 1) {
+                        earthMult = 1.8;
+                        m += " <br><span class='log-crit'>🔥1:1 진검승부! (데미지 1.8배)</span>";
+                    }
+                }
+
                 (atk.team===0?this.eTeam:this.pTeam).forEach(e => { if(!e.isDead) {
                     let indDefMod = 1.0;
                     const da = Game.calc(atk, e); 
@@ -1421,8 +1459,9 @@ const Game = {
                         else if(dd.v===1.2) indDefMod=0.83;
                     }
 
-                    const dmg = Math.floor(baseAtk * 0.8 * da.v * indDefMod);
-                    const act = e.takeDamage(dmg, k.startsWith('Fire'));
+                    const dmg = Math.floor(baseAtk * earthMult * da.v * indDefMod);
+                    // [Bug Fix] Pass atk
+                    const act = e.takeDamage(dmg, k.startsWith('Fire'), false, atk);
                     Game.recordStat(atk, 'dmg', act);
                     if(act !== -1) { 
                         this.shake(e); UI.floatText(e, act, "ft-dmg"); 
@@ -1441,13 +1480,15 @@ const Game = {
             } 
             else if(s.type === 'HEAL') { 
                 AudioSys.play('HEAL'); playedSound=true;
+                // [Balance] Water Heal 110 -> 125
+                const healBase = k === 'Water' ? 125 : 110;
                 (atk.team===0?this.pTeam:this.eTeam).forEach(a=>{
                     if(!a.isDead) {
-                        const h = a.heal(110);
+                        const h = a.heal(healBase);
                         Game.recordStat(atk, 'heal', h); 
                     }
                 });
-                m+=" (아군 전체 회복 +110)"; 
+                m+=` (아군 전체 회복 +${healBase})`; 
                 if(k==='Water' && Math.random() < 0.2) {
                     const lowest = (atk.team===0?this.pTeam:this.eTeam).filter(a=>!a.isDead).sort((a,b)=>a.hp-b.hp)[0];
                     if(lowest) { 
@@ -1529,7 +1570,8 @@ const Game = {
 
                 if(k==='Earth-Dark') atk.addStatus('STUN', 2, 0, atk);
                 
-                const act = def.takeDamage(dmg, k.startsWith('Fire'));
+                // [Bug Fix] Pass atk
+                const act = def.takeDamage(dmg, k.startsWith('Fire'), false, atk);
                 Game.recordStat(atk, 'dmg', act);
                 if(act!==-1) { 
                     m+=` ${act} 폭발적 피해!`; this.shake(def); UI.floatText(def, act, "ft-crit"); 
@@ -1551,7 +1593,8 @@ const Game = {
         if(k === 'Metal-Dark' && sIdx===2 && Math.random() < 0.1) {
             const aliveE = (atk.team===0?this.eTeam:this.pTeam).filter(e=>!e.isDead);
             if(aliveE.length>0) { const target = aliveE[Math.floor(Math.random()*aliveE.length)]; const extra = Math.floor(baseAtk); 
-            const act = target.takeDamage(extra, false);
+            // [Bug Fix] Pass atk
+            const act = target.takeDamage(extra, false, false, atk);
             if(act !== -1) {
                 Game.recordStat(atk,'dmg',extra); m += `<br>⚡ 과부하! +${extra}`; UI.floatText(target, extra, "ft-crit"); 
             } else {
@@ -1569,7 +1612,6 @@ const Game = {
         const u = this.queue[this.curr]%2===0 ? this.pTeam[this.queue[this.curr]/2] : this.eTeam[(this.queue[this.curr]-1)/2];
         if(u && !u.isDead) u.decayStatus();
 
-        // [수정] 데스매치 발동 조건 수정 (Turn 20부터)
         if (this.curr === 0 && Math.ceil(this.turnCount / 6) >= 20) {
             [...this.pTeam, ...this.eTeam].forEach(u => {
                 if(!u.isDead) u.atk += 10;
@@ -1586,6 +1628,7 @@ const Game = {
         this.timer = setTimeout(()=>this.turn(), delay);
     },
 
+    // [Bug Fix] 상성 계산 로직 최적화 (isNormal 등 활용)
     calc: (a,d) => {
         let v = 1.0;
         let t = '';
@@ -1708,7 +1751,105 @@ const Game = {
         };
         draw('player-row', this.pTeam, 0); draw('enemy-row', this.eTeam, 1);
     },
-    shake: function(u) { const id = u.team === 0 ? `p-card-${u.id}` : `e-card-${u.id}`; const el = document.getElementById(id); if(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); } }
+    shake: function(u) { const id = u.team === 0 ? `p-card-${u.id}` : `e-card-${u.id}`; const el = document.getElementById(id); if(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); } },
+
+    // [New Feature] 게임 상태 저장
+    saveGame: function() {
+        if (this.isOver) {
+            alert("게임이 끝난 상태는 저장할 수 없습니다.");
+            return;
+        }
+        
+        const saveData = {
+            pTeam: this.pTeam.map(u => this.serializeUnit(u)),
+            eTeam: this.eTeam.map(u => this.serializeUnit(u)),
+            queue: this.queue,
+            curr: this.curr,
+            turnCount: this.turnCount,
+            difficulty: this.difficulty,
+            mode: this.mode,
+            selected: this.selected 
+        };
+
+        localStorage.setItem('et_save_v6', JSON.stringify(saveData));
+        UI.floatText(this.pTeam[0], "게임 저장됨!", "ft-heal");
+        this.log("<span class='log-sys'>💾 게임 진행 상황이 저장되었습니다.</span>");
+    },
+
+    // [New Feature] 게임 불러오기
+    loadGame: function() {
+        const json = localStorage.getItem('et_save_v6');
+        if (!json) {
+            alert("저장된 게임 데이터가 없습니다.");
+            return;
+        }
+
+        try {
+            const data = JSON.parse(json);
+            
+            // 1. 기본 설정 복구
+            this.difficulty = data.difficulty;
+            this.mode = data.mode;
+            this.turnCount = data.turnCount;
+            this.curr = data.curr;
+            this.queue = data.queue;
+            this.selected = data.selected;
+
+            // 2. 유닛 객체 재생성
+            this.pTeam = data.pTeam.map(d => this.deserializeUnit(d));
+            this.eTeam = data.eTeam.map(d => this.deserializeUnit(d));
+
+            // 3. 화면 전환 및 렌더링
+            document.getElementById('selection-screen').style.display = 'none';
+            document.getElementById('battle-screen').style.display = 'flex';
+            document.getElementById('logs').innerHTML = '';
+            
+            this.log("<span class='log-sys'>📂 저장된 게임을 불러왔습니다.</span>");
+            this.render();
+            
+            // 4. 타이머 재가동
+            if (this.timer) clearTimeout(this.timer);
+            
+            const tVal = this.queue[this.curr];
+            const u = tVal % 2 === 0 ? this.pTeam[tVal/2] : this.eTeam[(tVal-1)/2];
+            
+            let turnName = u.name.split(' ')[0];
+            if (this.mode === 'pvp') turnName += (u.team === 0 ? " (1P)" : " (2P)");
+            document.getElementById('turn-indicator').innerText = `Turn ${Math.ceil(this.turnCount/6)} : ${turnName}`;
+
+            if (u.team === 1 && this.mode !== 'pvp') {
+                this.noInput();
+                this.timer = setTimeout(() => this.ai(u), 1000);
+            } else {
+                this.input(u);
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert("세이브 파일이 손상되었습니다.");
+        }
+    },
+
+    serializeUnit: function(u) {
+        return {
+            id: u.id, team: u.team, base: u.base, extra: u.extra,
+            hp: u.hp, maxHp: u.maxHp, shield: u.shield, atk: u.atk,
+            status: u.status, isDead: u.isDead,
+            thornStack: u.thornStack, linkedAllyId: u.linkedAllyId,
+            s2Count: u.s2Count, elecStacks: u.elecStacks,
+            stats: u.stats
+        };
+    },
+
+    deserializeUnit: function(d) {
+        const u = new Unit(d.id, d.team, d.base, d.extra);
+        u.hp = d.hp; u.maxHp = d.maxHp; u.shield = d.shield; u.atk = d.atk;
+        u.status = d.status; u.isDead = d.isDead;
+        u.thornStack = d.thornStack; u.linkedAllyId = d.linkedAllyId;
+        u.s2Count = d.s2Count; u.elecStacks = d.elecStacks;
+        u.stats = d.stats;
+        return u;
+    }
 };
 
 window.onload = function() { Game.init(); };
