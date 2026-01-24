@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v6.2 Save & Load</title>
+    <title>Elemental Tactics: v8.1 UX Patch</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -43,16 +43,37 @@
             100% { transform: scale(1, 1); } 
         }
         
-        @keyframes shake-anim {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            25% { transform: translate(-5px, 0) rotate(-5deg); }
-            50% { transform: translate(5px, 0) rotate(5deg); }
-            75% { transform: translate(-5px, 0) rotate(-5deg); }
-            100% { transform: translate(0, 0) rotate(0deg); }
+        /* 피격 애니메이션: 쫀득하게 흔들림 (Chewy Shake) */
+        @keyframes shake-chewy {
+            0% { transform: scale(1, 1) translate(0,0) rotate(0deg); }
+            15% { transform: scale(1.15, 0.85) translate(-4px, 1px) rotate(-4deg); }
+            30% { transform: scale(0.9, 1.1) translate(4px, -1px) rotate(4deg); }
+            45% { transform: scale(1.05, 0.95) translate(-3px, 1px) rotate(-3deg); }
+            60% { transform: scale(0.95, 1.05) translate(3px, -1px) rotate(3deg); }
+            75% { transform: scale(1.02, 0.98) translate(-1px, 0) rotate(-1deg); }
+            100% { transform: scale(1, 1) translate(0,0) rotate(0deg); }
         }
-        .shake { animation: shake-anim 0.4s; }
+        .shake { animation: shake-chewy 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
 
         #flash-overlay { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 999; transition: opacity 0.1s; }
+
+        /* 턴 알림 배너 스타일 */
+        #turn-banner {
+            position: fixed; top: 18%; left: 0; right: 0;
+            padding: 15px 0;
+            text-align: center; font-size: 32px; font-weight: 900;
+            color: #fff; text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+            pointer-events: none; z-index: 2000;
+            opacity: 0; transform: scaleX(0);
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+        }
+        /* 배너 애니메이션: 기본 duration은 JS에서 제어 */
+        @keyframes banner-swipe {
+            0% { opacity: 0; transform: translateX(-50%) scaleX(0.5); }
+            20% { opacity: 1; transform: translateX(0) scaleX(1); }
+            70% { opacity: 1; transform: translateX(0) scaleX(1); }
+            100% { opacity: 0; transform: translateX(50%) scaleX(0.5); }
+        }
 
         #app { width: 100%; max-width: 600px; height: 100%; position: relative; display: flex; flex-direction: column; }
         
@@ -72,6 +93,18 @@
         
         .btn-restart { padding: 8px 12px; font-size: 14px; color: var(--accent); }
         .btn-restart:hover { background: #fff0f5; }
+
+        /* 음소거 버튼 스타일 */
+        .mute-btn {
+            position: absolute; top: 15px; right: 15px;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: #fff; border: 2px solid #eee;
+            font-size: 20px; display: flex; align-items: center; justify-content: center;
+            z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            cursor: pointer; transition: 0.2s;
+        }
+        .mute-btn:active { transform: scale(0.9); }
+        .mute-btn.muted { background: #ffebee; color: #e57373; border-color: #ffcdd2; }
 
         .screen { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 15px; z-index: 10; }
         #selection-screen { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); }
@@ -103,18 +136,17 @@
         .field-row { flex: 1; display: flex; justify-content: space-evenly; align-items: center; width: 100%; perspective: 1000px; }
         
         .unit {
-            width: 30vw; max-width: 130px; /* 너비 소폭 증가 */
+            width: 30vw; max-width: 130px; 
             background: #fff; 
             border-radius: 25px; padding: 10px 5px; position: relative; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
             cursor: default; 
             box-shadow: inset 0 4px 10px rgba(255,255,255,1), 0 8px 0 #e0e0e0, 0 15px 20px rgba(0,0,0,0.1);
             text-align: center;
             display: flex; flex-direction: column; align-items: center;
-            min-height: 125px; /* 높이 소폭 증가 */
+            min-height: 125px; 
             justify-content: flex-end;
             border: 2px solid #f8bbd0;
         }
-        /* 전기 과부하 스택 표시용 스타일 추가 */
         .elec-badge {
             position: absolute; top: -5px; right: -5px;
             background: #ffeb3b; color: #f57f17;
@@ -238,7 +270,6 @@
         }
         .tag { padding: 4px 8px; border-radius: 12px; font-size: 10px; color: #fff; font-weight: bold; box-shadow: 0 2px 0 rgba(0,0,0,0.1); margin-bottom:2px; }
         
-/* Pastel Colors */
         .tag.poison { background: #ab47bc; } .tag.stun { background: #ffd54f; color:#5d4037; }
         .tag.freeze { background: #29b6f6; } .tag.silence { background: #78909c; }
         .tag.evade { background: #42a5f5; } .tag.burn { background: #ff7043; }
@@ -248,11 +279,9 @@
         .tag.immunity { background: #fff; color:#5d4037; border:2px solid #5d4037; }
         .tag.healdown { background: #8d6e63; color:#fff; }
         .tag.atkup { background: #ef5350; color:#fff; }
-        /* [UI] 도발: 시인성 극대화 (검정 배경 + 붉은 형광 테두리) */
         .tag.taunt { background: #212121; color: #ff5252; border: 2px solid #ff1744; box-shadow: 0 0 8px rgba(255, 23, 68, 0.6); font-weight: 900; }
         .tag.karma { background: #512da8; color:#fff; border: 1px solid #d1c4e9; animation: jelly-bounce 2s infinite; }
 
-        /* Pastel Gradients */
         .bg-Fire { background: linear-gradient(135deg, #ff8a80, #ef5350); }
         .bg-Water { background: linear-gradient(135deg, #80d8ff, #29b6f6); }
         .bg-Tree { background: linear-gradient(135deg, #b9f6ca, #66bb6a); color:#1b5e20; }
@@ -280,7 +309,6 @@
         #modal-overlay { position: fixed; inset: 0; background: rgba(255, 248, 225, 0.85); backdrop-filter:blur(5px); z-index: 100; display: none; justify-content: center; align-items: center; }
         .modal-content { background: #fff; padding: 25px; border-radius: 35px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 15px 50px rgba(255, 128, 171, 0.3); overflow-y:auto; max-height:80vh; border: 5px solid #ffcc80; position: relative;}
         
-        /* Guidebook Tabs */
         .tab-header { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .tab-btn { flex: 1; padding: 10px; border-radius: 15px; border: none; background: #f5f5f5; color: #888; font-weight: bold; cursor: pointer; }
         .tab-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 10px rgba(255, 128, 171, 0.4); }
@@ -304,6 +332,9 @@
 <body>
 
 <div id="flash-overlay"></div>
+<div id="turn-banner"></div> <!-- 턴 알림 배너 -->
+<button class="mute-btn" id="btn-mute" onclick="AudioSys.toggleMute()">🔊</button> <!-- 음소거 버튼 -->
+
 <div id="app">
     <div id="modal-overlay">
         <div class="modal-content" onclick="event.stopPropagation()">
@@ -315,7 +346,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v7.0 Challenge Mode</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v8.1 UX Upgrade</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -392,7 +423,6 @@ const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light
 
 const SKILL_DB = {
     'Fire': { s1:'화염방사', s1d:'1.5배+화상', s2:'메테오', s2d:'광역 0.8배+화상(25%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', desc:'광역형 딜러 | 흡혈+화상', passive:'🩸 흡혈: 모든 공격 시 피해량의 20%를 회복합니다.' },
-    // [Balance] Water Heal 110 -> 125
     'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'아군전체 HP+125 (20%확률 +50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'퓨어 힐러 | 광역 회복', passive:null },
     'Tree': { s1:'광합성', s1d:'쉴드+30/공+18 성장', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', desc:'성장형 탱커 | 자가 버프', passive:'🌿 성장: 광합성 사용 시 영구적으로 공격력과 쉴드가 증가합니다.' },
     'Metal': { s1:'강철베기', s1d:'1.3배+피해흡수(30%)', s2:'결투 신청', s2d:'적 도발/쉴드+15', type:'DEBUFF', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커 | 도발+뎀감', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 받는 피해가 최대 체력의 30%를 넘지 않습니다.' },
@@ -517,9 +547,9 @@ class Unit {
         this.hp = Math.floor(this.maxHp * hpPercent);
         this.status = [];
         this.shield = 0;
-        this.s2Count = 0;       
-        this.elecStacks = 0;    
-        this.thornStack = 0;    
+        this.s2Count = 0;        
+        this.elecStacks = 0;     
+        this.thornStack = 0;     
         this.linkedAllyId = -1; 
         this.passiveTriggered = false;
     }
@@ -614,21 +644,40 @@ class Unit {
 
 const AudioSys = {
     ctx: null,
+    isMuted: false, // 음소거 상태
     init: function() { 
         if(this.ctx) return;
         try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} 
     },
     resume: function() { if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); },
+    
+    toggleMute: function() {
+        this.isMuted = !this.isMuted;
+        const btn = document.getElementById('btn-mute');
+        if(this.isMuted) {
+            btn.innerHTML = '🔇';
+            btn.classList.add('muted');
+        } else {
+            btn.innerHTML = '🔊';
+            btn.classList.remove('muted');
+        }
+    },
+
     playSoft: function(freq, type, dur, vol=0.3) { 
-        if(!this.ctx) return;
+        if(!this.ctx || this.isMuted) return; // 음소거 체크
         const o=this.ctx.createOscillator(); const g=this.ctx.createGain(); const t=this.ctx.currentTime;
         o.type=type; o.frequency.setValueAtTime(freq,t);
         g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.05); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
         o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t+dur+0.1);
     },
+    
     play: function(type) {
-        if(!this.ctx) return;
-        if(type==='HIT') this.playSoft(600,'sine',0.1,0.4); 
+        if(!this.ctx || this.isMuted) return;
+
+        if(type==='HIT') { 
+            const rndFreq = 600 + (Math.random() * 100 - 50); 
+            this.playSoft(rndFreq,'triangle',0.1,0.4); 
+        } 
         else if(type==='SKILL') { this.playSoft(500,'sine',0.15,0.3); setTimeout(()=>this.playSoft(800,'sine',0.2,0.3),100); } 
         else if(type==='HEAL') { this.playSoft(500,'sine',0.2,0.3); setTimeout(()=>this.playSoft(700,'sine',0.3,0.3),150); }
         else if(type==='DEBUFF') { this.playSoft(300,'triangle',0.2,0.35); setTimeout(()=>this.playSoft(200,'triangle',0.2,0.35), 150); } 
@@ -735,6 +784,28 @@ const UI = {
         void document.body.offsetWidth;
         document.body.classList.add('screen-shake');
     },
+    
+    // [v8.1] 턴 알림 배너 표시 함수 (속도 조절 로직 추가)
+    showTurnBanner: function(isPlayerTurn) {
+        const banner = document.getElementById('turn-banner');
+        // 배너 스타일 및 텍스트 설정
+        if (isPlayerTurn) {
+            banner.style.background = 'linear-gradient(90deg, transparent, rgba(33, 150, 243, 0.8), transparent)';
+            banner.innerHTML = "⚔️ 아군 턴 (Player Turn)";
+        } else {
+            banner.style.background = 'linear-gradient(90deg, transparent, rgba(255, 87, 34, 0.8), transparent)';
+            banner.innerHTML = "👹 적군 턴 (Enemy Turn)";
+        }
+        
+        // 애니메이션 재생 (클래스 제거 없이 style로 제어)
+        banner.style.animation = 'none';
+        void banner.offsetWidth; // Trigger Reflow
+        
+        // [v8.1] 턴이 5턴을 넘어가면 배너 속도를 2배 빠르게 (1.2s -> 0.6s)
+        const duration = Game.turnCount > 5 ? '0.6s' : '1.2s';
+        banner.style.animation = `banner-swipe ${duration} cubic-bezier(0.22, 1, 0.36, 1) forwards`;
+    },
+
     showResult: function(winnerTeamStr) {
         const allUnits = [...Game.pTeam, ...Game.eTeam];
         const maxDmg = Math.max(...allUnits.map(u => u.stats.dmg), 1);
@@ -788,7 +859,6 @@ const UI = {
     }
 };
 
-// [롤백] 3vs3 전용 고승률 정예 조합 10선
 const ChallengeDB = [
     { name: "홍련의 불꽃", desc: "화상과 폭발적인 딜링을 주의하세요.", team: ['Fire', 'Fire-Dark', 'Earth-Dark'] },
     { name: "절대 방어선", desc: "뚫을 수 없는 쉴드와 힐의 조합입니다.", team: ['Metal', 'Light', 'Water'] },
@@ -873,7 +943,6 @@ const Game = {
         btn.disabled = false;
     },
     
-    // [System Fix] 챌린지 모드 인덱스 오류 수정
     checkMode: function() {
         const diff = document.getElementById('diff-select').value;
         const statusEl = document.getElementById('challenge-status');
@@ -884,13 +953,10 @@ const Game = {
             const savedStage = localStorage.getItem('et_challenge_stage');
             let maxStage = savedStage ? parseInt(savedStage) : 0;
             
-            // [Fix] 저장된 스테이지가 현재 DB보다 크면 강제 보정 (오류 방지)
             if (maxStage >= ChallengeDB.length) maxStage = ChallengeDB.length - 1;
             
-            // 현재 선택된 스테이지가 max보다 크면 max로 보정
             if(this.challengeStage > maxStage) this.challengeStage = maxStage;
 
-            // Select Box에 옵션 추가
             const select = document.getElementById('stage-select');
             select.innerHTML = '';
             ChallengeDB.forEach((st, i) => {
@@ -934,7 +1000,6 @@ const Game = {
         const makeEnemy = (idx, b, e) => { const u = new Unit(idx + 3, 1, b, e); return u; };
 
         if (this.difficulty === 'hell') { 
-            // [Safety] 인덱스 안전장치 추가
             if (this.challengeStage >= ChallengeDB.length) this.challengeStage = ChallengeDB.length - 1;
             
             const stageData = ChallengeDB[this.challengeStage];
@@ -989,7 +1054,6 @@ const Game = {
         let diffText = this.difficulty === 'mirror' ? '🪞 거울 전쟁' : (this.difficulty === 'hell' ? `🏆 챌린지 ${this.challengeStage+1}` : this.difficulty);
         this.log(`<span class='log-sys'>✨ 전투 시작! [${diffText}] (3vs3)</span>`);
         this.render();
-        // [Fix] 자동 저장 제거: this.saveGame(); 삭제됨
         this.timer = setTimeout(()=>this.turn(), 1000);
     },
 
@@ -1008,6 +1072,10 @@ const Game = {
         if(!u.isDead) u.resetTurn();
 
         if(u.isDead) { this.endTurn(true); return; }
+
+        // [v8.1] 배너 위치 변경: 죽었으면 리턴하므로, 여기까지 왔다는 건 살아있다는 뜻.
+        // 살아있는 영웅의 턴일 때만 배너 표시
+        UI.showTurnBanner(u.team === 0);
 
         if(u.hasStatus('FREEZE') || u.hasStatus('STUN') || u.hasStatus('BANISH')) {
             UI.floatText(u, "SKIP", "ft-miss");
@@ -1098,7 +1166,6 @@ let bgClass = `bg-${u.base}`;
                 if(u.isNormal) bgClass = 'bg-Normal';
                 const icon = SKILL_DB[u.getKey()].icon || ''; 
 
-                // [UI 개선] 전기 과부하 스택이 있으면 뱃지 표시
                 let extraBadge = '';
                 if(u.elecStacks > 0) extraBadge = `<div class="elec-badge">⚡${u.elecStacks}</div>`;
 
@@ -1369,7 +1436,6 @@ let bgClass = `bg-${u.base}`;
                 if (otherAllies.length > 0) supportTarget = otherAllies[0];
             }
 
-            // [AI Mod] Metal Logic
             if (k === 'Metal') {
                 const provokedEnemy = aliveEnemies.find(e => e.status.some(s => s.type === `PROVOKED_BY_${u.id}`));
                 if (provokedEnemy) {
@@ -1528,10 +1594,10 @@ let bgClass = `bg-${u.base}`;
                         m+=`(아군 회복) `; 
                     }
                 }
-// [Balance] 전기(Metal-Dark): S1 사용 시 공격력 10 증가 (최대 3스택)
+
                 if(k==='Metal-Dark') { 
                     if(atk.elecStacks < 3) { 
-                        atk.atk += 10; // 공격력 10 증가
+                        atk.atk += 10;
                         atk.elecStacks++; 
                         UI.floatText(atk, `⚡${atk.elecStacks}`, "ft-crit");
                         AudioSys.play('POWER_UP');
@@ -1621,9 +1687,8 @@ let bgClass = `bg-${u.base}`;
             }
            else if(s.type === 'AOE') {
                 m += " (전체 공격!)";
-                // 여기 있던 전기 속성 스택 충전 로직 삭제됨 (사용자 요청)
 
-                let earthMult = 0.8; // 기본 광역 계수 0.8
+                let earthMult = 0.8; 
                 if (k === 'Earth') {
                     const pAlive = this.pTeam.filter(u => !u.isDead).length;
                     const eAlive = this.eTeam.filter(u => !u.isDead).length;
@@ -1642,7 +1707,6 @@ let bgClass = `bg-${u.base}`;
                         this.shake(e); UI.floatText(e, act, "ft-dmg"); 
                         if(k==='Earth-Light') e.addStatus('BLIND', 2); 
                         
-                        // [Balance] 전기(Metal-Dark): S2는 15% 확률로 기절만 부여 (스택X)
                         if(k==='Metal-Dark' && Math.random()<0.15) {
                             e.addStatus('STUN', 1, 0, atk);
                             m += ` <span style="color:#ffd54f; font-weight:bold;">(⚡기절)</span>`;
@@ -1657,7 +1721,6 @@ let bgClass = `bg-${u.base}`;
             } 
             else if(s.type === 'HEAL') { 
                 AudioSys.play('HEAL'); playedSound=true;
-                // [Balance] Water Heal 125로 상향
                 const healBase = k === 'Water' ? 125 : 110;
                 (atk.team===0?this.pTeam:this.eTeam).forEach(a=>{
                     if(!a.isDead) { const h = a.heal(healBase); Game.recordStat(atk, 'heal', h); }
@@ -1729,44 +1792,6 @@ let bgClass = `bg-${u.base}`;
         this.log(m); this.endTurn();
     },
 
-    endTurn: function(isFast = false) {
-        if(this.isOver) return; 
-        if(this.watchdog) clearTimeout(this.watchdog);
-        
-        const u = this.queue[this.curr]%2===0 ? this.pTeam[this.queue[this.curr]/2] : this.eTeam[(this.queue[this.curr]-1)/2];
-        if(u && !u.isDead) u.decayStatus();
-
-        if (this.curr === 0 && Math.ceil(this.turnCount / 6) >= 20) {
-            [...this.pTeam, ...this.eTeam].forEach(u => {
-                if(!u.isDead) u.atk += 10;
-            });
-            this.log("<span class='log-crit'>💀 데스매치! 모든 영웅 공격력 +10</span>");
-        }
-
-        [...this.pTeam, ...this.eTeam].forEach(u=>{if(u.hp<=0) this.die(u)});
-        this.curr = (this.curr+1)%6;
-        if(this.curr===0) this.turnCount++;
-        this.render();
-        const delay = isFast ? 100 : 1500; 
-        this.timer = setTimeout(()=>this.turn(), delay);
-    },
-
-    calc: (a,d) => {
-        let v = 1.0;
-        let t = '';
-        if(a.isNormal) {
-            if(d.isNormal || d.isEnhanced) { v=1.2; t='(강타)'; }
-        } else {
-            const w={'Fire':['Metal','Tree'],'Water':['Fire','Metal'],'Tree':['Water','Earth'],'Metal':['Tree','Earth'],'Earth':['Fire','Water']};
-            const ew={'Light':['Dark'],'Dark':['Light']};
-            if(!d.isNormal){ 
-                if(w[a.base]?.includes(d.base)||ew[a.base]?.includes(d.base)) { v=1.2; t='(약점)'; }
-            }
-        }
-        if(v===1.2 && a.extra && d.extra && ((a.extra==='Light'&&d.extra==='Dark')||(a.extra==='Dark'&&d.extra==='Light'))) { v=1.3; t='(치명타!)'; }
-        return {v, t};
-    },
-    
     die: function(u) { 
         if(u.isDead) return; 
         u.isDead=true; u.hp=0; u.status=[]; 
@@ -1890,6 +1915,22 @@ let bgClass = `bg-${u.base}`;
         u.s2Count = d.s2Count; u.elecStacks = d.elecStacks;
         u.stats = d.stats;
         return u;
+    }
+    
+    , calc: (a,d) => {
+        let v = 1.0;
+        let t = '';
+        if(a.isNormal) {
+            if(d.isNormal || d.isEnhanced) { v=1.2; t='(강타)'; }
+        } else {
+            const w={'Fire':['Metal','Tree'],'Water':['Fire','Metal'],'Tree':['Water','Earth'],'Metal':['Tree','Earth'],'Earth':['Fire','Water']};
+            const ew={'Light':['Dark'],'Dark':['Light']};
+            if(!d.isNormal){ 
+                if(w[a.base]?.includes(d.base)||ew[a.base]?.includes(d.base)) { v=1.2; t='(약점)'; }
+            }
+        }
+        if(v===1.2 && a.extra && d.extra && ((a.extra==='Light'&&d.extra==='Dark')||(a.extra==='Dark'&&d.extra==='Light'))) { v=1.3; t='(치명타!)'; }
+        return {v, t};
     }
 };
 
