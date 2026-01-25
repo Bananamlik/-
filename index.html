@@ -525,40 +525,6 @@ function startOnlineGame() {
             Game.timer = setTimeout(()=>Game.turn(), 1000);
         }
     });
-
-    // 상대방 행동 수신 (관점 변환 적용)
-    socket.on('enemyAction', (data) => {
-        // [핵심] 상대방의 "내 팀(0)" == 나의 "적 팀(eTeam)"
-        // [핵심] 상대방의 "적 팀(1)" == 나의 "내 팀(pTeam)"
-        
-        let attacker = null;
-        if (data.attackerTeam === 0) { // 상대가 "내가 때린다"고 함
-            // 내 화면의 적(eTeam)에서 찾는데, ID가 0,1,2로 오므로 그대로 인덱스로 씀
-            attacker = Game.eTeam[data.attackerId]; 
-        } else { // 상대가 "네 유닛이 때린다"고 함 (반사 등)
-            // 내 화면의 아군(pTeam)에서 찾음. (상대는 이걸 3,4,5로 보고 있음 -> -3 해줌)
-            attacker = Game.pTeam[data.attackerId - 3];
-        }
-
-        let target = null;
-        if (data.targetId !== null) {
-            if (data.targetTeam === 0) { // 상대가 "내 팀을 타겟함"
-                target = Game.eTeam[data.targetId];
-            } else { // 상대가 "네 팀을 타겟함"
-                target = Game.pTeam[data.targetId - 3];
-            }
-        }
-
-        if(attacker) {
-            netRndBuffer = data.rndBuffer; 
-            netRndIdx = 0;
-            isReplaying = true; 
-            
-            Game.execute(attacker, target, data.skillIdx, true); 
-            
-            isReplaying = false; 
-        }
-    });
 }
 
 const ATTR = { 'Fire':{i:'🔥', n:'불', c:'#e74c3c'}, 'Water':{i:'💧', n:'물', c:'#3498db'}, 'Tree':{i:'🌿', n:'나무', c:'#2ecc71'}, 'Metal':{i:'⚔️', n:'쇠', c:'#95a5a6'}, 'Earth':{i:'⛰️', n:'흙', c:'#e67e22'}, 'Light':{i:'☀️', n:'빛', c:'#f1c40f'}, 'Dark':{i:'🌙', n:'어둠', c:'#9b59b6'}, 'Normal':{i:'☀️🌙', n:'노말', c:'#ecf0f1'} };
