@@ -328,6 +328,7 @@
         .diff-select { margin: 0; padding: 10px; width: 100%; border-radius: 20px; border: 3px solid #b2dfdb; font-size: 14px; font-family: var(--font-main); color: #555; background: #fff; outline:none; }
         .atk-text { font-size: 12px; font-weight: bold; color: #fff; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 10px; }
     </style>
+<script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
@@ -369,16 +370,19 @@
             <div id="preview-info" style="font-size:14px; color:#888; margin-bottom: 10px;">영웅을 클릭하면 정보가 나와요!</div>
             <div style="display:flex; align-items:center; gap:5px;">
                 <select id="diff-select" class="diff-select" style="flex:1;" onchange="Game.checkMode()">
-                    <option value="easy" selected>🐣 쉬움</option>
-                    <option value="normal">🤖 보통</option>
-                    <option value="hard">🔥 어려움</option>
-                    <option value="hell">🏆 챌린지 (도장깨기)</option>
-                    <option value="mirror">🪞 거울 전쟁</option>
-                    <option value="pvp">⚔️ 2인 대전</option>
+                      <option value="easy" selected>🐣 쉬움 (AI)</option>
+                      <option value="normal">🤖 보통 (AI)</option>
+                      <option value="hard">🔥 어려움 (AI)</option>
+                      <option value="hell">🏆 챌린지 (도장깨기)</option>
+                      <option value="mirror">🪞 거울 전쟁 (AI)</option>
+                      <option value="local">⚔️ 연습 대전 (오프라인 2인)</option> 
                 </select>
                 <button class="btn-rnd" onclick="Game.randomPick()">🎲 랜덤</button>
             </div>
         </div>
+        <button id="btn-online" class="btn-start" style="background:#7e57c2; margin-top:5px;" onclick="startOnlineGame()">
+             🌐 온라인 대전 (매칭 시작)
+        </button>
         <button id="btn-start" class="btn-start" onclick="Game.start()" disabled>전투 시작 (0/3)</button>
     </div>
 
@@ -418,6 +422,47 @@
 </div>
 
 <script>
+// [추가] 서버 연결 시작!
+const socket = io(); 
+let myRole = null; // 'player1' (왼쪽팀) 또는 'player2' (오른쪽팀)
+let myRoom = null;
+
+// 매칭이 잡히면 서버가 알려줌
+socket.on('gameStart', (data) => {
+    myRole = data.role;
+    myRoom = data.room;
+    
+    // 알림창 띄우기
+    let roleText = myRole === 'player1' ? "🔵 당신은 1P (왼쪽/선공) 입니다!" : "🔴 당신은 2P (오른쪽/후공) 입니다!";
+    alert("매칭 성공!\n" + roleText);
+
+    // 게임 시작 (기존 함수 호출)
+    Game.init();
+    Game.start();
+
+    // 2P라면 터치 막기 (1P가 먼저 시작하니까)
+    if (myRole === 'player2') {
+        Game.noInput();
+        document.getElementById('turn-indicator').innerText = "적(1P)의 행동을 기다리는 중...";
+    }
+});
+
+// 상대방이 공격하면 실행되는 함수
+socket.on('enemyAction', (data) => {
+    // 상대가 보낸 데이터를 찾아서 실행
+    const atkTeam = data.attackerTeam === 0 ? Game.pTeam : Game.eTeam;
+    const defTeam = data.targetTeam === 0 ? Game.pTeam : Game.eTeam;
+    
+    // ID로 유닛 찾기 (배열 인덱스가 아니라 고유 ID로 매칭)
+    const attacker = atkTeam.find(u => u.id === data.attackerId);
+    const target = defTeam.find(u => u.id === data.targetId);
+
+    // [중요] 상대가 보낸 결과값(syncData)을 가지고 실행!
+    // 4번째 인자로 data를 넘겨주는 것이 핵심
+    if(attacker && target) {
+        Game.execute(attacker, target, data.skillIdx, data); 
+    }
+});
 const ATTR = { 'Fire':{i:'🔥', n:'불', c:'#e74c3c'}, 'Water':{i:'💧', n:'물', c:'#3498db'}, 'Tree':{i:'🌿', n:'나무', c:'#2ecc71'}, 'Metal':{i:'⚔️', n:'쇠', c:'#95a5a6'}, 'Earth':{i:'⛰️', n:'흙', c:'#e67e22'}, 'Light':{i:'☀️', n:'빛', c:'#f1c40f'}, 'Dark':{i:'🌙', n:'어둠', c:'#9b59b6'}, 'Normal':{i:'☀️🌙', n:'노말', c:'#ecf0f1'} };
 const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light':'숲', 'Metal-Light':'독가스', 'Earth-Light':'모래', 'Water-Dark':'얼음', 'Fire-Dark':'검은불', 'Tree-Dark':'가시', 'Metal-Dark':'전기', 'Earth-Dark':'바위', 'Light-Light':'빛(강화)', 'Dark-Dark':'어둠(강화)', 'Normal':'노말' };
 
@@ -1502,8 +1547,24 @@ let bgClass = `bg-${u.base}`;
         }
     },
 
-    execute: function(atk, def, sIdx) {
+    execute: function(atk, def, sIdx, syncData) {
         document.querySelectorAll('.unit').forEach(el=>el.onclick=null);
+        // syncData(상대방이 보낸 정보)가 없다? = 내가 직접 버튼을 누른 상황
+        if (!syncData) {
+            // 내 턴인지 확인 (1P는 왼쪽팀만, 2P는 오른쪽팀만 조종 가능)
+            if (myRole === 'player1' && atk.team !== 0) { alert("내 유닛이 아닙니다!"); return; }
+            if (myRole === 'player2' && atk.team !== 1) { alert("내 유닛이 아닙니다!"); return; }
+
+            // 서버에게 "나 공격했어!" 라고 편지 보내기
+            socket.emit('action', {
+                room: myRoom, // 우리 방 이름
+                attackerId: atk.id,
+                attackerTeam: atk.team,
+                targetId: def ? def.id : null, // 광역기라 타겟이 없을 수도 있음
+                targetTeam: def ? def.team : null,
+                skillIdx: sIdx
+            });
+        }
         const k = atk.getKey(); const s = SKILL_DB[k];
         
         const aff = (def && def.team !== atk.team) ? this.calc(atk, def) : {v:1, t:''};
