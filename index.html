@@ -422,8 +422,22 @@
 </div>
 
 <script>
-// [1] 서버 통신 및 난수 동기화 설정
-const socket = io(); 
+// [1] 서버 통신 및 난수 동기화 설정 (자동 감지 모드)
+let socket;
+
+// socket.io 라이브러리가 있으면(Node 서버) 연결하고, 없으면(웹) 가짜 소켓을 만듦
+if (typeof io !== 'undefined') {
+    socket = io();
+    console.log("🌐 온라인 모드 활성화 (Server Connected)");
+} else {
+    // 웹 환경을 위한 가짜 소켓 (에러 방지용)
+    socket = {
+        on: () => {}, emit: () => {}, connected: false,
+        connect: () => { alert("⚠️ 서버를 찾을 수 없습니다.\n웹 버전에서는 '혼자하기'와 '연습 대전'만 가능합니다."); }
+    };
+    console.log("📴 오프라인 모드 (Standalone Web)");
+}
+
 let myRole = null; 
 let myRoom = null;
 let isOnlineMode = false; // 온라인 모드인지 확인하는 깃발
@@ -452,13 +466,14 @@ function startOnlineGame() {
         return;
     }
     
-    // 소켓이 연결 안 되어 있으면 연결
-    if (!socket.connected) socket.connect(); 
+    if (!socket.connected) socket.connect();
     
-    document.getElementById('btn-online').innerText = "매칭 중...";
+    document.getElementById('btn-online').innerText = "매칭 대기 중...";
     document.getElementById('btn-online').disabled = true;
 
-    // 매칭이 잡히면 서버가 알려줌
+    // [핵심 1] 서버에 "나 게임 할래요" 하고 내 덱 정보(번호들)를 보냄
+    socket.emit('joinGame', { deck: Game.selected });
+
     socket.on('gameStart', (data) => {
         isOnlineMode = true; 
         myRole = data.role;
@@ -471,32 +486,38 @@ function startOnlineGame() {
         document.getElementById('battle-screen').style.display='flex';
         document.getElementById('logs').innerHTML = ''; 
 
-        // 게임 시작 초기화
         Game.difficulty = 'online';
         Game.mode = 'online';
         Game.turnCount = 1;
         Game.isOver = false;
-        Game.queue = [0,1,2,3,4,5]; 
-        Game.curr = 0; 
-        Game.isProcessing = false;
         
-        // 난수 버퍼 초기화
+        // [수정] 1P는 [0(나), 1(적)...], 2P는 [1(적), 0(나)...] 순서로 큐 설정
+        if (myRole === 'player2') {
+            Game.queue = [1,0,3,2,5,4]; 
+        } else {
+            Game.queue = [0,1,2,3,4,5];
+        }
+        
+        Game.curr = 0;
+        Game.isProcessing = false;
         Game.netRndBuffer = []; Game.netRndIdx = 0; Game.isReplaying = false;
 
-        // 내 팀 설정
+        // 1. 내 팀 생성
         Game.pTeam = Game.selected.map((idx, i) => { 
             const original = Game.pool[idx];
             return new Unit(i, 0, original.base, original.extra); 
         });
         
-        // 적 팀 설정 (임시 미러전)
-        Game.eTeam = Game.pTeam.map((pu, i) => {
-            return new Unit(i + 3, 1, pu.base, pu.extra);
+        // 2. [수정됨] 적 팀 생성 (서버에서 받은 enemyDeck 정보 사용)
+        const enemyIndices = data.enemyDeck; 
+        Game.eTeam = enemyIndices.map((idx, i) => {
+            const original = Game.pool[idx]; // 고정된 pool에서 찾아옴
+            return new Unit(i + 3, 1, original.base, original.extra);
         });
 
         Game.render();
         
-        // 2P는 대기
+        // 2P는 대기, 1P는 턴 시작
         if (myRole === 'player2') {
             Game.noInput();
             document.getElementById('turn-indicator').innerText = "상대방(1P)의 행동을 기다리는 중...";
@@ -505,15 +526,30 @@ function startOnlineGame() {
         }
     });
 
-    // 상대방 행동 수신
+    // 상대방 행동 수신 (관점 변환 적용)
     socket.on('enemyAction', (data) => {
-        const atkTeam = data.attackerTeam === 0 ? Game.pTeam : Game.eTeam;
-        const defTeam = data.targetTeam === 0 ? Game.pTeam : Game.eTeam;
-        const attacker = atkTeam.find(u => u.id === data.attackerId);
-        const target = data.targetId !== null ? defTeam.find(u => u.id === data.targetId) : null;
+        // [핵심] 상대방의 "내 팀(0)" == 나의 "적 팀(eTeam)"
+        // [핵심] 상대방의 "적 팀(1)" == 나의 "내 팀(pTeam)"
+        
+        let attacker = null;
+        if (data.attackerTeam === 0) { // 상대가 "내가 때린다"고 함
+            // 내 화면의 적(eTeam)에서 찾는데, ID가 0,1,2로 오므로 그대로 인덱스로 씀
+            attacker = Game.eTeam[data.attackerId]; 
+        } else { // 상대가 "네 유닛이 때린다"고 함 (반사 등)
+            // 내 화면의 아군(pTeam)에서 찾음. (상대는 이걸 3,4,5로 보고 있음 -> -3 해줌)
+            attacker = Game.pTeam[data.attackerId - 3];
+        }
+
+        let target = null;
+        if (data.targetId !== null) {
+            if (data.targetTeam === 0) { // 상대가 "내 팀을 타겟함"
+                target = Game.eTeam[data.targetId];
+            } else { // 상대가 "네 팀을 타겟함"
+                target = Game.pTeam[data.targetId - 3];
+            }
+        }
 
         if(attacker) {
-            // [핵심] 난수 동기화 적용 (수정됨)
             netRndBuffer = data.rndBuffer; 
             netRndIdx = 0;
             isReplaying = true; 
@@ -521,32 +557,10 @@ function startOnlineGame() {
             Game.execute(attacker, target, data.skillIdx, true); 
             
             isReplaying = false; 
-        }    });
+        }
+    });
 }
 
-// 2. 상대방 행동 수신 (수정됨)
-// 2. 상대방 행동 수신 (수정됨)
-socket.on('enemyAction', (data) => {
-    const atkTeam = data.attackerTeam === 0 ? Game.pTeam : Game.eTeam;
-    const defTeam = data.targetTeam === 0 ? Game.pTeam : Game.eTeam;
-    
-    // ID로 유닛 찾기
-    const attacker = atkTeam.find(u => u.id === data.attackerId);
-    // 타겟이 null일 수도 있음 (광역기 등)
-    const target = data.targetId !== null ? defTeam.find(u => u.id === data.targetId) : null;
-
-    if(attacker) {
-        // [핵심] 상대방이 보낸 주사위 통(Buffer)을 받아서 덮어씌움
-        Game.netRndBuffer = data.rndBuffer; 
-        Game.netRndIdx = 0;
-        Game.isReplaying = true;  // "지금부터는 따라하기 모드다!"
-        
-        // 실행 (true는 '원격 조종'이라는 표시)
-        Game.execute(attacker, target, data.skillIdx, true); 
-        
-        Game.isReplaying = false; // 모드 해제
-    }
-});
 const ATTR = { 'Fire':{i:'🔥', n:'불', c:'#e74c3c'}, 'Water':{i:'💧', n:'물', c:'#3498db'}, 'Tree':{i:'🌿', n:'나무', c:'#2ecc71'}, 'Metal':{i:'⚔️', n:'쇠', c:'#95a5a6'}, 'Earth':{i:'⛰️', n:'흙', c:'#e67e22'}, 'Light':{i:'☀️', n:'빛', c:'#f1c40f'}, 'Dark':{i:'🌙', n:'어둠', c:'#9b59b6'}, 'Normal':{i:'☀️🌙', n:'노말', c:'#ecf0f1'} };
 const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light':'숲', 'Metal-Light':'독가스', 'Earth-Light':'모래', 'Water-Dark':'얼음', 'Fire-Dark':'검은불', 'Tree-Dark':'가시', 'Metal-Dark':'전기', 'Earth-Dark':'바위', 'Light-Light':'빛(강화)', 'Dark-Dark':'어둠(강화)', 'Normal':'노말' };
 
@@ -1007,6 +1021,8 @@ const Game = {
     pool: [], selected: [], pTeam: [], eTeam: [], queue: [], curr: 0, selectedSkillIdx: -1, timer: null, turnCount: 1, difficulty: 'normal', watchdog: null,
     isOver: false, mode: 'pve', isProcessing: false,
     challengeStage: 0,
+// [중요] 전역 함수 연결
+    netRandom: function() { return getNetRandom(); },
 
     init: function() {
         if(this.timer) clearTimeout(this.timer);
@@ -1016,7 +1032,7 @@ const Game = {
         const extras = [null, 'Light', 'Dark'];
         bases.forEach(b => extras.forEach(e => combos.push({b, e})));
         combos = combos.filter(c => !(c.b === 'Dark' && c.e === 'Light')); 
-        combos.sort(() => Math.random() - 0.5);
+        // combos.sort(() => Math.random() - 0.5); // [수정] 순서 고정 (동기화 위해 주석 처리)
 
         const grid = document.getElementById('hero-grid');
         grid.innerHTML = '';
@@ -1122,7 +1138,8 @@ const Game = {
         AudioSys.init(); AudioSys.resume();
         const diffVal = document.getElementById('diff-select').value;
         this.difficulty = diffVal;
-        this.mode = diffVal === 'pvp' ? 'pvp' : 'pve';
+        // [수정] 'local'(연습 대전)도 PvP 모드로 인식 (친구와 폰 하나로 대결 가능)
+        this.mode = (diffVal === 'pvp' || diffVal === 'local') ? 'pvp' : 'pve';
 
         this.pTeam = this.selected.map((idx, i) => { const u = this.pool[idx]; u.id=i; u.team=0; return u; });
         this.eTeam = [];
@@ -1226,13 +1243,26 @@ const Game = {
         this.turnCount++;
         
         if(u.team===0) { 
+            // 내 유닛 턴일 때
             if(this.watchdog) clearTimeout(this.watchdog);
             this.input(u); 
         } else { 
-            if (this.mode === 'pvp') { if(this.watchdog) clearTimeout(this.watchdog); this.input(u); } 
-            else { this.noInput(); this.timer=setTimeout(()=>this.ai(u), 800); }
+            // 적 유닛 턴일 때
+            if (this.mode === 'pvp') { 
+                // 오프라인 2인용이면 입력 허용
+                if(this.watchdog) clearTimeout(this.watchdog);
+                this.input(u); 
+            } 
+            else if (this.mode === 'online') {
+                // [수정] 온라인 모드면 AI 끄고 대기 (상대방 신호 기다림)
+                this.noInput(); 
+            }
+            else { 
+                // 혼자하기(AI 모드)면 AI 실행
+                this.noInput(); 
+                this.timer=setTimeout(()=>this.ai(u), 800);
+            }
         }
-    },
     
     render: function() {
         const tl = document.getElementById('tl-track');
@@ -1512,8 +1542,15 @@ let bgClass = `bg-${u.base}`;
 
         // [동기화 1] 내가 공격할 때(온라인, 원격아님) -> 주사위 통 비우고 기록 시작
         if (isOnlineMode && !isRemote) {
-            if (myRole === 'player1' && atk.team !== 0) { alert("내 유닛이 아닙니다!"); return; }
-            if (myRole === 'player2' && atk.team !== 1) { alert("내 유닛이 아닙니다!"); return; }
+        if (!syncData) {
+            // [수정] 내 화면(Local) 기준, 내가 조종할 수 있는 건 오직 0번 팀(pTeam) 뿐임.
+            // (1P든 2P든 자기 화면에서는 자기가 0번 팀입니다)
+            if (atk.team !== 0) { 
+                alert("내 차례가 아니거나 내 유닛이 아닙니다!"); 
+                return; 
+            }
+
+            // 서버에게 "나 공격했어!"
             Game.netRndBuffer = []; 
         }
 
@@ -1811,7 +1848,7 @@ let bgClass = `bg-${u.base}`;
                 attackerId: atk.id, attackerTeam: atk.team,
                 targetId: def ? def.id : null, targetTeam: def ? def.team : null,
                 skillIdx: sIdx,
-                rndBuffer: Game.netRndBuffer 
+                rndBuffer: netRndBuffer // [수정] 전역 변수 사용
             });
         }
         this.endTurn();
