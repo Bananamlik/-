@@ -422,10 +422,30 @@
 </div>
 
 <script>
-// [추가] 서버 연결 시작!
+// [1] 서버 통신 및 난수 동기화 설정
 const socket = io(); 
-let myRole = null; // 'player1' (왼쪽팀) 또는 'player2' (오른쪽팀)
+let myRole = null; 
 let myRoom = null;
+let isOnlineMode = false; // 온라인 모드인지 확인하는 깃발
+
+// [추가됨] 주사위 값을 저장할 통(Buffer)과 인덱스
+// 1P가 굴린 주사위 값을 여기에 담아서 2P에게 보내줍니다.
+Game = window.Game || {}; // Game 객체 안전장치
+Game.netRndBuffer = []; 
+Game.netRndIdx = 0; 
+Game.isReplaying = false; // "지금 남의 행동을 따라하는 중인가?"
+
+// [추가됨] 동기화된 랜덤 함수 (Math.random 대신 이거 씀)
+Game.netRandom = function() {
+    // 1. 남이 한 거 따라할 때 (Replay): 저장된 주사위 꺼내 씀
+    if (isOnlineMode && Game.isReplaying) {
+        return Game.netRndBuffer[Game.netRndIdx++] || Math.random(); 
+    }
+    // 2. 내가 직접 할 때: 주사위 굴리고 기록해둠 (나중에 보내주려고)
+    const val = Math.random();
+    if (isOnlineMode) Game.netRndBuffer.push(val); 
+    return val;
+};
 
 // 매칭이 잡히면 서버가 알려줌
 socket.on('gameStart', (data) => {
@@ -447,20 +467,27 @@ socket.on('gameStart', (data) => {
     }
 });
 
-// 상대방이 공격하면 실행되는 함수
+// 2. 상대방 행동 수신 (수정됨)
+// 2. 상대방 행동 수신 (수정됨)
 socket.on('enemyAction', (data) => {
-    // 상대가 보낸 데이터를 찾아서 실행
     const atkTeam = data.attackerTeam === 0 ? Game.pTeam : Game.eTeam;
     const defTeam = data.targetTeam === 0 ? Game.pTeam : Game.eTeam;
     
-    // ID로 유닛 찾기 (배열 인덱스가 아니라 고유 ID로 매칭)
+    // ID로 유닛 찾기
     const attacker = atkTeam.find(u => u.id === data.attackerId);
-    const target = defTeam.find(u => u.id === data.targetId);
+    // 타겟이 null일 수도 있음 (광역기 등)
+    const target = data.targetId !== null ? defTeam.find(u => u.id === data.targetId) : null;
 
-    // [중요] 상대가 보낸 결과값(syncData)을 가지고 실행!
-    // 4번째 인자로 data를 넘겨주는 것이 핵심
-    if(attacker && target) {
-        Game.execute(attacker, target, data.skillIdx, data); 
+    if(attacker) {
+        // [핵심] 상대방이 보낸 주사위 통(Buffer)을 받아서 덮어씌움
+        Game.netRndBuffer = data.rndBuffer; 
+        Game.netRndIdx = 0;
+        Game.isReplaying = true;  // "지금부터는 따라하기 모드다!"
+        
+        // 실행 (true는 '원격 조종'이라는 표시)
+        Game.execute(attacker, target, data.skillIdx, true); 
+        
+        Game.isReplaying = false; // 모드 해제
     }
 });
 const ATTR = { 'Fire':{i:'🔥', n:'불', c:'#e74c3c'}, 'Water':{i:'💧', n:'물', c:'#3498db'}, 'Tree':{i:'🌿', n:'나무', c:'#2ecc71'}, 'Metal':{i:'⚔️', n:'쇠', c:'#95a5a6'}, 'Earth':{i:'⛰️', n:'흙', c:'#e67e22'}, 'Light':{i:'☀️', n:'빛', c:'#f1c40f'}, 'Dark':{i:'🌙', n:'어둠', c:'#9b59b6'}, 'Normal':{i:'☀️🌙', n:'노말', c:'#ecf0f1'} };
@@ -543,7 +570,8 @@ class Unit {
         }
 
         if (this.hasStatus('DMG_RED')) dmg = Math.floor(dmg * 0.8);
-        if (this.hasStatus('EVADE')) { if(Math.random() < 0.20) return -1; }
+        // [수정됨] 회피 확률 동기화
+        if (this.hasStatus('EVADE')) { if(Game.netRandom() < 0.20) return -1; }
 
         if (source && source.id !== this.id && !source.isDead) {
              const karma = source.status.find(s => s.type === `KARMA_VICTIM_${this.id}`);
@@ -640,8 +668,8 @@ class Unit {
             if (!source || source.id !== this.id) { this.status.push({type: 'IMMUNITY', turn: turn + 1}); }
         }
 
-        if (this.resist > 0 && Math.random() < this.resist && ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN'].includes(type)) return;
-        
+        // [수정됨] 저항 확률 동기화
+        if (this.resist > 0 && Game.netRandom() < this.resist && ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN'].includes(type)) return;
         if (type === 'ATK_DOWN') { 
             const s = this.status.filter(s=>s.type==='ATK_DOWN'); 
             if(s.length < 2) { this.status.push({type, turn, val}); } 
@@ -1547,26 +1575,18 @@ let bgClass = `bg-${u.base}`;
         }
     },
 
-    execute: function(atk, def, sIdx, syncData) {
+// [수정된 execute] 동기화 로직 + Math.random 교체 완료
+    execute: function(atk, def, sIdx, isRemote = false) {
         document.querySelectorAll('.unit').forEach(el=>el.onclick=null);
-        // syncData(상대방이 보낸 정보)가 없다? = 내가 직접 버튼을 누른 상황
-        if (!syncData) {
-            // 내 턴인지 확인 (1P는 왼쪽팀만, 2P는 오른쪽팀만 조종 가능)
+
+        // [동기화 1] 내가 공격할 때(온라인, 원격아님) -> 주사위 통 비우고 기록 시작
+        if (isOnlineMode && !isRemote) {
             if (myRole === 'player1' && atk.team !== 0) { alert("내 유닛이 아닙니다!"); return; }
             if (myRole === 'player2' && atk.team !== 1) { alert("내 유닛이 아닙니다!"); return; }
-
-            // 서버에게 "나 공격했어!" 라고 편지 보내기
-            socket.emit('action', {
-                room: myRoom, // 우리 방 이름
-                attackerId: atk.id,
-                attackerTeam: atk.team,
-                targetId: def ? def.id : null, // 광역기라 타겟이 없을 수도 있음
-                targetTeam: def ? def.team : null,
-                skillIdx: sIdx
-            });
+            Game.netRndBuffer = []; // 주사위 기록 초기화
         }
+
         const k = atk.getKey(); const s = SKILL_DB[k];
-        
         const aff = (def && def.team !== atk.team) ? this.calc(atk, def) : {v:1, t:''};
         let defMod = 1.0;
         
@@ -1585,10 +1605,300 @@ let bgClass = `bg-${u.base}`;
              m += ` ➔ <b class="${def.team===0?'log-ally':'log-enemy'}">[${def.name}]</b>`;
         }
 
-        if (atk.hasStatus('BLIND') && Math.random() < 0.20) { 
+        // [동기화 2] Math.random -> Game.netRandom (실명 체크)
+        if (atk.hasStatus('BLIND') && Game.netRandom() < 0.20) { 
             m += " (실명으로 빗나감!)"; UI.floatText(atk, "MISS", "ft-miss"); AudioSys.play('MISS');
-            this.log(m); this.endTurn(); return;
+            this.log(m); 
+            // 빗나가도 턴 종료 처리는 해야 함 (전송 포함)
+            this.postExecute(atk, def, sIdx, isRemote);
+            return;
         }
+
+        const baseAtk = atk.getAtk();
+        let playedSound = false;
+
+        // --- 스킬 로직 (모든 Math.random이 Game.netRandom으로 교체됨) ---
+        if(sIdx === 0) {
+            AudioSys.play('HIT'); playedSound=true;
+            const dmg = Math.floor(baseAtk * 1.0 * aff.v * defMod);
+            const act = def.takeDamage(dmg, false, false, atk);
+            Game.recordStat(atk, 'dmg', act); 
+            if(act===-1) { m+="빗나감!"; UI.floatText(def, "MISS", "ft-miss"); AudioSys.play('MISS'); }
+            else { 
+                m += ` ${act} 피해 ${aff.t}`; this.shake(def); 
+                UI.floatText(def, act, aff.v>1.2?"ft-crit":"ft-dmg");
+                if (aff.v > 1.2 || act > 150) { AudioSys.play('CRITICAL'); UI.screenShake(); UI.flash(); playedSound=true; } 
+                if (k === 'Fire') {
+                    const healAmt = Math.min(30, Math.floor(act * 0.2)); 
+                    const h = atk.heal(healAmt); Game.recordStat(atk, 'heal', h); 
+                }
+            }
+        } 
+        else if (sIdx === 1) {
+            if(k === 'Tree') {
+                atk.shield += 30; Game.recordStat(atk, 'shield', 30);
+                atk.atk += 18; atk.addStatus('GROWTH', 99); 
+                m = `<b class="${atk.team===0?'log-ally':'log-enemy'}">[${atk.name}]</b> 광합성! (성장)`;
+                UI.floatText(atk, "GROWTH", "ft-heal");
+                AudioSys.play('POWER_UP'); playedSound=true;
+            } else {
+                let mult = 1.5; if(k==='Tree-Dark') mult += atk.thornStack; if(k==='Water-Light') mult = 1.4;
+                if (k==='Metal-Light') mult = 0.5;
+                if (k==='Metal') mult = 1.3;
+                if (k==='Dark-Dark') mult = 0.9; 
+                if(k==='Fire') mult = 1.5;
+
+                let rawDmg = Math.floor(baseAtk * mult * aff.v * defMod);
+                
+                if(k==='Metal-Light' || k==='Earth') { AudioSys.play('DEBUFF'); playedSound=true; }
+
+                if(k==='Earth') { 
+                    // [동기화] netRandom 사용
+                    if(Game.netRandom() < 0.25) { def.addStatus('STUN', 1, 0, atk); m+='(기절) '; } 
+                    else if(Game.netRandom() < 0.20) { def.addStatus('SILENCE', 2, 0, atk); m+='(침묵) '; } 
+                }
+                
+                if(k==='Metal-Light') { 
+                    const broken = def.shield > 0;
+                    def.shield=0; def.addStatus('POISON', 3, 0, atk); m+='(쉴드파괴+중독) '; 
+                    if (broken) {
+                        const teamArr = atk.team === 0 ? Game.pTeam : Game.eTeam;
+                        const lowest = teamArr.filter(a=>!a.isDead).sort((a,b)=>a.hp - b.hp)[0];
+                        if(lowest) { lowest.shield += 30; Game.recordStat(atk, 'shield', 30); UI.floatText(lowest, "+30🛡️", "ft-heal"); m+=`(아군보호) `; }
+                    }
+                }
+
+                if(k==='Dark-Dark') { def.addStatus('SILENCE', 2, 0, atk); m+='(침묵) '; }
+                // [동기화] netRandom 사용
+                if(k==='Water-Light' && Game.netRandom()<0.2) { def.addStatus('BLIND', 1, 0, atk); m+='(실명 성공) '; }
+                if(k==='Fire') { def.addStatus('BURN', 2, 0, atk); m+='(화상) '; }
+                if(k==='Fire-Dark') { (atk.team===0 ? this.eTeam : this.pTeam).forEach(e => { if(!e.isDead) e.addStatus('BURN', 2, 0, atk); }); m += '(전체 화상) '; }
+                if(k==='Tree-Light') {
+                    const allies = atk.team===0 ? this.pTeam : this.eTeam;
+                    const alive = allies.filter(a=>!a.isDead);
+                    if(alive.length > 0) { 
+                        // [동기화] netRandom 사용
+                        const lucky = alive[Math.floor(Game.netRandom()*alive.length)]; 
+                        const h = lucky.heal(20); 
+                        Game.recordStat(atk, 'heal', h); 
+                        m+=`(아군 회복) `; 
+                    }
+                }
+
+                if(k==='Metal-Dark') { 
+                    if(atk.elecStacks < 3) { 
+                        atk.atk += 10; atk.elecStacks++; 
+                        UI.floatText(atk, `⚡${atk.elecStacks}`, "ft-crit");
+                        AudioSys.play('POWER_UP'); m += ` (⚡공격력+10)`;
+                    } else { m += ` (⚡MAX)`; }
+                }
+
+                if (k === 'Normal') {
+                    atk.hp = Math.max(1, atk.hp - 30); 
+                    const teamArr = atk.team === 0 ? Game.pTeam : Game.eTeam;
+                    const lowest = teamArr.filter(a=>!a.isDead).sort((a,b)=>a.hp - b.hp)[0];
+                    if (lowest) {
+                        const shieldAmt = (lowest.id === atk.id) ? 60 : 50;
+                        lowest.shield += shieldAmt; Game.recordStat(atk, 'shield', shieldAmt); UI.floatText(lowest, `+${shieldAmt}🛡️`, "ft-heal");
+                    }
+                    m += ` (HP소모/보호)`;
+                }
+
+                if (k === 'Dark') {
+                    def.addStatus(`KARMA_VICTIM_${atk.id}`, 2, 0, atk);
+                    m += ' (업보 심기)';
+                }
+
+                if (k === 'Earth-Light' || k === 'Tree-Light') { 
+                    let actual = def.takeDamage(rawDmg, false, true, atk);
+                    Game.recordStat(atk, 'dmg', actual);
+                    if (actual === -1) { m += " 빗나감!"; UI.floatText(def, "MISS", "ft-miss"); }
+                    else { m += ` ${actual} 피해 (쉴드무시) ${aff.t}`; this.shake(def); UI.floatText(def, actual, "ft-crit"); }
+                } else {
+                    const act = def.takeDamage(rawDmg, k.startsWith('Fire'), false, atk);
+                    Game.recordStat(atk, 'dmg', act);
+                    if(act===-1) { m+="빗나감!"; UI.floatText(def, "MISS", "ft-miss"); }
+                    else { 
+                        m += ` ${act} 피해 ${aff.t}`; this.shake(def); UI.floatText(def, act, aff.v>1.2?"ft-crit":"ft-dmg"); 
+                        if (k === 'Metal') {
+                            const absorb = Math.floor(act * 0.3); atk.shield += absorb; Game.recordStat(atk, 'shield', absorb); UI.floatText(atk, `+${absorb}`, "ft-heal");
+                        }
+                        if (k === 'Fire') {
+                            const healAmt = Math.min(30, Math.floor(act * 0.2)); 
+                            const h = atk.heal(healAmt);
+                            Game.recordStat(atk, 'heal', h); 
+                        }
+                    }
+                }
+            }
+        } 
+        else { // S2 (스킬 2)
+            if (k === 'Fire-Light') { 
+                if(atk.s2Count < 5) {
+                    const bonuses = [40, 30, 20, 30, 40];
+                    const bonus = bonuses[atk.s2Count];
+                    atk.s2Count++; atk.atk += bonus;
+                    AudioSys.play('POWER_UP'); 
+                    m = `<b class="${atk.team===0?'log-ally':'log-enemy'}">[${atk.name}]</b> 🔥폭주! (공격력 +${bonus})`;
+                }
+                playedSound=true; 
+            }
+
+            if (k === 'Dark-Dark') {
+                atk.takeDamage(20, false, false, null); AudioSys.play('DEBUFF'); playedSound=true;
+                // [동기화] netRandom 사용
+                if(Game.netRandom() < 0.75) { 
+                    def.addStatus('BANISH', 1); m += " (🌌추방 성공)"; UI.floatText(def,"추방!","ft-miss"); atk.atk += 10;
+                } 
+                else { m += " (추방 실패)"; UI.floatText(def,"저항","ft-miss"); }
+            }
+            else if (k === 'Water-Dark') {
+                const act = def.takeDamage(Math.floor(baseAtk), false, false, atk);
+                if (act === -1) { m += " 빗나감!"; UI.floatText(def, "MISS", "ft-miss"); }
+                else {
+                    Game.recordStat(atk, 'dmg', act); m += ` ${act} 피해`; UI.floatText(def, act, "ft-dmg");
+                    // [동기화] netRandom 사용
+                    if(Game.netRandom() < 0.35) { def.addStatus('FREEZE', 1); m += " (❄️빙결)"; UI.floatText(def,"빙결","ft-miss"); }
+                }
+            }
+            else if (k === 'Normal') {
+                // [동기화] netRandom 사용
+                const rnd = Game.netRandom() * 1.7 + 0.8;
+                const dmg = Math.floor(baseAtk * rnd * aff.v * defMod);
+                const act = def.takeDamage(dmg, false, false, atk); 
+                if (act === -1) { m += " 주사위 빗나감!"; UI.floatText(def, "MISS", "ft-miss"); }
+                else {
+                    Game.recordStat(atk, 'dmg', act); m += ` 주사위(x${rnd.toFixed(2)}) ${act}`; this.shake(def); UI.floatText(def, act, "ft-dmg");
+                    if(rnd > 2.0) { AudioSys.play('CRITICAL'); UI.screenShake(); UI.flash(); playedSound=true; }
+                }
+            }
+           else if(s.type === 'AOE') {
+                m += " (전체 공격!)";
+                let earthMult = 0.8; 
+                if (k === 'Earth') {
+                    const pAlive = this.pTeam.filter(u => !u.isDead).length;
+                    const eAlive = this.eTeam.filter(u => !u.isDead).length;
+                    if (pAlive === 1 && eAlive === 1) { earthMult = 1.8; m += " <br><span class='log-crit'>🔥1:1 진검승부! (데미지 1.8배)</span>"; }
+                }
+
+                (atk.team===0?this.eTeam:this.pTeam).forEach(e => { if(!e.isDead) {
+                    let indDefMod = 1.0;
+                    const da = Game.calc(atk, e); const dd = Game.calc(e, atk); 
+                    if (da.v < 1.2) { if(dd.v===1.3) indDefMod=0.76; else if(dd.v===1.2) indDefMod=0.83; }
+
+                    const dmg = Math.floor(baseAtk * earthMult * da.v * indDefMod);
+                    const act = e.takeDamage(dmg, k.startsWith('Fire'), false, atk);
+                    Game.recordStat(atk, 'dmg', act);
+                    if(act !== -1) { 
+                        this.shake(e); UI.floatText(e, act, "ft-dmg"); 
+                        if(k==='Earth-Light') e.addStatus('BLIND', 2); 
+                        // [동기화] netRandom 사용
+                        if(k==='Metal-Dark' && Game.netRandom()<0.15) {
+                            e.addStatus('STUN', 1, 0, atk); m += ` <span style="color:#ffd54f; font-weight:bold;">(⚡기절)</span>`;
+                        }
+                        if(k==='Fire' && Game.netRandom()<0.25) e.addStatus('BURN', 2, 0, atk); 
+                        if (k === 'Fire') { const healAmt = Math.min(30, Math.floor(act * 0.2)); const h = atk.heal(healAmt); Game.recordStat(atk, 'heal', h); }
+                    } else { UI.floatText(e, "MISS", "ft-miss"); }
+                }});
+            } 
+            else if(s.type === 'HEAL') { 
+                AudioSys.play('HEAL'); playedSound=true;
+                const healBase = k === 'Water' ? 125 : 110;
+                (atk.team===0?this.pTeam:this.eTeam).forEach(a=>{
+                    if(!a.isDead) { const h = a.heal(healBase); Game.recordStat(atk, 'heal', h); }
+                });
+                m+=` (아군 전체 회복 +${healBase})`; 
+                // [동기화] netRandom 사용
+                if(k==='Water' && Game.netRandom() < 0.2) {
+                    const lowest = (atk.team===0?this.pTeam:this.eTeam).filter(a=>!a.isDead).sort((a,b)=>a.hp-b.hp)[0];
+                    if(lowest) { const h = lowest.heal(50); Game.recordStat(atk, 'heal', h); m+=` (💧대박힐 +50)`; UI.floatText(lowest, "+50", "ft-heal"); }
+                }
+            }
+            else if(s.type === 'BUFF') {
+                AudioSys.play('HEAL'); playedSound=true;
+                if(k !== 'Fire-Light') m += " (아군 전체 강화)";
+                const allies = atk.team===0?this.pTeam:this.eTeam;
+                if(k==='Light') allies.forEach(a=>{if(!a.isDead) { a.shield=Math.min(300, a.shield+70); a.addStatus('LIGHT_MIGHT', 1); Game.recordStat(atk,'shield',70); }}); 
+                else if(k==='Light-Light') allies.forEach(a=>{if(!a.isDead) {a.shield=Math.min(300, a.shield+50); Game.recordStat(atk,'shield',50); a.cleanse();}}); 
+                else if(k==='Tree-Light') allies.forEach(a=>{if(!a.isDead) { const h = a.heal(70); Game.recordStat(atk, 'heal', h); a.cleanse(); }});
+            } 
+            else if(s.type === 'TARGET_BUFF' || s.type === 'SELF_BUFF') {
+                AudioSys.play('HEAL'); playedSound=true;
+                if(def) { 
+                    if(k==='Tree') { const h = def.heal(150); Game.recordStat(atk, 'heal', h); def.cleanse(); m+=` 치유/정화`; }
+                    else if(k==='Tree-Dark') { 
+                        if (atk.id === def.id) { } else { atk.linkedAllyId = def.id; def.addStatus('BIND', 99); atk.resist += 0.3; m+=` 결속! (폭주대기/저항↑)`; }
+                    }
+                    else if(k==='Water-Light') {
+                        (atk.team===0?this.pTeam:this.eTeam).forEach(a=>{if(!a.isDead) a.addStatus('EVADE', 2)});
+                        const healAmt = Math.floor((def.maxHp - def.hp) * 0.15); const h = def.heal(healAmt); Game.recordStat(atk, 'heal', h); m += ` (회피증가+치유)`;
+                    }
+                }
+            } 
+            else if(s.type === 'DEBUFF') {
+                AudioSys.play('DEBUFF'); playedSound=true;
+                if(k==='Metal') { 
+                    const enemies = (atk.team===0?this.eTeam:this.pTeam);
+                    enemies.forEach(e => { e.status = e.status.filter(s => s.type !== `PROVOKED_BY_${atk.id}`); });
+                    def.addStatus(`PROVOKED_BY_${atk.id}`, 2, 0, atk); atk.shield+=15; Game.recordStat(atk,'shield',15); m += ` 도발! (쉴드+15)`; 
+                }
+                else if(k==='Dark') { (atk.team===0?this.eTeam:this.pTeam).forEach(e=>{if(!e.isDead){ e.addStatus('ATK_DOWN', 2); e.shield=Math.floor(e.shield*0.7); if(Game.netRandom()<0.2) e.dispel(); }}); m+=" (적 전체 공포)"; }
+                else if(k==='Metal-Light') { (atk.team===0?this.eTeam:this.pTeam).forEach(e=>{ if(!e.isDead) { e.addStatus('POISON', 3); } }); m+=" (광역 중독 살포)"; }
+                else if(k==='Earth-Light') { def.addStatus('TRAP', 2); def.addStatus('HEAL_DOWN', 2); m+=` 모래지옥(속박+치유감소)`; }
+            } 
+            else if(s.type === 'NUKE' || s.type === 'NUKE_PER' || s.type === 'ATK') {
+                let dmg = 0;
+                if (s.type === 'NUKE_PER') dmg = Math.floor(baseAtk * 1.2 * aff.v * defMod + def.maxHp * 0.1);
+                else if (k === 'Earth-Dark') dmg = Math.floor(baseAtk * 2.5 * aff.v * defMod);
+                else dmg = Math.floor(baseAtk * 2.0 * aff.v * defMod);
+
+                if(k==='Earth-Dark') atk.addStatus('STUN', 2, 0, atk);
+                
+                const act = def.takeDamage(dmg, k.startsWith('Fire'), false, atk);
+                Game.recordStat(atk, 'dmg', act);
+                if(act!==-1) { 
+                    m+=` ${act} 폭발적 피해!`; this.shake(def); UI.floatText(def, act, "ft-crit"); AudioSys.play('CRITICAL'); UI.screenShake(); UI.flash(); playedSound=true;
+                    if (k === 'Fire') { const healAmt = Math.min(30, Math.floor(act * 0.2)); const h = atk.heal(healAmt); Game.recordStat(atk, 'heal', h); }
+                } else { m+=" 빗나감!"; UI.floatText(def, "MISS", "ft-miss"); AudioSys.play('MISS'); }
+            }
+        }
+        
+        if (!playedSound) AudioSys.play('SKILL');
+
+        // [동기화 3] 히든 패시브 확률
+        if(k === 'Metal-Dark' && sIdx===2 && Game.netRandom() < 0.1) {
+            const aliveE = (atk.team===0?this.eTeam:this.pTeam).filter(e=>!e.isDead);
+            if(aliveE.length>0) { const target = aliveE[Math.floor(Game.netRandom()*aliveE.length)]; const extra = Math.floor(baseAtk); 
+            const act = target.takeDamage(extra, false, false, atk);
+            if(act !== -1) { Game.recordStat(atk,'dmg',extra); m += `<br>⚡ 과부하! +${extra}`; UI.floatText(target, extra, "ft-crit"); } else { UI.floatText(target, "MISS", "ft-miss"); }
+          }
+        }
+
+        this.log(m); 
+        // [동기화 4] 후처리 함수 호출 (여기서 서버로 전송함)
+        this.postExecute(atk, def, sIdx, isRemote);
+    },
+
+    // [추가됨] 후처리 및 전송 함수 (Game 객체 안에 추가하세요)
+    postExecute: function(atk, def, sIdx, isRemote) {
+        // 내가 행동한 경우 -> 기록된 주사위 값(netRndBuffer)을 상대에게 전송!
+        if (isOnlineMode && !isRemote) {
+            socket.emit('action', {
+                room: myRoom,
+                attackerId: atk.id, attackerTeam: atk.team,
+                targetId: def ? def.id : null, targetTeam: def ? def.team : null,
+                skillIdx: sIdx,
+                rndBuffer: Game.netRndBuffer // 핵심: 내가 굴린 주사위 값을 보냄
+            });
+        }
+        this.endTurn();
+    },
+    
+    // (기존 스킬 로직을 감싸는 함수 - execute가 너무 길어서 분리 추천)
+    runSkillLogic: function(atk, def, sIdx, baseAtk, aff, defMod, k, s, m) {
+        // 여기에 기존 execute 함수에 있던 sIdx === 1, sIdx === 2 부분 코드를 넣으세요.
+        // 그리고 Math.random()을 전부 Game.netRandom()으로 바꾸세요!
+    },
 
         const baseAtk = atk.getAtk();
         let playedSound = false;
