@@ -1751,9 +1751,9 @@ const Game = {
                 if (isCrit) { AudioSys.play('CRITICAL'); UI.screenShake(); }
                 else this.shake(target);
 
-                // [수정] 푸른불 흡혈량 20% -> 25% 상향
+                // [수정] 푸른불 흡혈량 20%로 롤백
                 if ((k === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
-                    const healAmt = Math.min(50, Math.floor(act * 0.25));
+                    const healAmt = Math.min(50, Math.floor(act * 0.20));
                     if(healAmt > 0) atk.heal(healAmt);
                 }
             }
@@ -1997,18 +1997,24 @@ const Game = {
                     if (k === 'Water-Dark' && this.netRandom() < 0.35) def.addStatus('FREEZE', 1, 0, atk);
                     if (k === 'Dark-Dark' && this.netRandom() < 0.75) { def.addStatus('BANISH', 1, 0, atk); atk.atk += 10; m += " (추방!)"; }
 
-                    // [수정] 2. 바위(Earth-Dark): S2 사용 시 면역을 지우고 무조건 휴식(STUN)
-                    if (k === 'Earth-Dark') {
-                        if(atk.hasStatus('IMMUNITY')) {
-                            atk.status = atk.status.filter(s => s.type !== 'IMMUNITY'); // 면역 삭제
-                            UI.floatText(atk, "면역삭제", "ft-miss"); 
-                        }
-                        atk.addStatus('STUN', 1, 0, atk, true); // force=true로 강제 스턴
-                        UI.floatText(atk, "💤휴식", "ft-miss"); // 상태이상 텍스트 추가
-                        m += "(반동:휴식)";
+                // [수정] 바위(Earth-Dark): S2 산사태 사용 시 반동으로 강제 휴식 (면역 무시 & 면역 미생성)
+                if (k === 'Earth-Dark') {
+                    // 1. 기존에 면역이 있다면 강제로 지움 (반동은 피할 수 없음)
+                    if(atk.hasStatus('IMMUNITY')) {
+                        atk.status = atk.status.filter(s => s.type !== 'IMMUNITY'); 
+                        UI.floatText(atk, "면역삭제", "ft-miss"); 
                     }
-                    
-                    if (k === 'Earth-Light') { def.addStatus('TRAP', 2, 0, atk); def.addStatus('HEAL_DOWN', 2, 0, atk); }
+
+                    // 2. addStatus를 쓰지 않고 직접 상태를 주입하여 '면역 생성 로직'을 원천 차단
+                    const existingStun = atk.status.find(s => s.type === 'STUN');
+                    if (existingStun) existingStun.turn = 2; // 이미 스턴이면 턴만 갱신
+                    else atk.status.push({type: 'STUN', turn: 2, val: 0}); // 새로 추가
+
+                    UI.floatText(atk, "💤휴식", "ft-miss"); 
+                    m += "(반동:휴식)";
+                }
+
+                if (k === 'Earth-Light') { def.addStatus('TRAP', 2, 0, atk); def.addStatus('HEAL_DOWN', 2, 0, atk); }
                     
                     if (k === 'Metal') { 
                         const enemies = atk.team === 0 ? this.eTeam : this.pTeam;
