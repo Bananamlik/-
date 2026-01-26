@@ -573,12 +573,18 @@ const SKILL_DB = {
     'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵', s2:'블랙홀', s2d:'턴 스킵(75%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🕳️', desc:'스페셜리스트<br>턴 삭제', passive:'🌑 심연의 힘: 블랙홀 성공 시 공격력이 10 영구 증가합니다.' }
 };
 
+// [수정] 챌린저 난이도: 고승률 조합 10선
 const ChallengeDB = [
-    { name: "화염의 시련", desc: "불 속성 적들이 등장합니다.", team: ['Fire', 'Fire-Dark', 'Fire-Light'] },
-    { name: "자연의 미로", desc: "단단한 나무와 숲이 앞을 막습니다.", team: ['Tree', 'Tree-Dark', 'Tree-Light'] },
-    { name: "강철의 요새", desc: "뚫을 수 없는 방어선을 돌파하세요.", team: ['Metal', 'Metal-Dark', 'Metal-Light'] },
-    { name: "혼돈의 전장", desc: "강력한 혼합 속성 적들이 나타납니다.", team: ['Light-Light', 'Dark-Dark', 'Normal'] },
-    { name: "최후의 결전", desc: "개발자가 준비한 최강의 조합입니다.", team: ['Water-Light', 'Fire-Light', 'Dark-Dark'] }
+    { name: "정석 메타", desc: "물(힐)+불(딜)+쇠(탱)의 가장 안정적인 고승률 조합.", team: ['Water', 'Fire', 'Metal'] },
+    { name: "CC 지옥", desc: "빙결, 기절, 턴 삭제로 아무것도 못하게 합니다.", team: ['Water-Dark', 'Earth', 'Dark-Dark'] },
+    { name: "무한 동력", desc: "성장하는 나무와 안개 회피로 버티는 좀비 덱.", team: ['Tree', 'Tree-Light', 'Water-Light'] },
+    { name: "철옹성", desc: "뚫을 수 없는 쉴드와 정화로 턴을 낭비시킵니다.", team: ['Metal', 'Light', 'Light-Light'] },
+    { name: "극딜 폭격", desc: "체력 비례 데미지와 한방 딜로 탱커를 녹입니다.", team: ['Fire-Dark', 'Earth-Dark', 'Fire-Light'] },
+    { name: "디버프 군단", desc: "쉴드 파괴, 치유 감소, 반사로 말려 죽입니다.", team: ['Metal-Light', 'Earth-Light', 'Dark'] },
+    { name: "변칙의 제왕", desc: "완전 면역과 복수, 광역 기절의 까다로운 조합.", team: ['Normal', 'Tree-Dark', 'Metal-Dark'] },
+    { name: "속성 마스터", desc: "다양한 속성으로 약점을 찌르는 공격적인 조합.", team: ['Fire', 'Tree-Light', 'Earth'] },
+    { name: "왕의 귀환", desc: "후반으로 갈수록 막을 수 없는 왕귀형 덱.", team: ['Water', 'Metal-Dark', 'Normal'] },
+    { name: "최종 보스", desc: "개발자가 인정한 공수 밸런스 0티어 조합.", team: ['Dark-Dark', 'Light-Light', 'Water-Light'] }
 ];
 
 class Unit {
@@ -1267,18 +1273,46 @@ const Game = {
         }
  
         else if (this.difficulty === 'hard') {
-            const decks = [
-                [{b:'Metal',e:'Light'}, {b:'Earth',e:'Light'}, {b:'Normal',e:null}], 
-                [{b:'Metal',e:null}, {b:'Light',e:null}, {b:'Fire',e:'Light'}], 
-                [{b:'Normal',e:null}, {b:'Light',e:'Light'}, {b:'Tree',e:null}], 
-                [{b:'Fire',e:'Light'}, {b:'Earth',e:'Dark'}, {b:'Normal',e:null}], 
-                [{b:'Dark',e:'Dark'}, {b:'Water',e:'Dark'}, {b:'Earth',e:null}], 
-                [{b:'Tree',e:null}, {b:'Water',e:null}, {b:'Water',e:'Light'}], 
-                [{b:'Earth',e:'Dark'}, {b:'Light',e:'Light'}, {b:'Metal',e:'Light'}], 
-                [{b:'Tree',e:'Dark'}, {b:'Tree',e:null}, {b:'Water',e:'Light'}]
-            ];
-            const d = decks[Math.floor(Math.random()*decks.length)];
-            this.eTeam = d.map((c, i) => makeEnemy(i, c.b, c.e));
+            // [수정] 어려움 모드: 플레이어 덱을 분석하여 ChallengeDB(고승률 10개) 중 카운터 픽
+            let bestIdx = Math.floor(Math.random() * ChallengeDB.length);
+            let maxScore = -999;
+
+            ChallengeDB.forEach((stage, idx) => {
+                let score = 0;
+                stage.team.forEach(key => {
+                    let b, e, isN = false, isEnh = false;
+                    if(key==='Normal') { b='Normal'; isN=true; }
+                    else {
+                        const parts = key.split('-');
+                        b = parts[0]; e = parts[1] || null;
+                        if(b===e) isEnh=true;
+                    }
+                    const dumE = { base:b, extra:e, isNormal:isN, isEnhanced:isEnh }; // 가상 적 유닛
+                    
+                    this.pTeam.forEach(p => {
+                        // 1. 적이 나를 때릴 때 유리한가? (상성우위 점수 가산)
+                        const atkRel = this.calc(dumE, p);
+                        if(atkRel.v > 1.0) score += 3;
+                        
+                        // 2. 내가 적을 때릴 때 불리한가? (역상성 점수 가산)
+                        const defRel = this.calc(p, dumE);
+                        if(defRel.v < 1.0) score += 2;
+                    });
+                });
+                
+                score += Math.random(); // 동점 방지용 랜덤값
+                if(score > maxScore) { maxScore = score; bestIdx = idx; }
+            });
+
+            const targetDeck = ChallengeDB[bestIdx].team;
+            this.eTeam = targetDeck.map((key, i) => {
+                let b, e;
+                if(key === 'Normal') { b='Normal'; e=null; }
+                else if(key.includes('-')) { [b, e] = key.split('-'); }
+                else { b=key; e=null; }
+                return makeEnemy(i, b, e);
+            });
+            this.log(`<span class='log-sys'>🔥 어려움(Counter): 적이 당신의 약점을 간파했습니다! (${ChallengeDB[bestIdx].name})</span>`);
         }
         else {
             const used = new Set();
