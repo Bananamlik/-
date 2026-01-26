@@ -722,15 +722,29 @@ class Unit {
         return hpDmg + shieldDmg; 
     }
 
-    addStatus(type, turn, val=0, source=null) {
-        if (this.isNormal && ['FREEZE','STUN','SILENCE','BLIND','BANISH','ATK_DOWN','HEAL_DOWN','BIND','KARMA_VICTIM'].includes(type)) {
+   // [수정] force 파라미터 추가 (바위 자가 기절 등 강제 적용용)
+  addStatus(type, turn, val=0, source=null, force=false) {
+        // [규칙] 어둠 업보: 상태이상 50% 반사
+        if (source && source.id !== this.id && !force) {
+            const karma = source.status.find(s => s.type === `KARMA_VICTIM_${this.id}`);
+            if (karma) {
+                if (Game.netRandom() < 0.5) { // 50% 확률
+                    UI.floatText(this, "반사!", "ft-crit");
+                    source.addStatus(type, turn, val, null); // 상대에게 반사
+                    return; // 나에게는 적용 안 함
+                }
+            }
+        }
+
+        if (this.isNormal && ['FREEZE','STUN','SILENCE','BLIND','BANISH','ATK_DOWN','HEAL_DOWN','BIND','KARMA_VICTIM'].includes(type) && !force) {
             UI.floatText(this, "Immune", "ft-miss"); return;
         }
         
-        if (this.hasStatus('EVADE') && ['STUN', 'FREEZE'].includes(type)) {
+        if (this.hasStatus('EVADE') && ['STUN', 'FREEZE'].includes(type) && !force) {
             if (source && source.id !== this.id) {
                 if (Game.netRandom() < 0.40) {
                     UI.floatText(this, "회피!", "ft-miss");
+                    this.status = this.status.filter(s => s.type !== 'EVADE'); // [규칙] 회피 성공 시 소멸
                     return; 
                 }
             }
@@ -738,7 +752,10 @@ class Unit {
 
         const HARD_CC = ['STUN', 'FREEZE', 'BANISH'];
         if (HARD_CC.includes(type)) {
-            if (this.hasStatus('IMMUNITY')) { UI.floatText(this, "면역", "ft-miss"); return; }
+            // [수정] force(강제)일 경우 면역 무시 (바위 S2 등)
+            if (this.hasStatus('IMMUNITY') && !force) { UI.floatText(this, "면역", "ft-miss"); return; }
+            
+            // 바위 자가 기절은 면역 버프(다음 턴 면역)를 생성하지 않음
             if (!source || source.id !== this.id) { this.status.push({type: 'IMMUNITY', turn: turn + 1}); }
         }
 
@@ -1760,6 +1777,92 @@ const Game = {
                 atk.growthStack = (atk.growthStack || 0) + 1;
                 atk.addStatus('GROWTH', 99); m += " (🌿성장)"; UI.floatText(atk, "성장", "ft-heal");
             }
+            execute: function(atk, def, sIdx, isRemote = false) {
+        document.querySelectorAll('.unit').forEach(el=>el.onclick=null);
+
+        if (isOnlineMode && !isRemote) {
+            if (atk.team !== 0) { alert("내 유닛이 아닙니다!"); return; }
+            Game.netRndBuffer = [];
+        }
+
+        const k = atk.getKey(); 
+        const s = SKILL_DB[k];
+        
+        let skillType = 'ATK';
+        if (sIdx === 0) skillType = 'ATK';
+        else if (sIdx === 1) {
+            if (['Fire-Light', 'Tree'].includes(k)) skillType = 'SELF_BUFF';
+            else if (k === 'Metal-Light') skillType = 'DEBUFF';
+            else skillType = 'ATK';
+        } else if (sIdx === 2) {
+            skillType = s.type;
+            if (k === 'Fire-Light') skillType = 'SELF_BUFF';
+        }
+
+        let m = `<b class="${atk.team===0?'log-ally':'log-enemy'}">[${atk.name}]</b> `;
+        
+        let blindMod = 1.0;
+        const isOffensive = (sIdx === 0) || (s.type !== 'SELF_BUFF' && s.type !== 'HEAL' && s.type !== 'BUFF' && s.type !== 'TARGET_BUFF');
+        if (isOffensive && atk.hasStatus('BLIND')) {
+            blindMod = 0; m += "(실명!) "; UI.floatText(atk, "BLINDED", "ft-miss"); 
+        }
+
+        const baseAtk = atk.getAtk();
+        let playedSound = false;
+
+        // [공통 함수] 데미지 처리 및 효과 (흡혈, 치명타 등 통합 관리)
+        const applyDamage = (target, dmg, isSkill) => {
+            if (dmg <= 0 && blindMod === 0) {
+                UI.floatText(target, "MISS", "ft-miss"); return -1;
+            }
+            
+            const act = target.takeDamage(dmg, k.startsWith('Fire'), k.includes('Light'), atk);
+            Game.recordStat(atk, 'dmg', Math.max(0, act));
+
+            if (act !== -1) {
+                // [치명타 보정] 200 이상 데미지는 무조건 치명타 연출
+                const isCrit = (act >= 200) || (atk.isNormal && target.isNormal && act > baseAtk); 
+                UI.floatText(target, act, isCrit ? "ft-crit" : "ft-dmg");
+                if (isCrit) { AudioSys.play('CRITICAL'); UI.screenShake(); }
+                else this.shake(target);
+
+                // [수정] 흡혈 로직: 평타/스킬 구분 없이 적용
+                if ((k === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
+                    const healAmt = Math.min(50, Math.floor(act * 0.2));
+                    if(healAmt > 0) atk.heal(healAmt);
+                }
+            }
+            return act;
+        };
+
+        // [평타]
+        if(sIdx === 0) { 
+            m += "공격"; if(def) m += ` ➔ [${def.name}]`;
+            AudioSys.play('HIT'); playedSound=true;
+            const aff = (def && def.team !== atk.team) ? this.calc(atk, def) : {v:1, t:''};
+            const dmg = Math.floor(baseAtk * 1.0 * aff.v * blindMod);
+            
+            const act = applyDamage(def, dmg, false);
+            if(act !== -1) m += ` ${act} 피해 ${aff.t}`;
+            else m += " 빗나감!";
+        } 
+        
+        // [S1: 스킬 1]
+        else if (sIdx === 1) {
+            m += `${s.s1}`;
+            
+            if (k === 'Fire-Light') { 
+                AudioSys.play('POWER_UP'); playedSound=true;
+                const allies = atk.team === 0 ? this.pTeam : this.eTeam;
+                allies.forEach(a => { if(!a.isDead) a.addStatus('LIFESTEAL_BUFF', 2); });
+                m += " (아군 전체 🩸흡혈부여)";
+            }
+            else if (k === 'Tree') { 
+                AudioSys.play('POWER_UP'); playedSound=true;
+                atk.atk += 18; atk.shield += 30; Game.recordStat(atk, 'shield', 30);
+                atk.growthStack = (atk.growthStack || 0) + 1;
+                atk.addStatus('GROWTH', 99); m += " (🌿성장)"; UI.floatText(atk, "성장", "ft-heal");
+            }
             else if (def) {
                 m += ` ➔ [${def.name}]`;
                 const aff = (def.team !== atk.team) ? this.calc(atk, def) : {v:1, t:''};
@@ -1768,8 +1871,8 @@ const Game = {
                 if (k === 'Water-Light') mult = 0.9;
                 if (k === 'Metal-Light') mult = 0.3; 
                 if (k === 'Fire-Dark') mult = 1.0;
+                if (k === 'Tree-Dark') mult = 1.5 + (atk.thornStack || 0); // 가시 계수 증가
                 
-                // [주사위 S1] 자해 30 + 아군 쉴드 60
                 if (k === 'Normal') {
                     if (atk.hp > 30) {
                         atk.hp -= 30; UI.floatText(atk, `-30`, "ft-dmg");
@@ -1779,7 +1882,6 @@ const Game = {
                     }
                 }
 
-                // [독가스 S1] 해제 + 스택 감소 (가시 제외)
                 if (k === 'Metal-Light') {
                     const buffs = ['EVADE', 'ATK_BUFF_SMALL', 'LIGHT_MIGHT'];
                     const hadBuff = def.status.some(s => buffs.includes(s.type));
@@ -1787,7 +1889,6 @@ const Game = {
                     if(hadBuff) UI.floatText(def, "해제", "ft-miss");
 
                     let reduced = false;
-                    // 가시(Tree-Dark)는 스택 안 깎임
                     if (def.getKey() !== 'Tree-Dark') {
                         if (def.getKey() === 'Fire-Light' && def.s2Count > 0) { def.s2Count--; def.atk -= 20; reduced = true; }
                         if (def.getKey() === 'Metal-Dark' && def.elecStacks > 0) { def.elecStacks--; def.atk -= 10; reduced = true; }
@@ -1797,22 +1898,17 @@ const Game = {
                 }
 
                 const dmg = Math.floor(baseAtk * mult * aff.v * blindMod);
-                let act = -1;
-                if (dmg > 0) act = def.takeDamage(dmg, k.startsWith('Fire'), k.includes('Light'), atk);
-                Game.recordStat(atk, 'dmg', Math.max(0, act));
+                const act = applyDamage(def, dmg, true);
 
                 if (act !== -1) {
-                    m += ` ${act} 피해`; this.shake(def); UI.floatText(def, act, "ft-crit");
                     if (k === 'Fire') def.addStatus('BURN', 2, 0, atk);
                     if (k === 'Earth') { if(this.netRandom()<0.25) def.addStatus('STUN', 1, 0, atk); else if(this.netRandom()<0.20) def.addStatus('SILENCE', 1, 0, atk); }
                     if (k === 'Water-Light' && this.netRandom() < 0.3) { def.addStatus('BLIND', 1, 0, atk); m += " (실명!)"; }
                     if (k === 'Dark-Dark') def.addStatus('SILENCE', 1, 0, atk);
                     if (k === 'Tree-Dark') atk.thornStack = (atk.thornStack || 0) + 0.2; 
-                    
-                    // [어둠 S1] 업보 부여
                     if (k === 'Dark') def.addStatus(`KARMA_VICTIM_${atk.id}`, 2, 0, atk);
                 } else {
-                    m += " 빗나감!"; UI.floatText(def, "MISS", "ft-miss");
+                    m += " 빗나감!";
                 }
             }
         }
@@ -1821,35 +1917,31 @@ const Game = {
         else if (sIdx === 2) {
             m += `${s.s2}`;
 
-            if (s.type === 'AOE') { // 광역 공격
+            if (s.type === 'AOE') { 
                 let mult = 0.8;
                 if (k === 'Earth') { 
                     const pAlive = this.pTeam.filter(u => !u.isDead).length; const eAlive = this.eTeam.filter(u => !u.isDead).length; 
-                    if (pAlive === 1 && eAlive === 1) mult = 1.8; // 1:1 상황
+                    if (pAlive === 1 && eAlive === 1) mult = 1.8; 
                 }
                 const enemies = atk.team === 0 ? this.eTeam : this.pTeam;
                 enemies.forEach(e => {
                     if (!e.isDead) {
                         const aff = this.calc(atk, e);
                         const dmg = Math.floor(baseAtk * mult * aff.v * blindMod);
-                        if (mult > 0 && dmg > 0) {
-                            const act = e.takeDamage(dmg, k.startsWith('Fire'), false, atk);
-                            Game.recordStat(atk, 'dmg', act);
-                            if (act !== -1) { this.shake(e); UI.floatText(e, act, "ft-dmg"); }
-                        } else if (blindMod === 0) UI.floatText(e, "MISS", "ft-miss");
+                        const act = applyDamage(e, dmg, true);
 
-                        if (blindMod > 0) {
+                        if (act !== -1 && blindMod > 0) {
                             if (k === 'Fire' && this.netRandom() < 0.25) e.addStatus('BURN', 2, 0, atk);
                             if (k === 'Metal-Dark' && this.netRandom() < 0.15) e.addStatus('STUN', 1, 0, atk);
                         }
                     }
                 });
             }
-            else if (s.type === 'DEBUFF' && s.target === 'ALL_ENEMY') { // 광역 디버프 (어둠, 독가스)
+            else if (s.type === 'DEBUFF' && s.target === 'ALL_ENEMY') { 
                 const enemies = atk.team === 0 ? this.eTeam : this.pTeam;
                 enemies.forEach(e => {
                     if (!e.isDead && blindMod > 0) {
-                        if (k === 'Dark') { // 공포 (-15) + 쉴드 50%
+                        if (k === 'Dark') { 
                             e.addStatus('ATK_DOWN', 2, 0, atk); 
                             if(e.shield > 0) { const lost = Math.ceil(e.shield * 0.5); e.shield -= lost; UI.floatText(e, `-${lost}🛡️`, "ft-crit"); }
                         }
@@ -1857,31 +1949,33 @@ const Game = {
                     }
                 });
             }
-            else if (['SELF_BUFF', 'TARGET_BUFF', 'HEAL', 'BUFF'].includes(s.type)) { // 아군 지원
+            else if (['SELF_BUFF', 'TARGET_BUFF', 'HEAL', 'BUFF'].includes(s.type)) { 
                 AudioSys.play('HEAL'); playedSound=true;
                 
-                if (k === 'Fire-Light') { // 푸른불 S2
+                if (k === 'Fire-Light') { 
                     atk.s2Count = Math.min(5, atk.s2Count + 1); atk.atk += 20;
                     m += ` (🔥폭주!)`; UI.floatText(atk, "폭주!", "ft-crit");
                     const allies = atk.team === 0 ? this.pTeam : this.eTeam;
                     allies.forEach(a => { if(!a.isDead) a.addStatus('ATK_BUFF_SMALL', 1); });
                 }
-                else if (k === 'Tree' && def) { // 나무 S2
+                else if (k === 'Tree' && def) { 
                     const h = def.heal(150); Game.recordStat(atk, 'heal', h); def.cleanse(); m += " (정화+치유)";
                 }
-                else if (k === 'Water-Light' && def) { // 증기 S2: 잃은 체력 15% 힐 + 타인 회피
+                else if (k === 'Water-Light' && def) { 
                     const missing = def.maxHp - def.hp;
                     const hAmt = Math.floor(missing * 0.15);
                     const h = def.heal(hAmt); Game.recordStat(atk, 'heal', h);
-                    
                     const allies = atk.team === 0 ? this.pTeam : this.eTeam;
                     allies.forEach(a => { if (!a.isDead && a.id !== atk.id) a.addStatus('EVADE', 2); });
                     m += " (안개)"; 
                 }
-                else if (k === 'Tree-Dark' && def) { // 가시 S2
-                    atk.linkedAllyId = def.id; def.addStatus('BIND', 99); m += " (영혼결속)"; 
+                else if (k === 'Tree-Dark' && def) { 
+                    // [안전장치] 아군만 타겟 가능
+                    if (def.team === atk.team) {
+                        atk.linkedAllyId = def.id; def.addStatus('BIND', 99); m += " (영혼결속)"; 
+                    }
                 }
-                else { // 물, 빛, 숲
+                else { 
                     const allies = atk.team === 0 ? this.pTeam : this.eTeam;
                     allies.forEach(a => {
                         if (!a.isDead) {
@@ -1896,39 +1990,38 @@ const Game = {
                     });
                 }
             }
-            else if (def) { // 단일 공격/디버프
+            else if (def) { 
                 m += ` ➔ [${def.name}]`;
                 const aff = (def.team !== atk.team) ? this.calc(atk, def) : {v:1, t:''};
                 let mult = 1.5;
                 if (k === 'Earth-Dark') mult = 2.5;
 
-                // [주사위 S2] 랜덤딜 (HP 소모 없음)
                 if (k === 'Normal') {
-                    const rnd = 0.8 + this.netRandom() * 1.5; // 0.8 ~ 2.3
+                    // [수정] 주사위 S2 체력 소모 삭제
+                    const rnd = 0.8 + this.netRandom() * 1.5; 
                     mult = rnd; m += ` (🎲x${rnd.toFixed(1)})`;
                 }
 
                 let dmg = Math.floor(baseAtk * mult * aff.v * blindMod);
-                // [검은불 S2] 체력 비례 (+10%)
                 if (k === 'Fire-Dark') dmg = Math.floor((baseAtk * 1.0 * aff.v + def.maxHp * 0.1) * blindMod); 
-                // [얼음 S2] 1.0배
                 if (k === 'Water-Dark') dmg = Math.floor(baseAtk * 1.0 * aff.v * blindMod);
 
-                const act = def.takeDamage(dmg, k.startsWith('Fire'), false, atk);
-                Game.recordStat(atk, 'dmg', Math.max(0, act));
+                const act = applyDamage(def, dmg, true);
 
                 if (act !== -1) {
-                    m += ` ${act} 피해`; this.shake(def); UI.floatText(def, act, "ft-crit");
-                    
                     if (k === 'Water-Dark' && this.netRandom() < 0.35) def.addStatus('FREEZE', 1, 0, atk);
                     if (k === 'Dark-Dark' && this.netRandom() < 0.75) { def.addStatus('BANISH', 1, 0, atk); atk.atk += 10; m += " (추방!)"; }
-                    if (k === 'Earth-Dark') atk.addStatus('STUN', 1, 0, atk); // 자가 기절 (면역 무시됨)
+                    if (k === 'Earth-Dark') atk.addStatus('STUN', 1, 0, atk, true);
                     if (k === 'Earth-Light') { def.addStatus('TRAP', 2, 0, atk); def.addStatus('HEAL_DOWN', 2, 0, atk); }
-                    if (k === 'Metal') { // 쇠 S2 도발
-                        def.addStatus(`PROVOKED_BY_${atk.id}`, 2, 0, atk); atk.shield += 15; m += " (도발!)";
+                    
+                    if (k === 'Metal') { 
+                        // [수정] 도발: 적의 기존 도발 상태를 모두 제거 후 적용 (1:1 도발 유지)
+                        def.status = def.status.filter(s => !s.type.startsWith('PROVOKED'));
+                        def.addStatus(`PROVOKED_BY_${atk.id}`, 2, 0, atk); 
+                        atk.shield += 15; m += " (도발!)";
                     }
                 } else {
-                    m += " 빗나감!"; UI.floatText(def, "MISS", "ft-miss");
+                    m += " 빗나감!";
                 }
             }
         }
