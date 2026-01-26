@@ -2022,6 +2022,7 @@ const Game = {
                 if (k === 'Dark-Dark') mult = 0;
 
                 let dmg = Math.floor(baseAtk * mult * aff.v * blindMod);
+                if (k === 'Dark-Dark') dmg = 0;
                 if (k === 'Fire-Dark') dmg = Math.floor((baseAtk * 1.0 * aff.v + def.maxHp * 0.1) * blindMod); 
                 if (k === 'Water-Dark') dmg = Math.floor(baseAtk * 1.0 * aff.v * blindMod);
 
