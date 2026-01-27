@@ -194,8 +194,13 @@
                 <button class="btn-rnd" onclick="Game.randomPick()">🎲 랜덤</button>
             </div>
         </div>
+        <!-- [추가] 방 코드 입력창 -->
+        <div style="margin-top:5px; display:flex; gap:5px;">
+            <input type="text" id="room-code" placeholder="방 코드 (예: 1234)" style="flex:1; padding:10px; border-radius:15px; border:2px solid #7e57c2; text-align:center; font-weight:bold; outline:none; font-family: var(--font-main);">
+        </div>
+        
         <button id="btn-online" class="btn-start" style="background:#7e57c2; margin-top:5px;" onclick="startOnlineGame()">
-             🌐 온라인 대전 (매칭 시작)
+             🌐 온라인 대전 (방 만들기/참가)
         </button>
         <button id="btn-start" class="btn-start" onclick="Game.start()" disabled>전투 시작 (0/3)</button>
     </div>
@@ -295,14 +300,45 @@ socket.on('enemyDisconnect', () => {
     // location.reload();
 });
 
+// [추가] 서버로부터 '대기 중' 메시지를 받으면 버튼 글씨 변경
+socket.on('waiting', (msg) => {
+    const btn = document.getElementById('btn-online');
+    btn.innerText = "⏳ " + msg;
+});
+
+// [추가] 에러 메시지 (코드를 안 적었을 때)
+socket.on('errorMsg', (msg) => {
+    alert(msg);
+    const btn = document.getElementById('btn-online');
+    btn.disabled = false;
+    btn.innerText = "🌐 온라인 대전 (방 만들기/참가)";
+    btn.style.backgroundColor = '#7e57c2';
+});
+
 function startOnlineGame() {
     AudioSys.init();
     if (!socket || !socket.connected) { alert("서버와 연결되지 않았습니다."); return; }
     if (Game.selected.length !== 3) { alert("먼저 영웅 3명을 선택해주세요!"); return; }
+    
+    // [수정] 방 코드 입력값 가져오기
+    const codeInput = document.getElementById('room-code');
+    const code = codeInput.value.trim();
+    
+    if (!code) {
+        alert("친구와 공유할 '방 코드'를 입력해주세요!\n(예: 1234, 우리집, apple 등)");
+        codeInput.focus();
+        return;
+    }
+
     const btn = document.getElementById('btn-online');
-    if(btn.innerText.includes('매칭 중')) return;
-    btn.disabled = true; btn.style.backgroundColor = '#ccc'; btn.innerText = "🔍 매칭 상대를 찾는 중... (대기)";
-    socket.emit('findMatch', { deck: Game.selected });
+    if(btn.innerText.includes('대기 중')) return;
+    
+    btn.disabled = true; 
+    btn.style.backgroundColor = '#ccc'; 
+    btn.innerText = "📡 서버 통신 중...";
+    
+    // [수정] 덱 정보와 함께 '방 코드'를 서버로 전송
+    socket.emit('findMatch', { deck: Game.selected, roomCode: code });
 }
 
 // ================= [데이터 정의] =================
