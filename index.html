@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v9.9 AI Enhanced</title>
+    <title>Elemental Tactics: v10.0 Super Hero</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -42,6 +42,10 @@
         .field-row { flex: 1; display: flex; justify-content: space-evenly; align-items: center; width: 100%; perspective: 1000px; padding: 5px 0; min-height: 0; }
         .unit { width: 30vw; max-width: 130px; background: #fff; border-radius: 20px; padding: 8px 4px; position: relative; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: default; box-shadow: inset 0 4px 10px rgba(255,255,255,1), 0 8px 0 #e0e0e0, 0 15px 20px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; align-items: center; min-height: 110px; justify-content: flex-end; border: 2px solid #f8bbd0; flex-shrink: 1; }
         
+        /* [슈퍼 히어로] 각성 스타일 추가 */
+        .unit.super-hero { border: 3px solid #ffd700 !important; box-shadow: 0 0 15px #ffd700, inset 0 0 10px rgba(255, 215, 0, 0.5) !important; animation: super-pulse 1.5s infinite alternate; z-index: 10; }
+        @keyframes super-pulse { 0% { box-shadow: 0 0 10px #ffb300; border-color: #ffb300; } 100% { box-shadow: 0 0 25px #ff6f00; border-color: #ffca28; } }
+
         .elec-badge { position: absolute; top: -5px; right: -5px; background: #ffeb3b; color: #f57f17; font-weight: 900; border: 2px solid #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 5; animation: jelly-bounce 1s infinite; }
         .unit.active-turn { border-color: var(--accent); transform: translateY(-12px) scale(1.05); z-index: 5; box-shadow: 0 0 0 3px var(--accent), 0 15px 0 #f48fb1, 0 20px 30px rgba(255, 64, 129, 0.3); }
         .unit.target-enemy:hover { border-color: #ff7043; background: #ffebee; cursor: crosshair; transform: scale(1.05) rotate(2deg); }
@@ -73,7 +77,8 @@
         .log-ally { color: #29b6f6; font-weight:bold; } .log-enemy { color: #ff7043; font-weight:bold; } .log-sys { color: #90a4ae; font-style: italic; }
         .log-crit { color: #fb8c00; font-weight: bold; }
         
-        .btn-group { display: flex; height: 80px; flex-shrink: 0; padding: 5px; gap: 5px; background: #fff5f8; }
+        /* [UI 수정] 높이 유동적 변경 (잘림 방지) */
+        .btn-group { display: flex; min-height: 80px; height: auto; flex-shrink: 0; padding: 5px; gap: 5px; background: #fff5f8; }
         .skill-btn { flex: 1; border: none; background: #fff; border-radius: 15px; cursor: pointer; transition: 0.2s; color: var(--text-main); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; padding: 4px; box-shadow: var(--jelly-shadow); transform: translateY(0); }
         .skill-btn::before { content: ''; position: absolute; top: 5px; left: 10px; right: 10px; height: 40%; background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0)); border-radius: 15px; pointer-events: none; }
         .skill-btn:hover:not(:disabled) { transform: translateY(-2px); }
@@ -86,7 +91,6 @@
         .passive-panel { background: #e0f2f1; padding: 5px 10px; font-size: 11px; color: #00695c; display: flex; align-items: center; border-radius: 10px; margin: 4px 10px; border: 1px solid #b2dfdb; flex-shrink: 0; }
         .passive-icon { margin-right: 5px; font-size: 14px; }
         
-        /* [UI 개선] 버튼 스타일 통합 */
         .btn-start { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 20px; font-weight: bold; width: 100%; cursor: pointer; font-size: 18px; box-shadow: 0 5px 0 #c2185b, 0 10px 15px rgba(0,0,0,0.15); transition: 0.2s; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; gap: 5px; }
         .btn-start:hover { transform: translateY(-3px); }
         .btn-start:active { transform: translateY(5px); box-shadow: 0 0 0 #c2185b; }
@@ -129,10 +133,10 @@
             .attr-icon { width: 36px; height: 36px; font-size: 20px; }
             .unit-name { font-size: 12px !important; margin-bottom: 2px !important; }
             .status-bar { height: 8px; margin-top: 2px; }
-            .control-panel { max-height: 40vh; }
-            .btn-group { height: 60px; }
+            .control-panel { max-height: 45vh; } /* 패널 공간 확보 */
+            .btn-group { min-height: 72px; height: auto; } /* 버튼 높이 확보 (설명 보이게) */
             .skill-name { font-size: 12px; }
-            .skill-desc { font-size: 9px; } 
+            .skill-desc { font-size: 10px; display: block; line-height: 1.2; } /* 설명 폰트 및 줄간격 조정 */
             .cp-header { padding: 5px 10px; font-size: 12px; }
             .timeline-container { height: 35px; }
             .tl-node { width: 24px; height: 24px; font-size: 14px; }
@@ -161,7 +165,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v9.9 AI Enhanced</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v10.0 Super Hero Update</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -195,7 +199,6 @@
             </div>
         </div>
         
-        <!-- [UI 개선] 버튼 좌우 분리 및 온라인 입장 방식 변경 -->
         <div style="display:flex; gap:10px; margin-top:10px;">
             <button id="btn-online" class="btn-start" style="flex:1; background:#7e57c2; font-size:16px;" onclick="UI.openOnlineModal()">
                 🌐 온라인 대전
@@ -242,7 +245,6 @@
 </div>
 
 <script>
-// [네트워크] 서버 통신 및 난수 동기화 설정
 let socket;
 if (typeof io !== 'undefined') { socket = io(); console.log("🌐 온라인 모드 활성화 (Server Connected)"); } 
 else { socket = { on: () => {}, emit: () => {}, connected: false, connect: () => { alert("⚠️ 서버를 찾을 수 없습니다."); } }; console.log("📴 오프라인 모드"); }
@@ -257,7 +259,7 @@ function getNetRandom() {
 
 socket.on('gameStart', (data) => {
     isOnlineMode = true; myRole = data.role; myRoom = data.room;
-    UI.closeModal(); // 매칭 성공 시 모달 닫기
+    UI.closeModal();
     let roleText = myRole === 'player1' ? "🔵 선공 (1P)" : "🔴 후공 (2P)";
     alert("매칭 성공! " + roleText);
     document.getElementById('selection-screen').style.display='none';
@@ -311,8 +313,6 @@ function startOnlineGame(code) {
     AudioSys.init();
     if (!socket || !socket.connected) { alert("서버와 연결되지 않았습니다."); return; }
     if (Game.selected.length !== 3) { alert("먼저 영웅 3명을 선택해주세요!"); return; }
-    
-    // 코드 전송
     socket.emit('findMatch', { deck: Game.selected, roomCode: code });
 }
 
@@ -343,7 +343,6 @@ const SKILL_DB = {
     'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵', s2:'블랙홀', s2d:'턴 스킵(75%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🕳️', desc:'스페셜리스트<br>턴 삭제', passive:'🌑 심연의 힘: 블랙홀 성공 시 공격력이 10 영구 증가합니다.' }
 };
 
-// [밸런스 패치] 챌린지 모드 덱 리스트 업데이트
 const ChallengeDB = [
     { name: "뉴비 절단기", desc: "단단한 쇠(Metal)와 힐러 조합. 딜이 부족하면 뚫다가 지칩니다.", team: ['Metal', 'Water', 'Fire'] },
     { name: "빙결 지옥", desc: "얼리고(Water-Dark) 기절(Earth)시키는 무한 CC 조합.", team: ['Water-Dark', 'Earth', 'Water'] },
@@ -404,7 +403,17 @@ const Common = {
         const dmg = Math.floor(baseAtk * mult * aff.v);
         const act = def.takeDamage(dmg, isFire, ignoreShield, atk);
         game.recordStat(atk, 'dmg', Math.max(0, act));
-        if(act !== -1) { UI.floatText(def, act, act>=200?"ft-crit":"ft-dmg"); game.shake(def); } else { UI.floatText(def, "MISS", "ft-miss"); }
+        if(act !== -1) { 
+            UI.floatText(def, act, act>=200?"ft-crit":"ft-dmg"); 
+            game.shake(def); 
+            // [버그 수정] 스킬 흡혈 적용
+            if ((atk.getKey() === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
+                const healAmt = Math.min(50, Math.floor(act * 0.20));
+                if(healAmt > 0) { atk.heal(healAmt); Common.logAction(game, 'heal', atk, atk, healAmt, "(흡혈)"); }
+            }
+        } else { 
+            UI.floatText(def, "MISS", "ft-miss"); 
+        }
         return act;
     },
     forEachAlly: function(unit, game, callback) { const team = unit.team === 0 ? game.pTeam : game.eTeam; team.forEach(u => { if(!u.isDead) callback(u); }); },
@@ -442,10 +451,7 @@ const SKILL_LOGIC = {
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
                     let amt = 120;
-                    if (game.netRandom() < 0.2) {
-                        amt += 50;
-                        UI.floatText(a, "Lucky!", "ft-crit");
-                    }
+                    if (game.netRandom() < 0.2) { amt += 50; UI.floatText(a, "Lucky!", "ft-crit"); }
                     const h = a.heal(amt);
                     game.recordStat(atk, 'heal', h);
                     Common.logAction(game, 'heal', atk, a, h, "");
@@ -927,12 +933,8 @@ class Unit {
         this.elecStacks = 0;
         this.growthStack = 0;
         this.resist = 0;
-        this.stats = {
-            dmg: 0,
-            heal: 0,
-            shieldGiven: 0,
-            taken: 0
-        };
+        this.stats = { dmg: 0, heal: 0, shieldGiven: 0, taken: 0, kills: 0 }; // kills 추가
+        this.isSuper = false; // 각성 플래그
         this.passiveTriggered = false;
         this.metalPassiveUsed = false;
         this.isNormal = this.base === 'Normal' || (this.base === 'Light' && this.extra === 'Dark') || (this.base === 'Dark' && this.extra === 'Light');
@@ -947,6 +949,30 @@ class Unit {
         if (this.isNormal) return 'Normal';
         if (this.isEnhanced) return `${this.base}-${this.extra}`;
         return SKILL_DB[`${this.base}-${this.extra}`] ? `${this.base}-${this.extra}` : this.base;
+    }
+
+    // [슈퍼 히어로] 각성 체크 로직
+    checkAwakening() {
+        if (this.isSuper) return;
+        const key = this.getKey();
+        const role = SKILL_DB[key].role;
+        let awakened = false;
+
+        // 역할군별 조건 확인
+        if (role === 'nuker') { // 딜러: 2킬 or 1500딜
+            if (this.stats.kills >= 2 || this.stats.dmg >= 1500) awakened = true;
+        } else if (role === 'tank') { // 탱커: 1000 피해 받음
+            if (this.stats.taken >= 1000) awakened = true;
+        } else if (role === 'supp') { // 서폿: 1000 힐+쉴드
+            if ((this.stats.heal + this.stats.shieldGiven) >= 1000) awakened = true;
+        }
+
+        if (awakened) {
+            this.isSuper = true;
+            UI.floatText(this, "⚡AWAKENING!!⚡", "ft-crit");
+            AudioSys.play('AWAKEN');
+            Game.render(); // 즉시 렌더링 갱신
+        }
     }
 
     getAtk() {
@@ -1035,6 +1061,14 @@ class Unit {
             UI.floatText(this, "Crack!", "ft-crit");
         }
         this.hp = Math.max(0, this.hp - hpDmg);
+        
+        // [킬 카운트] 막타 체크
+        if (this.hp <= 0 && source) {
+            source.stats.kills = (source.stats.kills || 0) + 1;
+            // 킬한 영웅이 딜러라면 각성 체크
+            if(source.checkAwakening) source.checkAwakening();
+        }
+
         if (this.base === 'Water' && this.extra === 'Light' && this.hp > 0 && this.hp <= this.maxHp * 0.2 && !this.evadeTriggered) {
             const healAmt = Math.floor(this.maxHp * 0.1);
             this.hp += healAmt;
@@ -1042,6 +1076,10 @@ class Unit {
             this.evadeTriggered = true;
             UI.floatText(this, `기화! (+${healAmt})`, "ft-heal");
         }
+        
+        // [각성 체크] 탱커는 맞을 때 체크
+        this.checkAwakening();
+        
         return hpDmg + shieldDmg;
     }
 
@@ -1158,11 +1196,27 @@ class Unit {
         if (diff > 0) {
             UI.floatText(this, diff, 'ft-heal');
         }
+        // [각성 체크] 힐러는 힐 할 때 체크
+        this.checkAwakening();
         return diff;
     }
 }
 
-const AudioSys = { ctx: null, isMuted: false, init: function() { if(this.ctx) return; try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }, resume: function() { if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); }, toggleMute: function() { this.isMuted = !this.isMuted; const btn = document.getElementById('btn-mute'); if(this.isMuted) { btn.innerHTML = '🔇'; btn.classList.add('muted'); } else { btn.innerHTML = '🔊'; btn.classList.remove('muted'); } }, playSoft: function(freq, type, dur, vol=0.3) { if(!this.ctx || this.isMuted) return; const o=this.ctx.createOscillator(); const g=this.ctx.createGain(); const t=this.ctx.currentTime; o.type=type; o.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.05); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t+dur+0.1); }, play: function(type) { if(!this.ctx || this.isMuted) return; if(type==='HIT') { const rndFreq = 600 + (Math.random() * 100 - 50); this.playSoft(rndFreq,'triangle',0.1,0.4); } else if(type==='SKILL') { this.playSoft(500,'sine',0.15,0.3); setTimeout(()=>this.playSoft(800,'sine',0.2,0.3),100); } else if(type==='HEAL') { this.playSoft(500,'sine',0.2,0.3); setTimeout(()=>this.playSoft(700,'sine',0.3,0.3),150); } else if(type==='DEBUFF') { this.playSoft(300,'triangle',0.2,0.35); setTimeout(()=>this.playSoft(200,'triangle',0.2,0.35), 150); } else if(type==='MISS') this.playSoft(900,'square',0.05,0.2); else if(type==='WIN') { setTimeout(()=>this.playSoft(523,'sine',0.2,0.5),0); setTimeout(()=>this.playSoft(659,'sine',0.2,0.5),200); setTimeout(()=>this.playSoft(784,'sine',0.4,0.5),400); } else if(type==='POWER_UP') { this.playSoft(440,'sine',0.2,0.35); setTimeout(()=>this.playSoft(554,'sine',0.2,0.35), 100); setTimeout(()=>this.playSoft(659,'sine',0.3,0.35), 200); } else if(type==='CRITICAL') { this.playSoft(150,'triangle',0.1,0.6); setTimeout(()=>this.playSoft(880,'sine',0.3,0.7), 50); } } };
+const AudioSys = { ctx: null, isMuted: false, init: function() { if(this.ctx) return; try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }, resume: function() { if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); }, toggleMute: function() { this.isMuted = !this.isMuted; const btn = document.getElementById('btn-mute'); if(this.isMuted) { btn.innerHTML = '🔇'; btn.classList.add('muted'); } else { btn.innerHTML = '🔊'; btn.classList.remove('muted'); } }, playSoft: function(freq, type, dur, vol=0.3) { if(!this.ctx || this.isMuted) return; const o=this.ctx.createOscillator(); const g=this.ctx.createGain(); const t=this.ctx.currentTime; o.type=type; o.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.05); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t+dur+0.1); }, play: function(type) { if(!this.ctx || this.isMuted) return; 
+    if(type==='HIT') { const rndFreq = 600 + (Math.random() * 100 - 50); this.playSoft(rndFreq,'triangle',0.1,0.4); } 
+    else if(type==='SKILL') { this.playSoft(500,'sine',0.15,0.3); setTimeout(()=>this.playSoft(800,'sine',0.2,0.3),100); } 
+    else if(type==='HEAL') { this.playSoft(500,'sine',0.2,0.3); setTimeout(()=>this.playSoft(700,'sine',0.3,0.3),150); } 
+    else if(type==='DEBUFF') { this.playSoft(300,'triangle',0.2,0.35); setTimeout(()=>this.playSoft(200,'triangle',0.2,0.35), 150); } 
+    else if(type==='MISS') this.playSoft(900,'square',0.05,0.2); 
+    else if(type==='WIN') { setTimeout(()=>this.playSoft(523,'sine',0.2,0.5),0); setTimeout(()=>this.playSoft(659,'sine',0.2,0.5),200); setTimeout(()=>this.playSoft(784,'sine',0.4,0.5),400); } 
+    else if(type==='POWER_UP') { this.playSoft(440,'sine',0.2,0.35); setTimeout(()=>this.playSoft(554,'sine',0.2,0.35), 100); setTimeout(()=>this.playSoft(659,'sine',0.3,0.35), 200); } 
+    else if(type==='CRITICAL') { this.playSoft(150,'triangle',0.1,0.6); setTimeout(()=>this.playSoft(880,'sine',0.3,0.7), 50); }
+    else if(type==='AWAKEN') { 
+        this.playSoft(300,'square',0.1,0.3); 
+        setTimeout(()=>this.playSoft(600,'square',0.1,0.3),100); 
+        setTimeout(()=>this.playSoft(900,'square',0.3,0.4),200); 
+    }
+} };
 const UI = { 
     showModal: function(title, content) { document.getElementById('modal-overlay').style.display = 'flex'; document.getElementById('modal-body').innerHTML = `<h3 style="color:#ff80ab; margin-top:0;">${title}</h3><div>${content}</div>`; }, 
     closeModal: function() { document.getElementById('modal-overlay').style.display = 'none'; },
@@ -1245,8 +1299,10 @@ const Game = {
         if (this.difficulty === 'hell') { 
             if (this.challengeStage >= ChallengeDB.length) this.challengeStage = ChallengeDB.length - 1;
             const stageData = ChallengeDB[this.challengeStage];
+            
             // [AI 강화] 챌린지 모드 덱 순서 랜덤 섞기 (배치 카운터 방지)
             const shuffledTeam = [...stageData.team].sort(() => Math.random() - 0.5);
+            
             this.eTeam = shuffledTeam.map((key, i) => { let b, e; if(key === 'Normal') { b='Normal'; e=null; } else if(key.includes('-')) { [b, e] = key.split('-'); } else { b=key; e=null; } return makeEnemy(i, b, e); });
         } else if (this.difficulty === 'mirror') {
             this.eTeam = this.pTeam.map((pu, i) => { const u = new Unit(i + 3, 1, pu.base, pu.extra); u.maxHp = Math.floor(u.maxHp * 1.15); u.hp = u.maxHp; u.atk = Math.floor(u.atk * 1.15); return u; });
@@ -1306,11 +1362,21 @@ const Game = {
                 const cardId = tid===0 ? `p-card-${u.id}` : `e-card-${u.id}`; let d = document.getElementById(cardId); if (!d) { d = document.createElement('div'); d.id = cardId; d.dataset.uid = u.id; row.appendChild(d); }
                 let isActive = false; if (tid === 0) isActive = this.queue[this.curr] === u.id * 2; else isActive = this.queue[this.curr] === (u.id - 3) * 2 + 1;
                 const role = SKILL_DB[u.getKey()].role || 'nuker';
-                d.className = `unit role-${role} ${u.isDead?'dead':''} ${isActive?'active-turn':''} ${tid===1?'target-enemy':''} ${tid===0?'target-ally':''}`;
+                // [각성] super-hero 클래스 추가
+                d.className = `unit role-${role} ${u.isSuper ? 'super-hero' : ''} ${u.isDead?'dead':''} ${isActive?'active-turn':''} ${tid===1?'target-enemy':''} ${tid===0?'target-ally':''}`;
                 let tags = u.status.map(s => { let c='tag'; const map = { 'POISON':'poison','FREEZE':'freeze','SILENCE':'silence','EVADE':'evade','BURN':'burn', 'BANISH':'banish','TRAP':'trap','BIND':'bind','GROWTH':'growth','ATK_DOWN':'atkdown', 'BLIND':'blind','IMMUNITY':'immunity','HEAL_DOWN':'healdown', 'LIGHT_MIGHT':'atkup', 'LIFESTEAL_BUFF':'lifesteal', 'ATK_BUFF_SMALL':'atkup_s' }; if(s.type.includes('PROVOKED')) c+=' taunt'; else if(s.type.startsWith('KARMA_VICTIM')) c+=' karma'; else if(map[s.type]) c+=` ${map[s.type]}`; let txt = s.type; const tMap = { 'POISON':'독','FREEZE':'빙결','SILENCE':'침묵','DMG_RED':'방어↑','EVADE':'회피','BURN':'화상', 'TRAP':'속박','BANISH':'추방','BIND':'결속','GROWTH':'성장','ATK_DOWN':'공격↓','BLIND':'실명', 'IMMUNITY':'면역','HEAL_DOWN':'치유↓','LIGHT_MIGHT':'공격↑', 'LIFESTEAL_BUFF':'🩸흡혈', 'ATK_BUFF_SMALL':'🔥공격↑' }; if(s.type.includes('PROVOKED')) txt='도발'; else if(s.type.startsWith('KARMA_VICTIM')) txt='👁️업보'; else if(tMap[s.type]) txt = tMap[s.type]; return `<span class="${c}">${txt}(${s.turn})</span>`; }).join('');
                 if (u.linkedAllyId !== -1) tags += `<span class="tag bind" style="background:#27ae60; border:1px solid #fff;">🔗Link</span>`;
                 let bgClass = `bg-${u.base}`; if(u.isEnhanced) bgClass = `bg-${u.base}-Enhanced`; if(u.isNormal) bgClass = 'bg-Normal'; const icon = SKILL_DB[u.getKey()].icon || ''; let extraBadge = ''; if(u.elecStacks > 0) extraBadge = `<div class="elec-badge">⚡${u.elecStacks}</div>`;
-                const innerHTML = ` ${extraBadge} <div class="tag-container">${tags}</div> <div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div> <div class="unit-name" style="font-size:15px; margin-bottom:3px;">${u.name.split(' ')[0]} <span class="atk-text">⚔️${u.getAtk()}</span></div> <div class="status-bar" style="height:14px;"><div class="hp-fill" style="width:${(u.hp/u.maxHp)*100}%; background:${u.hp<150?'var(--hp-low)':'var(--hp-high)'}"></div><div class="shield-fill" style="width:${(u.shield/u.maxHp)*100}%"></div></div> <div style="font-size:12px; margin-top:3px; color:#777; font-weight:bold;">${u.hp}${u.shield>0?` (+${u.shield})`:''}</div> `;
+                
+                // [각성] 칭호 적용 로직
+                let displayName = u.name.split(' ')[0];
+                if (u.isSuper) {
+                    if (role === 'nuker') displayName = `👹파괴신 ${displayName}`;
+                    else if (role === 'tank') displayName = `🛡️수호신 ${displayName}`;
+                    else if (role === 'supp') displayName = `😇구원자 ${displayName}`;
+                }
+
+                const innerHTML = ` ${extraBadge} <div class="tag-container">${tags}</div> <div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div> <div class="unit-name" style="font-size:15px; margin-bottom:3px; ${u.isSuper ? 'color:#fbc02d; text-shadow:0 0 5px rgba(255,235,59,0.5);' : ''}">${displayName} <span class="atk-text">⚔️${u.getAtk()}</span></div> <div class="status-bar" style="height:14px;"><div class="hp-fill" style="width:${(u.hp/u.maxHp)*100}%; background:${u.hp<150?'var(--hp-low)':'var(--hp-high)'}"></div><div class="shield-fill" style="width:${(u.shield/u.maxHp)*100}%"></div></div> <div style="font-size:12px; margin-top:3px; color:#777; font-weight:bold;">${u.hp}${u.shield>0?` (+${u.shield})`:''}</div> `;
                 if(d.innerHTML !== innerHTML) d.innerHTML = innerHTML;
             });
         };
@@ -1341,6 +1407,9 @@ const Game = {
         const playedSound = logic.useSkill(atk, def, sIdx, this);
         if (!playedSound) AudioSys.play('SKILL');
         
+        // [각성 체크] 스킬 사용 후 통계 갱신 시 각성 확인
+        atk.checkAwakening();
+
         if (isOnlineMode && !isRemote) { socket.emit('action', { room: myRoom, attackerId: atk.id, attackerTeam: atk.team, targetId: def ? def.id : null, targetTeam: def ? def.team : null, skillIdx: sIdx, rndBuffer: netRndBuffer }); }
         this.endTurn();
     },
@@ -1352,7 +1421,14 @@ const Game = {
         document.getElementById('btn-start').innerText = "⚔️ 전투 시작 (0/3)"; document.getElementById('btn-start').disabled = true;
         this.init(); 
     },
-    recordStat: function(unit, type, amount) { if(!unit || amount <= 0) return; if(type === 'dmg') unit.stats.dmg += amount; if(type === 'shield') unit.stats.shieldGiven += amount; if(type === 'heal') unit.stats.heal += amount; },
+    // [각성 체크] 스탯 기록 시 각성 확인
+    recordStat: function(unit, type, amount) { 
+        if(!unit || amount <= 0) return; 
+        if(type === 'dmg') unit.stats.dmg += amount; 
+        if(type === 'shield') unit.stats.shieldGiven += amount; 
+        if(type === 'heal') unit.stats.heal += amount; 
+        unit.checkAwakening();
+    },
     input: function(u) {
         const k = u.getKey(); const s = SKILL_DB[k];
         if (!s) { console.error("Skill info missing for:", k); return; }
@@ -1418,7 +1494,6 @@ const Game = {
         });
     },
 
-    // [AI 강화] Super Smart AI 적용
     ai: function(u) {
         if (isOnlineMode || this.difficulty === 'local' || this.difficulty === 'pvp') return;
 
@@ -1464,13 +1539,15 @@ const Game = {
                 return score;
             };
 
+            // (A) 적 공격 로직 수정
             aliveEnemies.forEach(e => {
                 actions.push({ idx: 0, target: e, score: getEnemyScore(e) });
                 if (!silenced) {
                     [1, 2].forEach(sIdx => {
                         const skillDesc = sIdx === 1 ? s.s1d : s.s2d;
                         const skillType = sIdx === 2 ? s.type : 'DMG'; 
-                        if (skillType !== 'HEAL' && skillType !== 'BUFF' && skillType !== 'TARGET_BUFF' && s.role !== 'supp') {
+                        // [버그 수정] Supporter도 공격 스킬 사용 가능하도록 조건 완화
+                        if (skillType !== 'HEAL' && skillType !== 'BUFF' && skillType !== 'TARGET_BUFF') {
                             let skScore = getEnemyScore(e) + 10; 
                             const match = skillDesc.match(/([\d.]+)배/);
                             if (match && parseFloat(match[1]) > 1.0) skScore += (parseFloat(match[1]) - 1.0) * 50;
@@ -1485,19 +1562,38 @@ const Game = {
                 }
             });
 
+            // (B) 아군 지원 로직 수정 (자해 방지 강화)
             if (!silenced) {
                 [1, 2].forEach(sIdx => {
                     const skillDesc = sIdx === 1 ? s.s1d : s.s2d;
-                    const isSupportSkill = s.role === 'supp' || s.type === 'HEAL' || s.type === 'BUFF' || s.type === 'TARGET_BUFF' || skillDesc.includes('힐') || skillDesc.includes('정화') || skillDesc.includes('쉴드');
+                    
+                    // [자해 방지] 공격 계수('배')나 '피해' 텍스트가 있으면 지원 스킬 후보에서 무조건 제외
+                    const isAttack = skillDesc.includes('배') || skillDesc.includes('피해');
+                    
+                    // 지원 스킬 조건: 공격기가 아니면서, 힐/버프 관련 키워드가 있거나 타입이 지원형인 경우
+                    const isSupportSkill = !isAttack && (
+                        s.type === 'HEAL' || s.type === 'BUFF' || s.type === 'TARGET_BUFF' || 
+                        skillDesc.includes('힐') || skillDesc.includes('정화') || 
+                        skillDesc.includes('쉴드') || skillDesc.includes('해제') || 
+                        skillDesc.includes('성장') || skillDesc.includes('흡혈') ||
+                        skillDesc.includes('회피')
+                    );
+                    
                     const isCleanse = skillDesc.includes('정화') || skillDesc.includes('해제'); 
 
                     if (isSupportSkill) {
                         aliveAllies.forEach(a => {
+                            // 자가 버프는 본인만
                             if ((s.target === 'SELF' || s.target === 'SELF_BUFF') && a.id !== u.id) return;
+                            
                             let supScore = getAllyScore(a);
                             if (isCleanse && a.status.length === 0) supScore -= 30;
                             if ((skillDesc.includes('힐') || s.type === 'HEAL') && a.hp >= a.maxHp * 0.9) supScore -= 100;
-                            actions.push({ idx: sIdx, target: a, score: supScore });
+                            
+                            // [안전 장치] 타겟이 확실히 아군인지 확인 후 추가
+                            if (a.team === u.team) {
+                                actions.push({ idx: sIdx, target: a, score: supScore });
+                            }
                         });
                     }
                 });
@@ -1548,8 +1644,8 @@ const Game = {
     shake: function(u) { const id = u.team === 0 ? `p-card-${u.id}` : `e-card-${u.id}`; const el = document.getElementById(id); if(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); } },
     saveGame: function() { if (this.isOver) { alert("게임이 끝난 상태는 저장할 수 없습니다."); return; } const saveData = { pTeam: this.pTeam.map(u => this.serializeUnit(u)), eTeam: this.eTeam.map(u => this.serializeUnit(u)), queue: this.queue, curr: this.curr, turnCount: this.turnCount, difficulty: this.difficulty, mode: this.mode, selected: this.selected }; localStorage.setItem('et_save_v6', JSON.stringify(saveData)); UI.floatText(this.pTeam[0], "게임 저장됨!", "ft-heal"); this.log("<span class='log-sys'>💾 게임 진행 상황이 저장되었습니다.</span>"); },
     loadGame: function() { const json = localStorage.getItem('et_save_v6'); const savedStage = localStorage.getItem('et_challenge_stage'); if(savedStage) this.challengeStage = parseInt(savedStage); if (!json) { alert(`저장된 전투가 없습니다.\n(현재 챌린지 단계: ${this.challengeStage+1})`); return; } try { const data = JSON.parse(json); this.difficulty = data.difficulty; this.mode = data.mode; this.turnCount = data.turnCount; this.curr = data.curr; this.queue = data.queue; this.selected = data.selected; this.pTeam = data.pTeam.map(d => this.deserializeUnit(d)); this.eTeam = data.eTeam.map(d => this.deserializeUnit(d)); document.getElementById('selection-screen').style.display = 'none'; document.getElementById('battle-screen').style.display = 'flex'; document.getElementById('logs').innerHTML = ''; this.log("<span class='log-sys'>📂 저장된 게임을 불러왔습니다.</span>"); this.render(); if (this.timer) clearTimeout(this.timer); const tVal = this.queue[this.curr]; const u = tVal % 2 === 0 ? this.pTeam[tVal/2] : this.eTeam[(tVal-1)/2]; let turnName = u.name.split(' ')[0]; if (this.mode === 'pvp') turnName += (u.team === 0 ? " (1P)" : " (2P)"); document.getElementById('turn-indicator').innerText = `Turn ${Math.ceil(this.turnCount/6)} : ${turnName}`; if (u.team === 1 && this.mode !== 'pvp') { this.noInput(); this.timer = setTimeout(() => this.ai(u), 1000); } else { this.input(u); } } catch (e) { console.error(e); alert("세이브 파일이 손상되었습니다."); } },
-    serializeUnit: function(u) { return { id: u.id, team: u.team, base: u.base, extra: u.extra, hp: u.hp, maxHp: u.maxHp, shield: u.shield, atk: u.atk, status: u.status, isDead: u.isDead, thornStack: u.thornStack, linkedAllyId: u.linkedAllyId, s2Count: u.s2Count, elecStacks: u.elecStacks, growthStack: u.growthStack, stats: u.stats, passiveTriggered: u.passiveTriggered, revengeAtk: u.revengeAtk }; },
-    deserializeUnit: function(d) { const u = new Unit(d.id, d.team, d.base, d.extra); u.hp = d.hp; u.maxHp = d.maxHp; u.shield = d.shield; u.atk = d.atk; u.status = d.status; u.isDead = d.isDead; if(d.thornStack) u.thornStack = d.thornStack; if(d.linkedAllyId) u.linkedAllyId = d.linkedAllyId; if(d.s2Count) u.s2Count = d.s2Count; if(d.elecStacks) u.elecStacks = d.elecStacks; if(d.growthStack) u.growthStack = d.growthStack; if(d.stats) u.stats = d.stats; if(d.passiveTriggered) u.passiveTriggered = d.passiveTriggered; if(d.revengeAtk) u.revengeAtk = d.revengeAtk; return u; },
+    serializeUnit: function(u) { return { id: u.id, team: u.team, base: u.base, extra: u.extra, hp: u.hp, maxHp: u.maxHp, shield: u.shield, atk: u.atk, status: u.status, isDead: u.isDead, thornStack: u.thornStack, linkedAllyId: u.linkedAllyId, s2Count: u.s2Count, elecStacks: u.elecStacks, growthStack: u.growthStack, stats: u.stats, passiveTriggered: u.passiveTriggered, revengeAtk: u.revengeAtk, isSuper: u.isSuper }; },
+    deserializeUnit: function(d) { const u = new Unit(d.id, d.team, d.base, d.extra); u.hp = d.hp; u.maxHp = d.maxHp; u.shield = d.shield; u.atk = d.atk; u.status = d.status; u.isDead = d.isDead; if(d.thornStack) u.thornStack = d.thornStack; if(d.linkedAllyId) u.linkedAllyId = d.linkedAllyId; if(d.s2Count) u.s2Count = d.s2Count; if(d.elecStacks) u.elecStacks = d.elecStacks; if(d.growthStack) u.growthStack = d.growthStack; if(d.stats) u.stats = d.stats; if(d.passiveTriggered) u.passiveTriggered = d.passiveTriggered; if(d.revengeAtk) u.revengeAtk = d.revengeAtk; if(d.isSuper) u.isSuper = d.isSuper; return u; },
     calc: (a,d) => { let v = 1.0; let t = ''; if(a.isNormal) { if(d.isNormal || d.isEnhanced) { v=1.2; t='(강타)'; } } else { const w={ 'Fire':['Metal','Tree'], 'Water':['Fire','Metal'], 'Tree':['Water','Earth'], 'Metal':['Tree','Earth'], 'Earth':['Fire','Water'] }; const ew={'Light':['Dark'],'Dark':['Light']}; if(!d.isNormal){ if(w[a.base]?.includes(d.base)||ew[a.base]?.includes(d.base)) { v=1.2; t='(약점)'; } else if(w[d.base]?.includes(a.base)) { v=0.8; t='(저항)'; } } } if(v===1.2 && a.extra && d.extra && ((a.extra==='Light'&&d.extra==='Dark')||(a.extra==='Dark'&&d.extra==='Light'))) { v=1.3; t='(치명타!)'; } return {v, t}; }
 };
 
