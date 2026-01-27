@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v9.8 Stable</title>
+    <title>Elemental Tactics: v9.4 Stable</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -275,9 +275,24 @@ socket.on('enemyAction', (data) => {
     let target = null;
     if (data.targetId !== null) target = allUnits.find(u => u.id === data.targetId);
     if(attacker) {
-        Game.netRndBuffer = data.rndBuffer; Game.netRndIdx = 0; Game.isReplaying = true; 
-        Game.execute(attacker, target, data.skillIdx, true); Game.isReplaying = false; 
+        // [수정] Game.xxx 가 아니라 전역 변수(netRndBuffer)에 값을 저장해야 합니다.
+        netRndBuffer = data.rndBuffer; 
+        netRndIdx = 0; 
+        isReplaying = true; 
+        
+        Game.execute(attacker, target, data.skillIdx, true); 
+        
+        isReplaying = false; 
     }
+});
+
+// [추가된 코드] 상대방 탈주 감지 (서버의 외침을 듣는 귀)
+socket.on('enemyDisconnect', () => {
+    alert("상대방 연결이 끊어졌습니다. 승리 처리됩니다! 🎉");
+    UI.showResult("상대방 기권 (Disconnect)"); // 승리 배너 띄우기
+    isOnlineMode = false;
+    // 필요하다면 메인으로 돌아가게 할 수도 있습니다.
+    // location.reload();
 });
 
 function startOnlineGame() {
@@ -1095,7 +1110,12 @@ const Game = {
     // [Refactored Execute Function]
     execute: function(atk, def, sIdx, isRemote = false) {
         document.querySelectorAll('.unit').forEach(el=>el.onclick=null);
-        if (isOnlineMode && !isRemote) { if (atk.team !== 0) { alert("내 유닛이 아닙니다!"); return; } Game.netRndBuffer = []; }
+        if (isOnlineMode && !isRemote) { 
+            if (atk.team !== 0) { alert("내 유닛이 아닙니다!"); return; } 
+            
+            // [수정] 전역 변수 초기화 (이번 턴의 새로운 난수를 담기 위해)
+            netRndBuffer = []; 
+        }
         
         const key = atk.getKey();
         const logic = SKILL_LOGIC[key];
