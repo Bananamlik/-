@@ -1245,7 +1245,9 @@ const Game = {
         if (this.difficulty === 'hell') { 
             if (this.challengeStage >= ChallengeDB.length) this.challengeStage = ChallengeDB.length - 1;
             const stageData = ChallengeDB[this.challengeStage];
-            this.eTeam = stageData.team.map((key, i) => { let b, e; if(key === 'Normal') { b='Normal'; e=null; } else if(key.includes('-')) { [b, e] = key.split('-'); } else { b=key; e=null; } return makeEnemy(i, b, e); });
+            // [AI 강화] 챌린지 모드 덱 순서 랜덤 섞기 (배치 카운터 방지)
+            const shuffledTeam = [...stageData.team].sort(() => Math.random() - 0.5);
+            this.eTeam = shuffledTeam.map((key, i) => { let b, e; if(key === 'Normal') { b='Normal'; e=null; } else if(key.includes('-')) { [b, e] = key.split('-'); } else { b=key; e=null; } return makeEnemy(i, b, e); });
         } else if (this.difficulty === 'mirror') {
             this.eTeam = this.pTeam.map((pu, i) => { const u = new Unit(i + 3, 1, pu.base, pu.extra); u.maxHp = Math.floor(u.maxHp * 1.15); u.hp = u.maxHp; u.atk = Math.floor(u.atk * 1.15); return u; });
         } else if (this.difficulty === 'easy') {
