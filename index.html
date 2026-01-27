@@ -1831,6 +1831,7 @@ const Game = {
                 if (k === 'Fire-Dark') mult = 1.0;
                 if (k === 'Tree-Dark') mult = 1.5 + (atk.thornStack || 0); // 가시: 성장 스택 반영
                 if (k === 'Tree-Light') mult = 1.2; 
+                if (k === 'Dark-Dark') mult = 0.9;
                 
                 if (k === 'Normal') {
                     if (atk.hp > 30) {
