@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v9.83 Stable</title>
+    <title>Elemental Tactics: v9.9 AI Enhanced</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -86,24 +86,26 @@
         .passive-panel { background: #e0f2f1; padding: 5px 10px; font-size: 11px; color: #00695c; display: flex; align-items: center; border-radius: 10px; margin: 4px 10px; border: 1px solid #b2dfdb; flex-shrink: 0; }
         .passive-icon { margin-right: 5px; font-size: 14px; }
         
-        .btn-start { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; font-size: 20px; box-shadow: 0 6px 0 #c2185b, 0 15px 20px rgba(0,0,0,0.15); transition: 0.2s; position: relative; overflow: hidden; }
-        .btn-start::after { content:'🐾'; font-size:24px; margin-left:10px; opacity:0.8; }
+        /* [UI 개선] 버튼 스타일 통합 */
+        .btn-start { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 20px; font-weight: bold; width: 100%; cursor: pointer; font-size: 18px; box-shadow: 0 5px 0 #c2185b, 0 10px 15px rgba(0,0,0,0.15); transition: 0.2s; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; gap: 5px; }
         .btn-start:hover { transform: translateY(-3px); }
-        .btn-start:active { transform: translateY(6px); box-shadow: 0 2px 0 #c2185b; }
+        .btn-start:active { transform: translateY(5px); box-shadow: 0 0 0 #c2185b; }
         .btn-start:disabled { background: #b0bec5; cursor: not-allowed; box-shadow: none; transform:none; }
+        
         .btn-rnd { background:#b39ddb; color:#fff; border:none; padding:10px 15px; border-radius:20px; cursor:pointer; font-weight:bold; margin-left:5px; box-shadow: 0 4px 0 #7e57c2; }
         .btn-rnd:active { transform: translateY(4px); box-shadow:none; }
         
-        /* [UI 개선] 태그 컨테이너 최적화 */
         .tag-container { position: absolute; top: 2px; left: 2px; right: 2px; display: flex; justify-content: center; gap: 2px; flex-wrap: wrap; z-index: 10; pointer-events: none; max-height: 36px; overflow: hidden; align-content: flex-start; }
         .tag { padding: 2px 4px; border-radius: 6px; font-size: 9px; line-height: 1; color: #fff; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.2); margin-bottom: 1px; white-space: nowrap; height: 14px; display: flex; align-items: center; }
         .tag.poison { background: #ab47bc; } .tag.stun { background: #ffd54f; color:#5d4037; } .tag.freeze { background: #29b6f6; } .tag.silence { background: #78909c; } .tag.evade { background: #42a5f5; } .tag.burn { background: #ff7043; } .tag.banish { background: #263238; } .tag.bind { background: #66bb6a; } .tag.trap { background: #d4e157; color:#5d4037; } .tag.atkdown { background: #5c6bc0; } .tag.growth { background: #9ccc65; color:#33691e; } .tag.blind { background: #bdbdbd; color:#5d4037; } .tag.immunity { background: #fff; color:#5d4037; border:1px solid #5d4037; } .tag.healdown { background: #8d6e63; color:#fff; } .tag.atkup { background: #ef5350; color:#fff; } .tag.taunt { background: #212121; color: #ff5252; border: 1px solid #ff1744; box-shadow: 0 0 4px rgba(255, 23, 68, 0.6); font-weight: 900; } .tag.karma { background: #512da8; color:#fff; border: 1px solid #d1c4e9; animation: jelly-bounce 2s infinite; }
         
         .bg-Fire { background: linear-gradient(135deg, #ff8a80, #ef5350); } .bg-Water { background: linear-gradient(135deg, #80d8ff, #29b6f6); } .bg-Tree { background: linear-gradient(135deg, #b9f6ca, #66bb6a); color:#1b5e20; } .bg-Metal { background: linear-gradient(135deg, #eceff1, #90a4ae); } .bg-Earth { background: linear-gradient(135deg, #ffe0b2, #ffa726); } .bg-Light { background: linear-gradient(135deg, #ffff8d, #ffee58); color: #5d4037; } .bg-Dark { background: linear-gradient(135deg, #ea80fc, #ab47bc); } .bg-Normal { background: linear-gradient(135deg, #fafafa, #bdbdbd); color:#5d4037; }
         .bg-Light-Enhanced { background: radial-gradient(circle, #fff, #fdd835); border: 3px solid #fdd835; color:#5d4037; box-shadow: 0 0 15px #fff9c4; } .bg-Dark-Enhanced { background: radial-gradient(circle, #e1bee7, #8e24aa); border: 3px solid #8e24aa; box-shadow: 0 0 15px #e1bee7; }
+        
         .float-text { position: absolute; font-weight: 900; font-size: 28px; pointer-events: none; z-index: 100; text-shadow: 2px 2px 0px #fff; animation: floatUp 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; }
         @keyframes floatUp { 0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; } 30% { transform: translate(-50%, -30px) scale(1.3); opacity: 1; } 100% { transform: translate(-50%, -60px) scale(1); opacity: 0; } }
         .ft-dmg { color: #ff7043; } .ft-crit { color: #ffa726; font-size: 36px; } .ft-heal { color: #26a69a; } .ft-miss { color: #b0bec5; font-size: 20px; }
+        
         #modal-overlay { position: fixed; inset: 0; background: rgba(255, 248, 225, 0.85); backdrop-filter:blur(5px); z-index: 100; display: none; justify-content: center; align-items: center; }
         .modal-content { background: #fff; padding: 25px; border-radius: 35px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 15px 50px rgba(255, 128, 171, 0.3); overflow-y:auto; max-height:80vh; border: 5px solid #ffcc80; position: relative;}
         .tab-header { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
@@ -122,7 +124,6 @@
         .diff-select { margin: 0; padding: 10px; width: 100%; border-radius: 20px; border: 3px solid #b2dfdb; font-size: 14px; font-family: var(--font-main); color: #555; background: #fff; outline:none; }
         .atk-text { font-size: 12px; font-weight: bold; color: #fff; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 10px; }
 
-        /* [UI 개선] 작은 화면 대응 (노트북/모바일 가로) */
         @media (max-height: 700px) {
             .unit { min-height: 90px; width: 28vw; max-width: 110px; padding: 4px; }
             .attr-icon { width: 36px; height: 36px; font-size: 20px; }
@@ -131,7 +132,7 @@
             .control-panel { max-height: 40vh; }
             .btn-group { height: 60px; }
             .skill-name { font-size: 12px; }
-            .skill-desc { font-size: 9px; } /* 공간 부족시 설명 숨김 */
+            .skill-desc { font-size: 9px; } 
             .cp-header { padding: 5px 10px; font-size: 12px; }
             .timeline-container { height: 35px; }
             .tl-node { width: 24px; height: 24px; font-size: 14px; }
@@ -160,7 +161,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v9.4 Stable (Fix: Metal/Light/Draw)</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v9.9 AI Enhanced</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -189,20 +190,20 @@
                       <option value="hell">🏆 챌린지 (도장깨기)</option>
                       <option value="mirror">🪞 거울 전쟁 (AI)</option>
                       <option value="local">⚔️ 연습 대전 (오프라인 2인)</option> 
-                      <option value="pvp">⚔️ 온라인 PVP (테스트)</option> 
                 </select>
                 <button class="btn-rnd" onclick="Game.randomPick()">🎲 랜덤</button>
             </div>
         </div>
-        <!-- [추가] 방 코드 입력창 -->
-        <div style="margin-top:5px; display:flex; gap:5px;">
-            <input type="text" id="room-code" placeholder="방 코드 (예: 1234)" style="flex:1; padding:10px; border-radius:15px; border:2px solid #7e57c2; text-align:center; font-weight:bold; outline:none; font-family: var(--font-main);">
-        </div>
         
-        <button id="btn-online" class="btn-start" style="background:#7e57c2; margin-top:5px;" onclick="startOnlineGame()">
-             🌐 온라인 대전 (방 만들기/참가)
-        </button>
-        <button id="btn-start" class="btn-start" onclick="Game.start()" disabled>전투 시작 (0/3)</button>
+        <!-- [UI 개선] 버튼 좌우 분리 및 온라인 입장 방식 변경 -->
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <button id="btn-online" class="btn-start" style="flex:1; background:#7e57c2; font-size:16px;" onclick="UI.openOnlineModal()">
+                🌐 온라인 대전
+            </button>
+            <button id="btn-start" class="btn-start" style="flex:1; font-size:16px;" onclick="Game.start()" disabled>
+                ⚔️ 전투 시작
+            </button>
+        </div>
     </div>
 
     <div id="battle-screen" class="screen">
@@ -256,6 +257,7 @@ function getNetRandom() {
 
 socket.on('gameStart', (data) => {
     isOnlineMode = true; myRole = data.role; myRoom = data.room;
+    UI.closeModal(); // 매칭 성공 시 모달 닫기
     let roleText = myRole === 'player1' ? "🔵 선공 (1P)" : "🔴 후공 (2P)";
     alert("매칭 성공! " + roleText);
     document.getElementById('selection-screen').style.display='none';
@@ -280,64 +282,37 @@ socket.on('enemyAction', (data) => {
     let target = null;
     if (data.targetId !== null) target = allUnits.find(u => u.id === data.targetId);
     if(attacker) {
-        // [수정] Game.xxx 가 아니라 전역 변수(netRndBuffer)에 값을 저장해야 합니다.
         netRndBuffer = data.rndBuffer; 
         netRndIdx = 0; 
         isReplaying = true; 
-        
         Game.execute(attacker, target, data.skillIdx, true); 
-        
         isReplaying = false; 
     }
 });
 
-// [추가된 코드] 상대방 탈주 감지 (서버의 외침을 듣는 귀)
 socket.on('enemyDisconnect', () => {
     alert("상대방 연결이 끊어졌습니다. 승리 처리됩니다! 🎉");
-    UI.showResult("상대방 기권 (Disconnect)"); // 승리 배너 띄우기
+    UI.showResult("상대방 기권 (Disconnect)"); 
     isOnlineMode = false;
-    // 필요하다면 메인으로 돌아가게 할 수도 있습니다.
-    // location.reload();
 });
 
-// [추가] 서버로부터 '대기 중' 메시지를 받으면 버튼 글씨 변경
 socket.on('waiting', (msg) => {
-    const btn = document.getElementById('btn-online');
-    btn.innerText = "⏳ " + msg;
+    const btn = document.getElementById('modal-submit-btn');
+    if(btn) { btn.innerText = "⏳ " + msg; btn.disabled = true; }
 });
 
-// [추가] 에러 메시지 (코드를 안 적었을 때)
 socket.on('errorMsg', (msg) => {
     alert(msg);
-    const btn = document.getElementById('btn-online');
-    btn.disabled = false;
-    btn.innerText = "🌐 온라인 대전 (방 만들기/참가)";
-    btn.style.backgroundColor = '#7e57c2';
+    const btn = document.getElementById('modal-submit-btn');
+    if(btn) { btn.disabled = false; btn.innerText = "입장하기 🚀"; }
 });
 
-function startOnlineGame() {
+function startOnlineGame(code) {
     AudioSys.init();
     if (!socket || !socket.connected) { alert("서버와 연결되지 않았습니다."); return; }
     if (Game.selected.length !== 3) { alert("먼저 영웅 3명을 선택해주세요!"); return; }
     
-    // [수정] 방 코드 입력값 가져오기
-    const codeInput = document.getElementById('room-code');
-    const code = codeInput.value.trim();
-    
-    if (!code) {
-        alert("친구와 공유할 '방 코드'를 입력해주세요!\n(예: 1234, 우리집, apple 등)");
-        codeInput.focus();
-        return;
-    }
-
-    const btn = document.getElementById('btn-online');
-    if(btn.innerText.includes('대기 중')) return;
-    
-    btn.disabled = true; 
-    btn.style.backgroundColor = '#ccc'; 
-    btn.innerText = "📡 서버 통신 중...";
-    
-    // [수정] 덱 정보와 함께 '방 코드'를 서버로 전송
+    // 코드 전송
     socket.emit('findMatch', { deck: Game.selected, roomCode: code });
 }
 
@@ -368,31 +343,27 @@ const SKILL_DB = {
     'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵', s2:'블랙홀', s2d:'턴 스킵(75%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🕳️', desc:'스페셜리스트<br>턴 삭제', passive:'🌑 심연의 힘: 블랙홀 성공 시 공격력이 10 영구 증가합니다.' }
 };
 
+// [밸런스 패치] 챌린지 모드 덱 리스트 업데이트
 const ChallengeDB = [
-    { name: "정석 메타", desc: "물(힐)+불(딜)+쇠(탱)의 가장 안정적인 고승률 조합.", team: ['Water', 'Fire', 'Metal'] },
-    { name: "CC 지옥", desc: "빙결, 기절, 턴 삭제로 아무것도 못하게 합니다.", team: ['Water-Dark', 'Earth', 'Dark-Dark'] },
-    { name: "무한 동력", desc: "성장하는 나무와 안개 회피로 버티는 좀비 덱.", team: ['Tree', 'Tree-Light', 'Water-Light'] },
-    { name: "철옹성", desc: "뚫을 수 없는 쉴드와 정화로 턴을 낭비시킵니다.", team: ['Metal', 'Light', 'Light-Light'] },
-    { name: "극딜 폭격", desc: "체력 비례 데미지와 한방 딜로 탱커를 녹입니다.", team: ['Fire-Dark', 'Earth-Dark', 'Fire-Light'] },
-    { name: "디버프 군단", desc: "쉴드 파괴, 치유 감소, 반사로 말려 죽입니다.", team: ['Metal-Light', 'Earth-Light', 'Dark'] },
-    { name: "변칙의 제왕", desc: "완전 면역과 복수, 광역 기절의 까다로운 조합.", team: ['Normal', 'Tree-Dark', 'Metal-Dark'] },
-    { name: "속성 마스터", desc: "다양한 속성으로 약점을 찌르는 공격적인 조합.", team: ['Fire', 'Tree-Light', 'Earth'] },
-    { name: "왕의 귀환", desc: "후반으로 갈수록 막을 수 없는 왕귀형 덱.", team: ['Water', 'Metal-Dark', 'Normal'] },
-    { name: "최종 보스", desc: "개발자가 인정한 공수 밸런스 0티어 조합.", team: ['Dark-Dark', 'Light-Light', 'Water-Light'] }
+    { name: "뉴비 절단기", desc: "단단한 쇠(Metal)와 힐러 조합. 딜이 부족하면 뚫다가 지칩니다.", team: ['Metal', 'Water', 'Fire'] },
+    { name: "빙결 지옥", desc: "얼리고(Water-Dark) 기절(Earth)시키는 무한 CC 조합.", team: ['Water-Dark', 'Earth', 'Water'] },
+    { name: "회피 & 유지력", desc: "안개(Water-Light)와 숲(Tree)의 무한 유지력 좀비 덱.", team: ['Water-Light', 'Tree', 'Light-Light'] },
+    { name: "CC 면역 & 깡딜", desc: "CC를 무시하는 노말(Normal)과 강력한 한방.", team: ['Normal', 'Earth-Dark', 'Fire-Light'] },
+    { name: "턴 삭제 (혐오)", desc: "어둠 강화(Dark-Dark)의 턴 스킵 억까 조합. 기도하세요.", team: ['Dark-Dark', 'Earth', 'Metal-Dark'] },
+    { name: "절대 방어", desc: "쉴드, 정화, 힐로 무장하여 죽지 않는 통곡의 벽.", team: ['Light-Light', 'Tree-Light', 'Metal'] },
+    { name: "디버프 군단", desc: "화상, 독, 공포, 반사로 말려 죽입니다.", team: ['Fire-Dark', 'Metal-Light', 'Dark'] },
+    { name: "지진 설계자", desc: "바위(Earth-Dark)의 기절을 정화하고 공버프를 주는 연계 플레이.", team: ['Earth-Dark', 'Light-Light', 'Light'] },
+    { name: "최종 보스 (Ver.1)", desc: "개발자 공인 0티어. 정화+CC+턴스킵의 완벽한 조화.", team: ['Dark-Dark', 'Light-Light', 'Water-Dark'] },
+    { name: "밸런스 파괴자", desc: "현존 최강의 사기캐만 모았습니다. 이기면 고수 인정.", team: ['Dark-Dark', 'Light-Light', 'Metal'] }
 ];
 
-// ================= [새로운 로직 구조: Strategy Pattern] =================
-// 공통 로직 모음
 const Common = {
-    // 로그 헬퍼
     logAction: function(game, type, source, target, value, extra='') {
-        let icon = '';
-        let colorClass = '';
+        let icon = ''; let colorClass = '';
         if(type === 'dmg') { icon = '💥'; colorClass = 'log-enemy'; }
         else if(type === 'heal') { icon = '💚'; colorClass = 'log-ally'; }
         else if(type === 'shield') { icon = '🛡️'; colorClass = 'log-ally'; }
         else if(type === 'miss') { icon = '💨'; colorClass = 'log-sys'; }
-        
         let msg = '';
         if (target) {
             msg = `<span class="${source.team===0?'log-ally':'log-enemy'}">[${source.name.split(' ')[0]}]</span>`;
@@ -400,140 +371,104 @@ const Common = {
             else if (type === 'heal') msg += ` ✚➔ <span class="${target.team===0?'log-ally':'log-enemy'}">[${target.name.split(' ')[0]}]</span> : <b style="color:#2ecc71">+${value}</b> ${extra}`;
             else if (type === 'shield') msg += ` 🛡️➔ <span class="${target.team===0?'log-ally':'log-enemy'}">[${target.name.split(' ')[0]}]</span> : <b style="color:#ab47bc">+${value}</b> ${extra}`;
             else if (type === 'miss') msg += ` ⚔️➔ [${target.name.split(' ')[0]}] : <span style="color:#aaa">빗나감!</span>`;
-        } else {
-            msg = `[${source.name.split(' ')[0]}] ${extra}`;
-        }
+        } else { msg = `[${source.name.split(' ')[0]}] ${extra}`; }
         game.log(msg);
     },
-
-    // 기본 공격 (S0) 표준 로직
     basicAttack: function(atk, def, game) {
         AudioSys.play('HIT');
-        
         const blindMod = atk.hasStatus('BLIND') ? 0 : 1;
         if(blindMod === 0) { Common.logAction(game, 'miss', atk, def, 0, "(실명)"); UI.floatText(atk, "BLINDED", "ft-miss"); return; }
-
         const baseAtk = atk.getAtk();
         const aff = (def && def.team !== atk.team) ? game.calc(atk, def) : {v:1, t:''};
         const dmg = Math.floor(baseAtk * 1.0 * aff.v * blindMod);
-        
         const act = def.takeDamage(dmg, false, false, atk);
         game.recordStat(atk, 'dmg', Math.max(0, act));
-
         if(act !== -1) {
             Common.logAction(game, 'dmg', atk, def, act, aff.t);
-            // 크리티컬/일반 히트 분기
             const isCrit = (act >= 200) || (atk.isNormal && def.isNormal && act > baseAtk);
             UI.floatText(def, act, isCrit ? "ft-crit" : "ft-dmg");
-            if (isCrit) { AudioSys.play('CRITICAL'); UI.screenShake(); }
-            else game.shake(def);
-
-            // [푸른불] 흡혈 패시브
+            if (isCrit) { AudioSys.play('CRITICAL'); UI.screenShake(); } else game.shake(def);
             if ((atk.getKey() === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
                 const healAmt = Math.min(50, Math.floor(act * 0.20));
                 if(healAmt > 0) { atk.heal(healAmt); Common.logAction(game, 'heal', atk, atk, healAmt, "(흡혈)"); }
             }
         } else {
-            Common.logAction(game, 'miss', atk, def, 0);
-            UI.floatText(def, "MISS", "ft-miss");
+            Common.logAction(game, 'miss', atk, def, 0); UI.floatText(def, "MISS", "ft-miss");
         }
     },
-    
-    // 단순 데미지 적용
     applyDamage: function(atk, def, mult, game, ignoreShield=false, isFire=false) {
         const blindMod = atk.hasStatus('BLIND') ? 0 : 1;
         if(blindMod === 0) { UI.floatText(atk, "BLINDED", "ft-miss"); Common.logAction(game, 'miss', atk, def, 0, "(실명)"); return -1; }
-        
         const baseAtk = atk.getAtk();
         const aff = (def.team !== atk.team) ? game.calc(atk, def) : {v:1, t:''};
         const dmg = Math.floor(baseAtk * mult * aff.v);
-        
         const act = def.takeDamage(dmg, isFire, ignoreShield, atk);
         game.recordStat(atk, 'dmg', Math.max(0, act));
-        
-        if(act !== -1) {
-            UI.floatText(def, act, act>=200?"ft-crit":"ft-dmg");
-            game.shake(def);
-            // 로그는 스킬 개별 로직에서 좀 더 디테일하게 처리하거나 여기서 공통처리
-            // 여기서는 심플하게 값 반환
-        } else {
-            UI.floatText(def, "MISS", "ft-miss");
-        }
+        if(act !== -1) { UI.floatText(def, act, act>=200?"ft-crit":"ft-dmg"); game.shake(def); } else { UI.floatText(def, "MISS", "ft-miss"); }
         return act;
     },
-
-    // 아군 전체 루프 헬퍼
-    forEachAlly: function(unit, game, callback) {
-        const team = unit.team === 0 ? game.pTeam : game.eTeam;
-        team.forEach(u => { if(!u.isDead) callback(u); });
-    },
-    
-    // 적 전체 루프 헬퍼
-    forEachEnemy: function(unit, game, callback) {
-        const team = unit.team === 0 ? game.eTeam : game.pTeam;
-        team.forEach(u => { if(!u.isDead) callback(u); });
-    }
+    forEachAlly: function(unit, game, callback) { const team = unit.team === 0 ? game.pTeam : game.eTeam; team.forEach(u => { if(!u.isDead) callback(u); }); },
+    forEachEnemy: function(unit, game, callback) { const team = unit.team === 0 ? game.eTeam : game.pTeam; team.forEach(u => { if(!u.isDead) callback(u); }); }
 };
 
-// 스킬 로직 구현체 (Strategy)
 const SKILL_LOGIC = {
     'Fire': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 화염방사
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 화염방사! 🔥`);
-                // [Balance] 1.5 -> 1.6
                 const act = Common.applyDamage(atk, def, 1.6, game, false, true);
-                if(act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
                 if (act !== -1) def.addStatus('BURN', 2, 0, atk);
-                // return true; 제거됨 (기본 사운드 재생)
-            } else { // 메테오
+            } else {
                 game.log(`<b>[${atk.name}]</b> 메테오! ☄️`);
                 Common.forEachEnemy(atk, game, (e) => {
                     const act = Common.applyDamage(atk, e, 0.8, game, false, true);
-                    if(act!==-1) Common.logAction(game, 'dmg', atk, e, act, "");
+                    if (act !== -1) Common.logAction(game, 'dmg', atk, e, act, "");
                     if (act !== -1 && game.netRandom() < 0.25) e.addStatus('BURN', 2, 0, atk);
                 });
-                // return true; 제거됨 (기본 사운드 재생)
             }
         }
     },
     'Water': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 물대포
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 물대포! 💧`);
                 const act = Common.applyDamage(atk, def, 1.5, game);
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "");
-            } else { // 치유의 비
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
+            } else {
                 game.log(`<b>[${atk.name}]</b> 치유의 비 🌧️`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
-                    // [Balance] 125 -> 120
                     let amt = 120;
-                    if (game.netRandom() < 0.2) { amt += 50; UI.floatText(a, "Lucky!", "ft-crit"); }
+                    if (game.netRandom() < 0.2) {
+                        amt += 50;
+                        UI.floatText(a, "Lucky!", "ft-crit");
+                    }
                     const h = a.heal(amt);
                     game.recordStat(atk, 'heal', h);
                     Common.logAction(game, 'heal', atk, a, h, "");
                 });
-                return false; 
+                return false;
             }
         }
     },
     'Tree': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 광합성
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 광합성 🌿`);
                 AudioSys.play('POWER_UP');
-                atk.atk += 18; atk.shield += 30;
+                atk.atk += 18;
+                atk.shield += 30;
                 atk.growthStack = (atk.growthStack || 0) + 1;
                 atk.addStatus('GROWTH', 99);
                 game.recordStat(atk, 'shield', 30);
                 UI.floatText(atk, "성장", "ft-heal");
                 Common.logAction(game, 'shield', atk, atk, 30, "(성장)");
                 return false;
-            } else { // 치유의 잎
+            } else {
                 if (!def) return;
                 game.log(`<b>[${atk.name}]</b> 치유의 잎 🌿`);
                 AudioSys.play('HEAL');
@@ -548,7 +483,7 @@ const SKILL_LOGIC = {
     'Metal': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 강철베기
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 강철베기 ⚔️`);
                 const act = Common.applyDamage(atk, def, 1.3, game);
                 if (act !== -1) {
@@ -558,7 +493,7 @@ const SKILL_LOGIC = {
                     game.recordStat(atk, 'shield', absorb);
                     UI.floatText(atk, `+${absorb}🛡️`, "ft-heal");
                 }
-            } else { // 결투 신청
+            } else {
                 if (!def) return;
                 game.log(`<b>[${atk.name}]</b> 결투신청 💢`);
                 Common.forEachEnemy(atk, game, (e) => e.status = e.status.filter(s => !s.type.startsWith('PROVOKED')));
@@ -571,24 +506,23 @@ const SKILL_LOGIC = {
     'Earth': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 암석투척
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 암석투척 🪨`);
                 const act = Common.applyDamage(atk, def, 1.3, game);
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "");
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
                 if (act !== -1) {
-                    if(game.netRandom()<0.25) def.addStatus('STUN', 1, 0, atk); 
-                    else if(game.netRandom()<0.20) def.addStatus('SILENCE', 1, 0, atk);
+                    if (game.netRandom() < 0.25) def.addStatus('STUN', 1, 0, atk);
+                    else if (game.netRandom() < 0.20) def.addStatus('SILENCE', 1, 0, atk);
                 }
-            } else { // 지진
+            } else {
                 game.log(`<b>[${atk.name}]</b> 지진 🌋`);
                 let mult = 0.8;
-                const pAlive = game.pTeam.filter(u=>!u.isDead).length;
-                const eAlive = game.eTeam.filter(u=>!u.isDead).length;
+                const pAlive = game.pTeam.filter(u => !u.isDead).length;
+                const eAlive = game.eTeam.filter(u => !u.isDead).length;
                 if (pAlive === 1 && eAlive === 1) mult = 1.8;
-                
                 Common.forEachEnemy(atk, game, (e) => {
                     const act = Common.applyDamage(atk, e, mult, game);
-                    if(act!==-1) Common.logAction(game, 'dmg', atk, e, act, "");
+                    if (act !== -1) Common.logAction(game, 'dmg', atk, e, act, "");
                 });
             }
         }
@@ -599,18 +533,16 @@ const SKILL_LOGIC = {
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 홀리볼 ✨`);
                 const act = Common.applyDamage(atk, def, 1.5, game);
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "");
-            } else { // 수호의 빛
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
+            } else {
                 game.log(`<b>[${atk.name}]</b> 수호의 빛 🛡️`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
-                    a.shield += 70; 
-                    // [Balance] 1 stack: +15, 2+ stacks: +20 (Max)
-                    const existing = a.status.find(s=>s.type === 'LIGHT_MIGHT');
+                    a.shield += 70;
+                    const existing = a.status.find(s => s.type === 'LIGHT_MIGHT');
                     const nextVal = existing ? (existing.val || 1) + 1 : 1;
                     const bonus = nextVal > 1 ? 20 : 15;
-                    
-                    a.addStatus('LIGHT_MIGHT', 2, nextVal); 
+                    a.addStatus('LIGHT_MIGHT', 2, nextVal);
                     game.recordStat(atk, 'shield', 70);
                     Common.logAction(game, 'shield', atk, a, 70, `(공+${bonus})`);
                 });
@@ -621,23 +553,23 @@ const SKILL_LOGIC = {
     'Dark': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 다크볼
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 다크볼 🌑`);
                 const act = Common.applyDamage(atk, def, 1.5, game);
-                if(act!==-1) {
+                if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
                     def.addStatus(`KARMA_VICTIM_${atk.id}`, 2, 0, atk);
                 }
-            } else { // 공포
+            } else {
                 game.log(`<b>[${atk.name}]</b> 공포 😱`);
                 Common.forEachEnemy(atk, game, (e) => {
                     const act = Common.applyDamage(atk, e, 0.3, game);
                     if (act !== -1) {
                         Common.logAction(game, 'dmg', atk, e, act, "");
-                        const hasFear = e.status.some(s=>s.type==='ATK_DOWN');
-                        e.status = e.status.filter(s=>s.type!=='ATK_DOWN');
-                        e.addStatus('ATK_DOWN', 2, hasFear?35:20, atk);
-                        if(e.shield > 0) {
+                        const hasFear = e.status.some(s => s.type === 'ATK_DOWN');
+                        e.status = e.status.filter(s => s.type !== 'ATK_DOWN');
+                        e.addStatus('ATK_DOWN', 2, hasFear ? 35 : 20, atk);
+                        if (e.shield > 0) {
                             const brk = Math.floor(e.shield * 0.3);
                             e.shield -= brk;
                             UI.floatText(e, `-${brk}🛡️`, "ft-crit");
@@ -650,39 +582,40 @@ const SKILL_LOGIC = {
     'Normal': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 균형타
+            else if (sIdx === 1) {
                 if (atk.hp > 30) {
-                    atk.hp -= 30; UI.floatText(atk, `-30`, "ft-dmg");
+                    atk.hp -= 30;
+                    UI.floatText(atk, `-30`, "ft-dmg");
                     game.log(`<b>[${atk.name}]</b> 균형타 ⚖️`);
                     const act = Common.applyDamage(atk, def, 1.5, game);
-                    if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "");
-                    
+                    if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
                     const allies = atk.team === 0 ? game.pTeam : game.eTeam;
-                    const target = allies.filter(a => !a.isDead).sort((a,b) => a.hp - b.hp)[0];
-                    if (target) { 
-                        target.shield += 60; game.recordStat(atk, 'shield', 60); 
+                    const target = allies.filter(a => !a.isDead).sort((a, b) => a.hp - b.hp)[0];
+                    if (target) {
+                        target.shield += 60;
+                        game.recordStat(atk, 'shield', 60);
                         Common.logAction(game, 'shield', atk, target, 60, "");
                     }
                 } else {
                     UI.floatText(atk, "HP부족", "ft-miss");
                 }
-            } else { // 주사위
+            } else {
                 game.log(`<b>[${atk.name}]</b> 주사위 🎲`);
                 const rnd = 0.8 + game.netRandom() * 1.5;
                 const act = Common.applyDamage(atk, def, rnd, game);
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, `(x${rnd.toFixed(1)})`);
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, `(x${rnd.toFixed(1)})`);
             }
         }
     },
-    'Fire-Light': { // 푸른불
+    'Fire-Light': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 흡혈부여
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 청염 (흡혈부여)`);
                 AudioSys.play('POWER_UP');
                 Common.forEachAlly(atk, game, (a) => a.addStatus('LIFESTEAL_BUFF', 2));
                 return false;
-            } else { // 폭주
+            } else {
                 game.log(`<b>[${atk.name}]</b> 폭주! 🔥`);
                 AudioSys.play('HEAL');
                 if ((atk.s2Count || 0) < 5) {
@@ -697,142 +630,168 @@ const SKILL_LOGIC = {
             }
         }
     },
-    'Water-Light': { // 증기
+    'Water-Light': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 스팀젯
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 스팀젯 ☁️`);
                 const act = Common.applyDamage(atk, def, 0.9, game);
-                if(act!==-1) {
+                if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
-                    if(game.netRandom()<0.3) { def.addStatus('BLIND', 1, 0, atk); game.log(" (실명!)"); }
+                    if (game.netRandom() < 0.3) {
+                        def.addStatus('BLIND', 1, 0, atk);
+                        game.log(" (실명!)");
+                    }
                 }
-            } else { // 안개
-                if(!def) return;
+            } else {
+                if (!def) return;
                 game.log(`<b>[${atk.name}]</b> 안개 🌫️`);
                 AudioSys.play('HEAL');
                 const healAmt = Math.floor((def.maxHp - def.hp) * 0.15);
-                const h = def.heal(healAmt); game.recordStat(atk, 'heal', h);
+                const h = def.heal(healAmt);
+                game.recordStat(atk, 'heal', h);
                 Common.logAction(game, 'heal', atk, def, h, "(회피부여)");
-                Common.forEachAlly(atk, game, (a) => { if(a.id !== atk.id) a.addStatus('EVADE', 2); });
+                Common.forEachAlly(atk, game, (a) => {
+                    if (a.id !== atk.id) a.addStatus('EVADE', 2);
+                });
                 return false;
             }
         }
     },
-    'Tree-Light': { // 숲
+    'Tree-Light': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 숲의분노 (랜덤힐)
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 숲의분노 🌳`);
                 const act = Common.applyDamage(atk, def, 1.2, game);
-                if(act !== -1) {
+                if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
                     const allies = atk.team === 0 ? game.pTeam : game.eTeam;
                     const alive = allies.filter(a => !a.isDead);
-                    if(alive.length>0) {
+                    if (alive.length > 0) {
                         const t = alive[Math.floor(game.netRandom() * alive.length)];
-                        const h = t.heal(20); game.recordStat(atk, 'heal', h); Common.logAction(game, 'heal', atk, t, h, "(랜덤힐)");
+                        const h = t.heal(20);
+                        game.recordStat(atk, 'heal', h);
+                        Common.logAction(game, 'heal', atk, t, h, "(랜덤힐)");
                     }
                 }
-            } else { // 축복
+            } else {
                 game.log(`<b>[${atk.name}]</b> 축복 ✨`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
                     a.cleanse();
-                    const h = a.heal(70); game.recordStat(atk, 'heal', h);
+                    const h = a.heal(70);
+                    game.recordStat(atk, 'heal', h);
                     Common.logAction(game, 'heal', atk, a, h, "(정화)");
                 });
                 return false;
             }
         }
     },
-    'Metal-Light': { // 독가스
+    'Metal-Light': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 가스탄
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 가스탄 ☣️`);
                 const buffs = ['EVADE', 'ATK_BUFF_SMALL', 'LIGHT_MIGHT'];
                 const hadBuff = def.status.some(s => buffs.includes(s.type));
                 def.status = def.status.filter(s => !buffs.includes(s.type));
-                if(hadBuff) UI.floatText(def, "해제", "ft-miss");
-                
+                if (hadBuff) UI.floatText(def, "해제", "ft-miss");
                 let reduced = false;
-                if (def.getKey() === 'Fire-Light' && def.s2Count > 0) { def.s2Count--; def.atk -= 20; reduced = true; }
-                if (def.getKey() === 'Metal-Dark' && def.elecStacks > 0) { def.elecStacks--; def.atk -= 10; reduced = true; }
-                if (def.getKey() === 'Tree' && def.growthStack > 0) { def.growthStack--; def.atk -= 18; def.shield = Math.max(0, def.shield - 30); reduced = true; }
-                if (reduced) { game.log(" (📉스택 다운)"); UI.floatText(def, "스택-1", "ft-miss"); }
-
+                if (def.getKey() === 'Fire-Light' && def.s2Count > 0) {
+                    def.s2Count--;
+                    def.atk -= 20;
+                    reduced = true;
+                }
+                if (def.getKey() === 'Metal-Dark' && def.elecStacks > 0) {
+                    def.elecStacks--;
+                    def.atk -= 10;
+                    reduced = true;
+                }
+                if (def.getKey() === 'Tree' && def.growthStack > 0) {
+                    def.growthStack--;
+                    def.atk -= 18;
+                    def.shield = Math.max(0, def.shield - 30);
+                    reduced = true;
+                }
+                if (reduced) {
+                    game.log(" (📉스택 다운)");
+                    UI.floatText(def, "스택-1", "ft-miss");
+                }
                 const act = Common.applyDamage(atk, def, 0.3, game);
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "");
-            } else { // 맹독살포
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
+            } else {
                 game.log(`<b>[${atk.name}]</b> 맹독살포 ☠️`);
                 Common.forEachEnemy(atk, game, (e) => e.addStatus('POISON', 3, 0, atk));
             }
         }
     },
-    'Earth-Light': { // 모래
+    'Earth-Light': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 모래폭풍
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 모래폭풍 🏜️`);
-                const act = Common.applyDamage(atk, def, 1.3, game, true); 
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "(쉴드무시)");
-            } else { // 모래지옥
+                const act = Common.applyDamage(atk, def, 1.3, game, true);
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "(쉴드무시)");
+            } else {
                 game.log(`<b>[${atk.name}]</b> 모래지옥 ⏳`);
                 const act = Common.applyDamage(atk, def, 0, game);
-                if(act !== -1) { def.addStatus('TRAP', 2, 0, atk); def.addStatus('HEAL_DOWN', 2, 0, atk); }
+                if (act !== -1) {
+                    def.addStatus('TRAP', 2, 0, atk);
+                    def.addStatus('HEAL_DOWN', 2, 0, atk);
+                }
             }
         }
     },
-    'Water-Dark': { // 얼음
+    'Water-Dark': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 고드름 ❄️`);
                 const act = Common.applyDamage(atk, def, 1.5, game);
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "");
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
             } else {
                 game.log(`<b>[${atk.name}]</b> 절대영도 🥶`);
                 const act = Common.applyDamage(atk, def, 1.0, game);
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "");
-                if(act !== -1 && game.netRandom() < 0.35) def.addStatus('FREEZE', 1, 0, atk);
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
+                if (act !== -1 && game.netRandom() < 0.35) def.addStatus('FREEZE', 1, 0, atk);
             }
         }
     },
-    'Fire-Dark': { // 검은불
+    'Fire-Dark': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 흑염
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 흑염 🌑`);
                 const act = Common.applyDamage(atk, def, 1.0, game);
-                if(act!==-1) {
+                if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
                     Common.forEachEnemy(atk, game, (e) => e.addStatus('BURN', 2, 0, atk));
                 }
-            } else { // 소각 (체력비례)
+            } else {
                 game.log(`<b>[${atk.name}]</b> 소각 🔥`);
-                const act = Common.applyDamage(atk, def, 1.0, game); 
-                if(act !== -1) {
+                const act = Common.applyDamage(atk, def, 1.0, game);
+                if (act !== -1) {
                     const extra = Math.floor(def.maxHp * 0.1);
                     def.takeDamage(extra, false, false, atk);
                     game.recordStat(atk, 'dmg', extra);
                     UI.floatText(def, `+${extra}`, "ft-crit");
-                    Common.logAction(game, 'dmg', atk, def, act+extra, "(체력비례)");
+                    Common.logAction(game, 'dmg', atk, def, act + extra, "(체력비례)");
                 } else {
-                     Common.logAction(game, 'miss', atk, def, 0);
+                    Common.logAction(game, 'miss', atk, def, 0);
                 }
             }
         }
     },
-    'Tree-Dark': { // 가시
+    'Tree-Dark': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 가시찌르기
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 가시찌르기 🌵`);
                 const act = Common.applyDamage(atk, def, 1.5 + (atk.thornStack || 0), game);
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "");
-            } else { // 영혼결속
-                if(!def) return;
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
+            } else {
+                if (!def) return;
                 game.log(`<b>[${atk.name}]</b> 영혼결속 🔗`);
                 AudioSys.play('HEAL');
                 if (def.team === atk.team) {
@@ -843,72 +802,85 @@ const SKILL_LOGIC = {
             }
         }
     },
-    'Metal-Dark': { // 전기
+    'Metal-Dark': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) { // 전기충격
+            else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 전기충격 ⚡`);
                 const act = Common.applyDamage(atk, def, 1.5, game);
-                if(act !== -1) {
+                if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
-                    if(atk.elecStacks < 3) {
-                        atk.elecStacks++; atk.atk += 10;
-                        UI.floatText(atk, `⚡${atk.elecStacks}`, "ft-crit"); game.log(" (⚡과부하)");
+                    if (atk.elecStacks < 3) {
+                        atk.elecStacks++;
+                        atk.atk += 10;
+                        UI.floatText(atk, `⚡${atk.elecStacks}`, "ft-crit");
+                        game.log(" (⚡과부하)");
                     }
                 }
-            } else { // 방전
+            } else {
                 game.log(`<b>[${atk.name}]</b> 방전 🔌`);
                 Common.forEachEnemy(atk, game, (e) => {
                     const act = Common.applyDamage(atk, e, 0.8, game);
-                    if(act!==-1) Common.logAction(game, 'dmg', atk, e, act, "");
-                    if(act !== -1 && game.netRandom() < 0.15) e.addStatus('STUN', 1, 0, atk);
+                    if (act !== -1) Common.logAction(game, 'dmg', atk, e, act, "");
+                    if (act !== -1 && game.netRandom() < 0.15) e.addStatus('STUN', 1, 0, atk);
                 });
             }
         }
     },
-    'Earth-Dark': { // 바위
+    'Earth-Dark': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 낙석 🧗`);
                 const act = Common.applyDamage(atk, def, 1.5, game);
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "");
-            } else { // 산사태 (반동)
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
+            } else {
                 game.log(`<b>[${atk.name}]</b> 산사태 🌋`);
                 const act = Common.applyDamage(atk, def, 2.5, game);
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "");
-                // 반동 기절 로직
-                if(atk.hasStatus('IMMUNITY')) { atk.status = atk.status.filter(s=>s.type!=='IMMUNITY'); UI.floatText(atk, "면역삭제", "ft-miss"); }
-                const ex = atk.status.find(s=>s.type==='STUN'); if(ex) ex.turn=2; else atk.status.push({type:'STUN', turn:2, val:0});
-                UI.floatText(atk, "💤휴식", "ft-miss"); game.log("(반동:휴식)");
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
+                if (atk.hasStatus('IMMUNITY')) {
+                    atk.status = atk.status.filter(s => s.type !== 'IMMUNITY');
+                    UI.floatText(atk, "면역삭제", "ft-miss");
+                }
+                const ex = atk.status.find(s => s.type === 'STUN');
+                if (ex) ex.turn = 2;
+                else atk.status.push({
+                    type: 'STUN',
+                    turn: 2,
+                    val: 0
+                });
+                UI.floatText(atk, "💤휴식", "ft-miss");
+                game.log("(반동:휴식)");
             }
         }
     },
-    'Light-Light': { // 빛 강화
+    'Light-Light': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 신의심판 ⚡`);
                 const act = Common.applyDamage(atk, def, 1.5, game);
-                if(act!==-1) Common.logAction(game, 'dmg', atk, def, act, "");
+                if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
             } else {
                 game.log(`<b>[${atk.name}]</b> 성역 🏰`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
-                    a.shield += 50; a.cleanse(); game.recordStat(atk, 'shield', 50);
+                    a.shield += 50;
+                    a.cleanse();
+                    game.recordStat(atk, 'shield', 50);
                     Common.logAction(game, 'shield', atk, a, 50, "(정화)");
                 });
                 return false;
             }
         }
     },
-    'Dark-Dark': { // 어둠 강화
+    'Dark-Dark': {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 심연일격 🗡️`);
                 const act = Common.applyDamage(atk, def, 0.9, game);
-                if(act!==-1) {
+                if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
                     def.addStatus('SILENCE', 1, 0, atk);
                 }
@@ -916,9 +888,11 @@ const SKILL_LOGIC = {
                 game.log(`<b>[${atk.name}]</b> 블랙홀 🌀`);
                 if (game.netRandom() < 0.75) {
                     def.addStatus('BANISH', 1, 0, atk);
-                    atk.atk += 10; game.log(" (추방!)");
+                    atk.atk += 10;
+                    game.log(" (추방!)");
                 } else {
-                    game.log(" (추방 실패)"); UI.floatText(def, "저항", "ft-miss");
+                    game.log(" (추방 실패)");
+                    UI.floatText(def, "저항", "ft-miss");
                 }
             }
         }
@@ -927,106 +901,296 @@ const SKILL_LOGIC = {
 
 class Unit {
     constructor(id, team, base, extra) {
-        this.id = id; this.team = team; this.base = base; this.extra = extra;
-        this.maxHp = 600; 
-        if(base==='Tree' && extra==='Dark') this.maxHp = 700; 
-        if(base==='Fire' && extra==='Light') this.maxHp = 650;
-        this.hp = this.maxHp; 
-        this.evadeTriggered = false; this.revengeAtk = 0; 
-        this.shield = (base==='Metal' && !extra) ? 100 : 0;
-        this.atk = 55 + (id * 7 % 15);
-        this.status = []; this.isDead = false;
-        this.thornStack = 0; this.linkedAllyId = -1;
-        this.s2Count = 0; this.elecStacks = 0; this.growthStack = 0;
-        this.resist = 0; this.stats = { dmg: 0, heal: 0, shieldGiven: 0, taken: 0 }; 
-        this.passiveTriggered = false; this.metalPassiveUsed = false;
-        this.isNormal = this.base === 'Normal' || (this.base==='Light'&&this.extra==='Dark') || (this.base==='Dark'&&this.extra==='Light');
-        this.isEnhanced = (this.base===this.extra && (this.base==='Light'||this.base==='Dark'));
-        
+        this.id = id;
+        this.team = team;
+        this.base = base;
+        this.extra = extra;
+        this.maxHp = 600;
+        if (base === 'Tree' && extra === 'Dark') this.maxHp = 700;
+        if (base === 'Fire' && extra === 'Light') this.maxHp = 650;
+        this.hp = this.maxHp;
+        this.evadeTriggered = false;
+        this.revengeAtk = 0;
+        this.shield = (base === 'Metal' && !extra) ? 100 : 0;
+
+        if (this.team === 1 && typeof Game !== 'undefined' && Game.difficulty === 'hell') {
+            this.atk = 70;
+        } else {
+            this.atk = 55 + (id * 7 % 15);
+        }
+
+        this.status = [];
+        this.isDead = false;
+        this.thornStack = 0;
+        this.linkedAllyId = -1;
+        this.s2Count = 0;
+        this.elecStacks = 0;
+        this.growthStack = 0;
+        this.resist = 0;
+        this.stats = {
+            dmg: 0,
+            heal: 0,
+            shieldGiven: 0,
+            taken: 0
+        };
+        this.passiveTriggered = false;
+        this.metalPassiveUsed = false;
+        this.isNormal = this.base === 'Normal' || (this.base === 'Light' && this.extra === 'Dark') || (this.base === 'Dark' && this.extra === 'Light');
+        this.isEnhanced = (this.base === this.extra && (this.base === 'Light' || this.base === 'Dark'));
+
         if (this.isNormal) this.name = NAME_MAP['Normal'];
         else if (this.isEnhanced) this.name = NAME_MAP[`${this.base}-${this.extra}`];
         else if (this.extra) this.name = `${NAME_MAP[`${this.base}-${this.extra}`]} (${ATTR[this.base].n}+${ATTR[this.extra].n})`;
         else this.name = `${ATTR[this.base].n} (기초)`;
     }
-    getKey() { if(this.isNormal) return 'Normal'; if(this.isEnhanced) return `${this.base}-${this.extra}`; return SKILL_DB[`${this.base}-${this.extra}`] ? `${this.base}-${this.extra}` : this.base; }
-    
-    getAtk() { 
-        let v = this.atk; 
-        if (this.base === 'Fire' && !this.extra) { const turn = Game.turnCount; if (turn <= 12) v += 20; else if (turn <= 36) v += 10; }
+    getKey() {
+        if (this.isNormal) return 'Normal';
+        if (this.isEnhanced) return `${this.base}-${this.extra}`;
+        return SKILL_DB[`${this.base}-${this.extra}`] ? `${this.base}-${this.extra}` : this.base;
+    }
+
+    getAtk() {
+        let v = this.atk;
+        if (this.base === 'Fire' && !this.extra) {
+            const turn = Game.turnCount;
+            if (turn <= 12) v += 20;
+            else if (turn <= 36) v += 10;
+        }
         if (this.revengeAtk > 0) v += this.revengeAtk;
-        
-        // [Balance] Light buff: 1 stack = +15, 2+ stacks = +20 (Fixed)
-        const lightMight = this.status.find(s=>s.type==='LIGHT_MIGHT');
-        if(lightMight) {
+
+        const lightMight = this.status.find(s => s.type === 'LIGHT_MIGHT');
+        if (lightMight) {
             if ((lightMight.val || 1) <= 1) v += 15;
             else v += 20;
         }
-        
-        if(this.hasStatus('ATK_BUFF_SMALL')) v += 10;
+
+        if (this.hasStatus('ATK_BUFF_SMALL')) v += 10;
         v = Math.max(10, v);
-        const ads = this.status.filter(s=>s.type==='ATK_DOWN'); 
-        if(ads.length > 0) { ads.forEach(s => { if (s.val > 0) v -= Math.floor(v * (s.val / 100)); else v -= 15; }); }
-        return Math.max(0, v); 
+        const ads = this.status.filter(s => s.type === 'ATK_DOWN');
+        if (ads.length > 0) {
+            ads.forEach(s => {
+                if (s.val > 0) v -= Math.floor(v * (s.val / 100));
+                else v -= 15;
+            });
+        }
+        return Math.max(0, v);
     }
-    
-    resetTurn() { this.passiveTriggered = false; this.metalPassiveUsed = false; }
 
-    takeDamage(dmg, isFire=false, ignoreShield=false, source=null) {
+    resetTurn() {
+        this.passiveTriggered = false;
+        this.metalPassiveUsed = false;
+    }
+
+    takeDamage(dmg, isFire = false, ignoreShield = false, source = null) {
         if (isFire && this.hasStatus('BURN')) dmg = Math.floor(dmg * 1.25);
-        
-        // [Fix] Metal passive applies per hit, not once per turn
-        if (this.base === 'Metal' && !this.extra && this.shield > 0) { 
-            const cap = Math.floor(this.maxHp * 0.30); 
-            if (dmg > cap) { dmg = cap; UI.floatText(this, "Iron Will", "ft-heal"); } 
+
+        if (this.base === 'Metal' && !this.extra && this.shield > 0) {
+            const cap = Math.floor(this.maxHp * 0.30);
+            if (dmg > cap) {
+                dmg = cap;
+                UI.floatText(this, "Iron Will", "ft-heal");
+            }
         }
-        
+
         if (this.hasStatus('DMG_RED')) dmg = Math.floor(dmg * 0.8);
-        if (this.hasStatus('EVADE')) { if(Game.netRandom() < 0.40) { UI.floatText(this, "회피!", "ft-miss"); this.status = this.status.filter(s => s.type !== 'EVADE'); return -1; } }
-        if (source && source.id !== this.id && !source.isDead) { const karma = source.status.find(s => s.type === `KARMA_VICTIM_${this.id}`); const isDarkVsDark = (this.base === 'Dark' && source.base === 'Dark'); if (karma && !isDarkVsDark) { const reflectDmg = Math.floor(dmg * 0.3); if (reflectDmg > 0) { const actualReflect = source.takeDamage(reflectDmg, false, true, null); this.stats.dmg += actualReflect; UI.floatText(source, reflectDmg, "ft-crit"); } } }
-        
+        if (this.hasStatus('EVADE')) {
+            if (Game.netRandom() < 0.40) {
+                UI.floatText(this, "회피!", "ft-miss");
+                this.status = this.status.filter(s => s.type !== 'EVADE');
+                return -1;
+            }
+        }
+        if (source && source.id !== this.id && !source.isDead) {
+            const karma = source.status.find(s => s.type === `KARMA_VICTIM_${this.id}`);
+            const isDarkVsDark = (this.base === 'Dark' && source.base === 'Dark');
+            if (karma && !isDarkVsDark) {
+                const reflectDmg = Math.floor(dmg * 0.3);
+                if (reflectDmg > 0) {
+                    const actualReflect = source.takeDamage(reflectDmg, false, true, null);
+                    this.stats.dmg += actualReflect;
+                    UI.floatText(source, reflectDmg, "ft-crit");
+                }
+            }
+        }
+
         this.stats.taken += dmg;
-        let hpDmg = 0; let shieldDmg = 0;
-        if (!ignoreShield && this.shield > 0) { if(this.shield >= dmg) { shieldDmg = dmg; this.shield -= dmg; hpDmg = 0; } else { shieldDmg = this.shield; hpDmg = dmg - this.shield; this.shield = 0; } } else { hpDmg = dmg; }
-        if (hpDmg > 0 && this.base === 'Earth' && this.extra === 'Dark' && this.hasStatus('STUN')) { hpDmg += 10; this.stats.taken += 10; UI.floatText(this, "Crack!", "ft-crit"); }
+        let hpDmg = 0;
+        let shieldDmg = 0;
+        if (!ignoreShield && this.shield > 0) {
+            if (this.shield >= dmg) {
+                shieldDmg = dmg;
+                this.shield -= dmg;
+                hpDmg = 0;
+            } else {
+                shieldDmg = this.shield;
+                hpDmg = dmg - this.shield;
+                this.shield = 0;
+            }
+        } else {
+            hpDmg = dmg;
+        }
+        if (hpDmg > 0 && this.base === 'Earth' && this.extra === 'Dark' && this.hasStatus('STUN')) {
+            hpDmg += 10;
+            this.stats.taken += 10;
+            UI.floatText(this, "Crack!", "ft-crit");
+        }
         this.hp = Math.max(0, this.hp - hpDmg);
-        if (this.base === 'Water' && this.extra === 'Light' && this.hp > 0 && this.hp <= this.maxHp * 0.2 && !this.evadeTriggered) { const healAmt = Math.floor(this.maxHp * 0.1); this.hp += healAmt; this.addStatus('EVADE', 2); this.evadeTriggered = true; UI.floatText(this, `기화! (+${healAmt})`, "ft-heal"); }
-        return hpDmg + shieldDmg; 
+        if (this.base === 'Water' && this.extra === 'Light' && this.hp > 0 && this.hp <= this.maxHp * 0.2 && !this.evadeTriggered) {
+            const healAmt = Math.floor(this.maxHp * 0.1);
+            this.hp += healAmt;
+            this.addStatus('EVADE', 2);
+            this.evadeTriggered = true;
+            UI.floatText(this, `기화! (+${healAmt})`, "ft-heal");
+        }
+        return hpDmg + shieldDmg;
     }
 
-    addStatus(type, turn, val=0, source=null, force=false) {
-        if (source && source.id !== this.id && !force) { const karma = source.status.find(s => s.type === `KARMA_VICTIM_${this.id}`); if (karma) { if (Game.netRandom() < 0.5) { UI.floatText(this, "반사!", "ft-crit"); source.addStatus(type, turn, val, null); return; } } }
-        const NORMAL_IMMUNE = ['FREEZE', 'STUN', 'BANISH', 'SILENCE']; if (this.isNormal && !force) { if (NORMAL_IMMUNE.includes(type) || type.startsWith('PROVOKED')) { UI.floatText(this, "Immune", "ft-miss"); return; } }
-        if (this.hasStatus('EVADE') && ['STUN', 'FREEZE'].includes(type) && !force) { if (source && source.id !== this.id) { if (Game.netRandom() < 0.40) { UI.floatText(this, "회피!", "ft-miss"); this.status = this.status.filter(s => s.type !== 'EVADE'); return; } } }
-        const HARD_CC = ['STUN', 'FREEZE', 'BANISH']; if (HARD_CC.includes(type)) { if (this.hasStatus('IMMUNITY') && !force) { UI.floatText(this, "면역", "ft-miss"); return; } if (!source || source.id !== this.id || force) { this.status.push({type: 'IMMUNITY', turn: turn + 1}); } }
-        if (this.resist > 0 && Game.netRandom() < this.resist && ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN'].includes(type)) return;
-        if (type === 'ATK_DOWN') { const s = this.status.filter(s=>s.type==='ATK_DOWN'); if(s.length < 2) { this.status.push({type, turn, val}); } else { const shortest = s.sort((a,b) => a.turn - b.turn)[0]; shortest.turn = turn; } return; }
-        
-        // [Fix] Update val if provided (for stacking buffs like LIGHT_MIGHT)
-        const idx = this.status.findIndex(s=>s.type===type); 
-        if(idx >= 0) {
-            this.status[idx].turn = turn; 
-            if(val !== 0) this.status[idx].val = val; 
+    addStatus(type, turn, val = 0, source = null, force = false) {
+        if (source && source.id !== this.id && !force) {
+            const karma = source.status.find(s => s.type === `KARMA_VICTIM_${this.id}`);
+            if (karma) {
+                if (Game.netRandom() < 0.5) {
+                    UI.floatText(this, "반사!", "ft-crit");
+                    source.addStatus(type, turn, val, null);
+                    return;
+                }
+            }
+        }
+        const NORMAL_IMMUNE = ['FREEZE', 'STUN', 'BANISH', 'SILENCE'];
+        if (this.isNormal && !force) {
+            if (NORMAL_IMMUNE.includes(type) || type.startsWith('PROVOKED')) {
+                UI.floatText(this, "Immune", "ft-miss");
+                return;
+            }
+        }
+        if (this.hasStatus('EVADE') && ['STUN', 'FREEZE'].includes(type) && !force) {
+            if (source && source.id !== this.id) {
+                if (Game.netRandom() < 0.40) {
+                    UI.floatText(this, "회피!", "ft-miss");
+                    this.status = this.status.filter(s => s.type !== 'EVADE');
+                    return;
+                }
+            }
+        }
+        const HARD_CC = ['STUN', 'FREEZE', 'BANISH'];
+        if (HARD_CC.includes(type)) {
+            if (this.hasStatus('IMMUNITY') && !force) {
+                UI.floatText(this, "면역", "ft-miss");
+                return;
+            }
+            if (!source || source.id !== this.id || force) {
+                this.status.push({
+                    type: 'IMMUNITY',
+                    turn: turn + 1
+                });
+            }
+        }
+        if (this.resist > 0 && Game.netRandom() < this.resist && ['POISON', 'BURN', 'FREEZE', 'STUN', 'SILENCE', 'BLIND', 'TRAP', 'BANISH', 'ATK_DOWN'].includes(type)) return;
+        if (type === 'ATK_DOWN') {
+            const s = this.status.filter(s => s.type === 'ATK_DOWN');
+            if (s.length < 2) {
+                this.status.push({
+                    type,
+                    turn,
+                    val
+                });
+            } else {
+                const shortest = s.sort((a, b) => a.turn - b.turn)[0];
+                shortest.turn = turn;
+            }
+            return;
+        }
+
+        const idx = this.status.findIndex(s => s.type === type);
+        if (idx >= 0) {
+            this.status[idx].turn = turn;
+            if (val !== 0) this.status[idx].val = val;
         } else {
-            this.status.push({type, turn, val});
+            this.status.push({
+                type,
+                turn,
+                val
+            });
         }
     }
-    hasStatus(type) { return this.status.some(s=>s.type===type); }
-    cleanse() { const bad = ['POISON','BURN','FREEZE','STUN','SILENCE','BLIND','TRAP','BANISH','ATK_DOWN','KARMA_VICTIM']; this.status = this.status.filter(s => !bad.includes(s.type) && !s.type.startsWith('PROVOKED') && !s.type.startsWith('KARMA_VICTIM')); }
-    dispel() { const buffs = ['EVADE','DMG_RED','ATK_BUFF','GROWTH','LIGHT_MIGHT']; const has=this.status.some(s=>buffs.includes(s.type)); this.status=this.status.filter(s=>!buffs.includes(s.type)); return has; }
-    
-    tickStatus() { 
-        let log = []; 
-        if(this.hasStatus('POISON')) { const d=this.takeDamage(35, false, false, null); UI.floatText(this, d, 'ft-dmg'); log.push(`☠️ [${this.name}] 독 피해 -${d}`); } 
-        if(this.hasStatus('BURN')) { const d=this.takeDamage(20, false, false, null); UI.floatText(this, d, 'ft-dmg'); log.push(`🔥 [${this.name}] 화상 피해 -${d}`); } 
-        if(this.hasStatus('TRAP')) { const d=this.takeDamage(40, false, false, null); UI.floatText(this, d, 'ft-dmg'); log.push(`⏳ [${this.name}] 모래지옥 -${d}`); } 
-        return log; 
+    hasStatus(type) {
+        return this.status.some(s => s.type === type);
     }
-    decayStatus() { this.status.forEach(s => s.turn--); this.status = this.status.filter(s => s.turn > 0); }
-    heal(amount) { if(this.hasStatus('HEAL_DOWN')) amount = Math.floor(amount * 0.4); const prev=this.hp; this.hp=Math.min(this.maxHp, this.hp+amount); const diff=this.hp-prev; if(diff>0) { UI.floatText(this, diff, 'ft-heal'); } return diff; }
+    cleanse() {
+        const bad = ['POISON', 'BURN', 'FREEZE', 'STUN', 'SILENCE', 'BLIND', 'TRAP', 'BANISH', 'ATK_DOWN', 'KARMA_VICTIM'];
+        this.status = this.status.filter(s => !bad.includes(s.type) && !s.type.startsWith('PROVOKED') && !s.type.startsWith('KARMA_VICTIM'));
+    }
+    dispel() {
+        const buffs = ['EVADE', 'DMG_RED', 'ATK_BUFF', 'GROWTH', 'LIGHT_MIGHT'];
+        const has = this.status.some(s => buffs.includes(s.type));
+        this.status = this.status.filter(s => !buffs.includes(s.type));
+        return has;
+    }
+
+    tickStatus() {
+        let log = [];
+        if (this.hasStatus('POISON')) {
+            const d = this.takeDamage(35, false, false, null);
+            UI.floatText(this, d, 'ft-dmg');
+            log.push(`☠️ [${this.name}] 독 피해 -${d}`);
+        }
+        if (this.hasStatus('BURN')) {
+            const d = this.takeDamage(20, false, false, null);
+            UI.floatText(this, d, 'ft-dmg');
+            log.push(`🔥 [${this.name}] 화상 피해 -${d}`);
+        }
+        if (this.hasStatus('TRAP')) {
+            const d = this.takeDamage(40, false, false, null);
+            UI.floatText(this, d, 'ft-dmg');
+            log.push(`⏳ [${this.name}] 모래지옥 -${d}`);
+        }
+        return log;
+    }
+    decayStatus() {
+        this.status.forEach(s => s.turn--);
+        this.status = this.status.filter(s => s.turn > 0);
+    }
+    heal(amount) {
+        if (this.hasStatus('HEAL_DOWN')) amount = Math.floor(amount * 0.4);
+        const prev = this.hp;
+        this.hp = Math.min(this.maxHp, this.hp + amount);
+        const diff = this.hp - prev;
+        if (diff > 0) {
+            UI.floatText(this, diff, 'ft-heal');
+        }
+        return diff;
+    }
 }
 
 const AudioSys = { ctx: null, isMuted: false, init: function() { if(this.ctx) return; try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }, resume: function() { if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); }, toggleMute: function() { this.isMuted = !this.isMuted; const btn = document.getElementById('btn-mute'); if(this.isMuted) { btn.innerHTML = '🔇'; btn.classList.add('muted'); } else { btn.innerHTML = '🔊'; btn.classList.remove('muted'); } }, playSoft: function(freq, type, dur, vol=0.3) { if(!this.ctx || this.isMuted) return; const o=this.ctx.createOscillator(); const g=this.ctx.createGain(); const t=this.ctx.currentTime; o.type=type; o.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.05); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t+dur+0.1); }, play: function(type) { if(!this.ctx || this.isMuted) return; if(type==='HIT') { const rndFreq = 600 + (Math.random() * 100 - 50); this.playSoft(rndFreq,'triangle',0.1,0.4); } else if(type==='SKILL') { this.playSoft(500,'sine',0.15,0.3); setTimeout(()=>this.playSoft(800,'sine',0.2,0.3),100); } else if(type==='HEAL') { this.playSoft(500,'sine',0.2,0.3); setTimeout(()=>this.playSoft(700,'sine',0.3,0.3),150); } else if(type==='DEBUFF') { this.playSoft(300,'triangle',0.2,0.35); setTimeout(()=>this.playSoft(200,'triangle',0.2,0.35), 150); } else if(type==='MISS') this.playSoft(900,'square',0.05,0.2); else if(type==='WIN') { setTimeout(()=>this.playSoft(523,'sine',0.2,0.5),0); setTimeout(()=>this.playSoft(659,'sine',0.2,0.5),200); setTimeout(()=>this.playSoft(784,'sine',0.4,0.5),400); } else if(type==='POWER_UP') { this.playSoft(440,'sine',0.2,0.35); setTimeout(()=>this.playSoft(554,'sine',0.2,0.35), 100); setTimeout(()=>this.playSoft(659,'sine',0.3,0.35), 200); } else if(type==='CRITICAL') { this.playSoft(150,'triangle',0.1,0.6); setTimeout(()=>this.playSoft(880,'sine',0.3,0.7), 50); } } };
-const UI = { showModal: function(title, content) { document.getElementById('modal-overlay').style.display = 'flex'; document.getElementById('modal-body').innerHTML = `<h3 style="color:#ff80ab; margin-top:0;">${title}</h3><div>${content}</div>`; }, closeModal: function() { document.getElementById('modal-overlay').style.display = 'none'; }, showGuide: function() { let heroList = ''; const guideOrder = [ 'Fire', 'Water', 'Tree', 'Metal', 'Earth', 'Light', 'Dark', 'Light-Light', 'Dark-Dark', 'Normal', 'Fire-Light', 'Fire-Dark', 'Water-Light', 'Water-Dark', 'Tree-Light', 'Tree-Dark', 'Earth-Light', 'Earth-Dark', 'Metal-Light', 'Metal-Dark' ]; guideOrder.forEach(k => { const s = SKILL_DB[k]; let name = ''; if(k === 'Normal') name = NAME_MAP['Normal']; else { const parts = k.split('-'); if(parts.length===2) name = NAME_MAP[k] || k; else name = `${ATTR[k].n}(기초)`; } const base = k.split('-')[0] === 'Normal' ? 'Normal' : k.split('-')[0]; let icon = s.icon; let bg = `bg-${base}`; if (k.includes('-') && k.split('-')[0] === k.split('-')[1]) bg = `bg-${base}-Enhanced`; if (k === 'Normal') bg = 'bg-Normal'; heroList += `<div class="guide-item"> <div class="guide-icon ${bg}" style="color:#fff;">${icon}</div> <div class="guide-info"> <div class="guide-name">${name}</div> <div class="guide-desc">${s.desc}</div> <div style="font-size:10px; color:#555; margin-top:2px;"> <div>S1: ${s.s1} (${s.s1d})</div> <div>S2: ${s.s2} (${s.s2d})</div> </div> </div> </div>`; }); const content = `<div class="tab-header"> <button class="tab-btn active" onclick="UI.switchTab(0)">📊 상성표</button> <button class="tab-btn" onclick="UI.switchTab(1)">📖 도감</button> </div> <div id="tab-0" class="tab-content active"> <table class="chart-table"> <tr><th>공격자</th><th>유리한 대상 (1.2배)</th></tr> <tr><td>🔥 불</td><td>⚔️ 쇠, 🌿 나무</td></tr> <tr><td>💧 물</td><td>🔥 불, ⚔️ 쇠</td></tr> <tr><td>🌿 나무</td><td>💧 물, ⛰️ 흙</td></tr> <tr><td>⚔️ 쇠</td><td>🌿 나무, ⛰️ 흙</td></tr> <tr><td>⛰️ 흙</td><td>🔥 불, 💧 물</td></tr> <tr><td>☀️/🌙</td><td>서로에게 1.2배</td></tr> <tr><td>🎲 노말</td><td>노말(자신), 강화된 빛/어둠</td></tr> </table> <div class="dual-chart"> <div style="font-weight:bold; color:#00cec9; margin-bottom:5px;">⚡ 이중 상성 (1.3배 치명타)</div> <div class="dual-row" style='font-size:12px; color:#666;'>기초 속성 우위 + 빛/어둠이 상대와 반대일 때</div> </div> </div> <div id="tab-1" class="tab-content" style="max-height: 50vh; overflow-y:auto;"> ${heroList} </div>`; this.showModal("📘 가이드북", content); }, switchTab: function(idx) { document.querySelectorAll('.tab-btn').forEach((b, i) => { if(i===idx) b.classList.add('active'); else b.classList.remove('active'); }); document.querySelectorAll('.tab-content').forEach((c, i) => { if(i===idx) c.classList.add('active'); else c.classList.remove('active'); }); }, floatText: function(unit, text, type) { const id = unit.team === 0 ? `p-card-${unit.id}` : `e-card-${unit.id}`; const unitEl = document.getElementById(id); if(!unitEl) return; const el = document.createElement('div'); el.className = `float-text ${type}`; el.innerText = type === 'ft-heal' ? `+${text}` : text; const rect = unitEl.getBoundingClientRect(); const randomX = (Math.random() - 0.5) * 40; const randomY = (Math.random() - 0.5) * 20; el.style.left = (rect.left + rect.width / 2 + window.scrollX + randomX) + 'px'; el.style.top = (rect.top + window.scrollY + randomY) + 'px'; document.body.appendChild(el); setTimeout(() => el.remove(), 800); }, flash: function() { const f = document.getElementById('flash-overlay'); f.style.opacity = 0.6; setTimeout(() => f.style.opacity = 0, 100); }, screenShake: function() { document.body.classList.remove('screen-shake'); void document.body.offsetWidth; document.body.classList.add('screen-shake'); }, showTurnBanner: function(isPlayerTurn) { const banner = document.getElementById('turn-banner'); if (isPlayerTurn) { banner.style.background = 'linear-gradient(90deg, transparent, rgba(33, 150, 243, 0.8), transparent)'; banner.innerHTML = "⚔️ 아군 턴 (Player Turn)"; } else { banner.style.background = 'linear-gradient(90deg, transparent, rgba(255, 87, 34, 0.8), transparent)'; banner.innerHTML = "👹 적군 턴 (Enemy Turn)"; } banner.style.animation = 'none'; void banner.offsetWidth; const duration = Game.turnCount > 5 ? '0.6s' : '1.2s'; banner.style.animation = `banner-swipe ${duration} cubic-bezier(0.22, 1, 0.36, 1) forwards`; }, showResult: function(winnerTeamStr) { const allUnits = [...Game.pTeam, ...Game.eTeam]; const maxDmg = Math.max(...allUnits.map(u => u.stats.dmg), 1); const maxHeal = Math.max(...allUnits.map(u => u.stats.heal + u.stats.shieldGiven), 1); let html = `<h2 style="color:${winnerTeamStr.includes('아군')?'#80deea':'#ffcc80'}">${winnerTeamStr} 승리! 🎉</h2>`; html += `<div style="max-height:50vh; overflow-y:auto; text-align:left;">`; const mvp = allUnits.sort((a,b)=>(b.stats.dmg+b.stats.heal+b.stats.shieldGiven)-(a.stats.dmg+a.stats.heal+a.stats.shieldGiven))[0]; const renderBar = (u) => { const dmgPct = (u.stats.dmg / maxDmg) * 100; const healPct = ((u.stats.heal + u.stats.shieldGiven) / maxHeal) * 100; const isMVP = u.id === mvp.id; return `<div style="margin-bottom:12px; padding:10px; background:${u.team===0?'#e0f7fa':'#fff3e0'}; border-radius:15px; border:2px solid #fff; position:relative; box-shadow:0 2px 5px rgba(0,0,0,0.05);"> ${isMVP ? '<span style="position:absolute; top:-5px; right:-5px; font-size:24px;">👑</span>' : ''} <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;"> <div class="attr-icon" style="width:28px; height:28px; font-size:16px; background:${ATTR[u.base].c}">${SKILL_DB[u.getKey()].icon || ATTR[u.base].i}</div> <div style="font-weight:bold; font-size:14px; color:#555;">${u.name.split(' ')[0]}</div> </div> <div style="display:flex; align-items:center; font-size:11px; margin-bottom:4px;"> <span style="width:30px; color:#888;">딜</span> <div style="flex:1; background:#fff; height:10px; border-radius:5px; overflow:hidden;"> <div style="width:${dmgPct}%; background:#ff8a80; height:100%;"></div> </div> <span style="width:35px; text-align:right; font-weight:bold; color:#ff8a80;">${u.stats.dmg}</span> </div> <div style="display:flex; align-items:center; font-size:11px;"> <span style="width:30px; color:#888;">힐</span> <div style="flex:1; background:#fff; height:10px; border-radius:5px; overflow:hidden;"> <div style="width:${healPct}%; background:#4db6ac; height:100%;"></div> </div> <span style="width:35px; text-align:right; font-weight:bold; color:#4db6ac;">${u.stats.heal + u.stats.shieldGiven}</span> </div> </div>`; }; html += `<h4 style="margin:5px 0; color:#80deea;">💙 팀 1 (Player)</h4>`; Game.pTeam.forEach(u => html += renderBar(u)); html += `<h4 style="margin:15px 0 5px; color:#ffcc80;">🧡 팀 2 (Enemy/2P)</h4>`; Game.eTeam.forEach(u => html += renderBar(u)); html += `</div>`; document.getElementById('modal-overlay').style.display = 'flex'; document.getElementById('modal-body').innerHTML = html; }, checkMode: function() { Game.checkMode(); } };
+const UI = { 
+    showModal: function(title, content) { document.getElementById('modal-overlay').style.display = 'flex'; document.getElementById('modal-body').innerHTML = `<h3 style="color:#ff80ab; margin-top:0;">${title}</h3><div>${content}</div>`; }, 
+    closeModal: function() { document.getElementById('modal-overlay').style.display = 'none'; },
+    
+    // [UI 개선] 온라인 코드 입력 모달
+    openOnlineModal: function() {
+        if (!socket || !socket.connected) {
+            alert("⚠️ 서버와 연결되지 않았습니다.\n(오프라인 모드에서는 AI와 대결하세요)");
+            return;
+        }
+        if (Game.selected.length !== 3) { alert("먼저 영웅 3명을 선택해주세요!"); return; }
+        
+        const content = `
+            <div style="text-align:center;">
+                <p style="color:#555; margin-bottom:15px;">친구와 공유할 방 코드를 입력하세요.<br>(예: 1234, 우리집, apple)</p>
+                <input type="text" id="modal-room-code" placeholder="방 코드 입력" 
+                    style="font-size:20px; padding:15px; width:80%; text-align:center; border-radius:15px; border:2px solid #ddd; outline:none; font-weight:bold; color:#7e57c2;">
+                <button id="modal-submit-btn" onclick="Game.submitOnline()" 
+                    style="width:100%; margin-top:20px; padding:15px; background:#7e57c2; color:white; border:none; border-radius:15px; font-weight:bold; cursor:pointer; font-size:18px;">
+                    입장하기 🚀
+                </button>
+            </div>
+        `;
+        this.showModal("🌐 온라인 매칭", content);
+        setTimeout(() => document.getElementById('modal-room-code').focus(), 100);
+    },
+    
+    showGuide: function() { let heroList = ''; const guideOrder = [ 'Fire', 'Water', 'Tree', 'Metal', 'Earth', 'Light', 'Dark', 'Light-Light', 'Dark-Dark', 'Normal', 'Fire-Light', 'Fire-Dark', 'Water-Light', 'Water-Dark', 'Tree-Light', 'Tree-Dark', 'Earth-Light', 'Earth-Dark', 'Metal-Light', 'Metal-Dark' ]; guideOrder.forEach(k => { const s = SKILL_DB[k]; let name = ''; if(k === 'Normal') name = NAME_MAP['Normal']; else { const parts = k.split('-'); if(parts.length===2) name = NAME_MAP[k] || k; else name = `${ATTR[k].n}(기초)`; } const base = k.split('-')[0] === 'Normal' ? 'Normal' : k.split('-')[0]; let icon = s.icon; let bg = `bg-${base}`; if (k.includes('-') && k.split('-')[0] === k.split('-')[1]) bg = `bg-${base}-Enhanced`; if (k === 'Normal') bg = 'bg-Normal'; heroList += `<div class="guide-item"> <div class="guide-icon ${bg}" style="color:#fff;">${icon}</div> <div class="guide-info"> <div class="guide-name">${name}</div> <div class="guide-desc">${s.desc}</div> <div style="font-size:10px; color:#555; margin-top:2px;"> <div>S1: ${s.s1} (${s.s1d})</div> <div>S2: ${s.s2} (${s.s2d})</div> </div> </div> </div>`; }); const content = `<div class="tab-header"> <button class="tab-btn active" onclick="UI.switchTab(0)">📊 상성표</button> <button class="tab-btn" onclick="UI.switchTab(1)">📖 도감</button> </div> <div id="tab-0" class="tab-content active"> <table class="chart-table"> <tr><th>공격자</th><th>유리한 대상 (1.2배)</th></tr> <tr><td>🔥 불</td><td>⚔️ 쇠, 🌿 나무</td></tr> <tr><td>💧 물</td><td>🔥 불, ⚔️ 쇠</td></tr> <tr><td>🌿 나무</td><td>💧 물, ⛰️ 흙</td></tr> <tr><td>⚔️ 쇠</td><td>🌿 나무, ⛰️ 흙</td></tr> <tr><td>⛰️ 흙</td><td>🔥 불, 💧 물</td></tr> <tr><td>☀️/🌙</td><td>서로에게 1.2배</td></tr> <tr><td>🎲 노말</td><td>노말(자신), 강화된 빛/어둠</td></tr> </table> <div class="dual-chart"> <div style="font-weight:bold; color:#00cec9; margin-bottom:5px;">⚡ 이중 상성 (1.3배 치명타)</div> <div class="dual-row" style='font-size:12px; color:#666;'>기초 속성 우위 + 빛/어둠이 상대와 반대일 때</div> </div> </div> <div id="tab-1" class="tab-content" style="max-height: 50vh; overflow-y:auto;"> ${heroList} </div>`; this.showModal("📘 가이드북", content); }, switchTab: function(idx) { document.querySelectorAll('.tab-btn').forEach((b, i) => { if(i===idx) b.classList.add('active'); else b.classList.remove('active'); }); document.querySelectorAll('.tab-content').forEach((c, i) => { if(i===idx) c.classList.add('active'); else c.classList.remove('active'); }); }, floatText: function(unit, text, type) { const id = unit.team === 0 ? `p-card-${unit.id}` : `e-card-${unit.id}`; const unitEl = document.getElementById(id); if(!unitEl) return; const el = document.createElement('div'); el.className = `float-text ${type}`; el.innerText = type === 'ft-heal' ? `+${text}` : text; const rect = unitEl.getBoundingClientRect(); const randomX = (Math.random() - 0.5) * 40; const randomY = (Math.random() - 0.5) * 20; el.style.left = (rect.left + rect.width / 2 + window.scrollX + randomX) + 'px'; el.style.top = (rect.top + window.scrollY + randomY) + 'px'; document.body.appendChild(el); setTimeout(() => el.remove(), 800); }, flash: function() { const f = document.getElementById('flash-overlay'); f.style.opacity = 0.6; setTimeout(() => f.style.opacity = 0, 100); }, screenShake: function() { document.body.classList.remove('screen-shake'); void document.body.offsetWidth; document.body.classList.add('screen-shake'); }, showTurnBanner: function(isPlayerTurn) { const banner = document.getElementById('turn-banner'); if (isPlayerTurn) { banner.style.background = 'linear-gradient(90deg, transparent, rgba(33, 150, 243, 0.8), transparent)'; banner.innerHTML = "⚔️ 아군 턴 (Player Turn)"; } else { banner.style.background = 'linear-gradient(90deg, transparent, rgba(255, 87, 34, 0.8), transparent)'; banner.innerHTML = "👹 적군 턴 (Enemy Turn)"; } banner.style.animation = 'none'; void banner.offsetWidth; const duration = Game.turnCount > 5 ? '0.6s' : '1.2s'; banner.style.animation = `banner-swipe ${duration} cubic-bezier(0.22, 1, 0.36, 1) forwards`; }, showResult: function(winnerTeamStr) { const allUnits = [...Game.pTeam, ...Game.eTeam]; const maxDmg = Math.max(...allUnits.map(u => u.stats.dmg), 1); const maxHeal = Math.max(...allUnits.map(u => u.stats.heal + u.stats.shieldGiven), 1); let html = `<h2 style="color:${winnerTeamStr.includes('아군')?'#80deea':'#ffcc80'}">${winnerTeamStr} 승리! 🎉</h2>`; html += `<div style="max-height:50vh; overflow-y:auto; text-align:left;">`; const mvp = allUnits.sort((a,b)=>(b.stats.dmg+b.stats.heal+b.stats.shieldGiven)-(a.stats.dmg+a.stats.heal+a.stats.shieldGiven))[0]; const renderBar = (u) => { const dmgPct = (u.stats.dmg / maxDmg) * 100; const healPct = ((u.stats.heal + u.stats.shieldGiven) / maxHeal) * 100; const isMVP = u.id === mvp.id; return `<div style="margin-bottom:12px; padding:10px; background:${u.team===0?'#e0f7fa':'#fff3e0'}; border-radius:15px; border:2px solid #fff; position:relative; box-shadow:0 2px 5px rgba(0,0,0,0.05);"> ${isMVP ? '<span style="position:absolute; top:-5px; right:-5px; font-size:24px;">👑</span>' : ''} <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;"> <div class="attr-icon" style="width:28px; height:28px; font-size:16px; background:${ATTR[u.base].c}">${SKILL_DB[u.getKey()].icon || ATTR[u.base].i}</div> <div style="font-weight:bold; font-size:14px; color:#555;">${u.name.split(' ')[0]}</div> </div> <div style="display:flex; align-items:center; font-size:11px; margin-bottom:4px;"> <span style="width:30px; color:#888;">딜</span> <div style="flex:1; background:#fff; height:10px; border-radius:5px; overflow:hidden;"> <div style="width:${dmgPct}%; background:#ff8a80; height:100%;"></div> </div> <span style="width:35px; text-align:right; font-weight:bold; color:#ff8a80;">${u.stats.dmg}</span> </div> <div style="display:flex; align-items:center; font-size:11px;"> <span style="width:30px; color:#888;">힐</span> <div style="flex:1; background:#fff; height:10px; border-radius:5px; overflow:hidden;"> <div style="width:${healPct}%; background:#4db6ac; height:100%;"></div> </div> <span style="width:35px; text-align:right; font-weight:bold; color:#4db6ac;">${u.stats.heal + u.stats.shieldGiven}</span> </div> </div>`; }; html += `<h4 style="margin:5px 0; color:#80deea;">💙 팀 1 (Player)</h4>`; Game.pTeam.forEach(u => html += renderBar(u)); html += `<h4 style="margin:15px 0 5px; color:#ffcc80;">🧡 팀 2 (Enemy/2P)</h4>`; Game.eTeam.forEach(u => html += renderBar(u)); html += `</div>`; document.getElementById('modal-overlay').style.display = 'flex'; document.getElementById('modal-body').innerHTML = html; }, checkMode: function() { Game.checkMode(); } };
 
 const Game = {
     pool: [], selected: [], pTeam: [], eTeam: [], queue: [], curr: 0, selectedSkillIdx: -1, timer: null, turnCount: 1, difficulty: 'normal', watchdog: null, isOver: false, mode: 'pve', isProcessing: false, challengeStage: 0,
@@ -1038,14 +1202,32 @@ const Game = {
         const allCombos = [ {b:'Metal', e:null}, {b:'Tree', e:null}, {b:'Fire', e:'Light'}, {b:'Water', e:'Light'}, {b:'Fire', e:null}, {b:'Normal', e:null}, {b:'Fire', e:'Dark'}, {b:'Metal', e:'Dark'}, {b:'Earth', e:'Dark'}, {b:'Earth', e:null}, {b:'Water', e:'Dark'}, {b:'Metal', e:'Light'}, {b:'Earth', e:'Light'}, {b:'Tree', e:'Dark'}, {b:'Water', e:null}, {b:'Tree', e:'Light'}, {b:'Light', e:null}, {b:'Light', e:'Light'}, {b:'Dark', e:null}, {b:'Dark', e:'Dark'} ];
         allCombos.forEach((c, i) => { const u = new Unit(i, 0, c.b, c.e); this.pool.push(u); });
         this.renderHeroSelection();
-        document.getElementById('btn-start').innerText = "전투 시작 (0/3)"; document.getElementById('btn-start').disabled = true;
-        const btnOnline = document.getElementById('btn-online'); if(btnOnline) { btnOnline.disabled = false; btnOnline.innerText = "🌐 온라인 대전 (매칭 시작)"; btnOnline.style.backgroundColor = '#7e57c2'; }
+        document.getElementById('btn-start').innerText = "⚔️ 전투 시작 (0/3)"; document.getElementById('btn-start').disabled = true;
+        
+        // [UI 개선] 온라인 버튼은 항상 활성화, 클릭 시 모달 처리
+        const btnOnline = document.getElementById('btn-online'); 
+        if(btnOnline) { btnOnline.style.backgroundColor = '#7e57c2'; }
+        
         this.checkMode(); 
     },
+    
+    // [UI 개선] 모달에서 코드 입력 후 실행되는 함수
+    submitOnline: function() {
+        const codeInput = document.getElementById('modal-room-code');
+        const code = codeInput.value.trim();
+        if (!code) { alert("방 코드를 입력해주세요!"); codeInput.focus(); return; }
+        
+        const btn = document.getElementById('modal-submit-btn');
+        if(btn.innerText.includes('대기 중')) return;
+        btn.disabled = true; btn.innerText = "📡 서버 통신 중...";
+        
+        startOnlineGame(code);
+    },
+    
     renderHeroSelection: function() { const grid = document.getElementById('hero-grid'); grid.innerHTML = ''; grid.style.display = 'block'; grid.style.overflowY = 'auto'; const categories = [ { name: "🛡️ 탱커 (Tank)", range: [0, 3], color: "#e3f2fd", border: "#90caf9" }, { name: "⚔️ 딜러 (Dealer)", range: [4, 13], color: "#ffebee", border: "#ef9a9a" }, { name: "🧩 지원 (Support)", range: [14, 19], color: "#f1f8e9", border: "#a5d6a7" } ]; categories.forEach(cat => { const header = document.createElement('div'); header.style.cssText = `width:100%; padding:8px; background:${cat.color}; border-left:5px solid ${cat.border}; font-weight:bold; margin-top:10px; border-radius:5px; color:#455a64; text-align:left; box-sizing:border-box;`; header.innerText = cat.name; grid.appendChild(header); const container = document.createElement('div'); container.style.cssText = "display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; padding:10px 0;"; for(let i = cat.range[0]; i <= cat.range[1]; i++) { const u = this.pool[i]; const el = document.createElement('div'); el.className = 'hero-card'; el.id = `card-${i}`; el.innerHTML = this.renderCard(u); el.onclick = () => { this.toggle(i, el); }; container.appendChild(el); } grid.appendChild(container); }); },
     renderCard: function(u) { let bgClass = `bg-${u.base}`; if(u.isEnhanced) bgClass = `bg-${u.base}-Enhanced`; if(u.isNormal) bgClass = 'bg-Normal'; const info = SKILL_DB[u.getKey()]; const icon = info.icon || ''; return `<div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div><div style="font-weight:bold; margin-bottom:2px; font-size:15px;">${u.name.split(' ')[0]}</div><div style="font-size:11px; color:#999;">${u.name}</div><div style="margin-top:8px; font-size:11px; background:#f5f5f5; padding:4px 8px; border-radius:10px; border:1px solid #eee;">${info.desc}</div>`; },
-    toggle: function(i, el) { if (!el) el = document.getElementById(`card-${i}`); if(this.selected.includes(i)) { this.selected = this.selected.filter(x=>x!==i); el.classList.remove('selected'); } else { if(this.selected.length >= 3) { el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 500); return; } this.selected.push(i); el.classList.add('selected'); } const count = this.selected.length; const btn = document.getElementById('btn-start'); btn.innerText = `전투 시작 (${count}/3)`; btn.disabled = count !== 3; },
-    randomPick: function() { Game.selected.forEach(i => { const el = document.querySelectorAll('.hero-card')[i]; if(el) el.classList.remove('selected'); }); Game.selected = []; while(Game.selected.length < 3) { const r = Math.floor(Math.random() * 20); if(!Game.selected.includes(r)) { Game.selected.push(r); const el = document.querySelectorAll('.hero-card')[r]; if(el) el.classList.add('selected'); } } const btn = document.getElementById('btn-start'); btn.innerText = `전투 시작 (3/3)`; btn.disabled = false; },
+    toggle: function(i, el) { if (!el) el = document.getElementById(`card-${i}`); if(this.selected.includes(i)) { this.selected = this.selected.filter(x=>x!==i); el.classList.remove('selected'); } else { if(this.selected.length >= 3) { el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 500); return; } this.selected.push(i); el.classList.add('selected'); } const count = this.selected.length; const btn = document.getElementById('btn-start'); btn.innerText = `⚔️ 전투 시작 (${count}/3)`; btn.disabled = count !== 3; },
+    randomPick: function() { Game.selected.forEach(i => { const el = document.querySelectorAll('.hero-card')[i]; if(el) el.classList.remove('selected'); }); Game.selected = []; while(Game.selected.length < 3) { const r = Math.floor(Math.random() * 20); if(!Game.selected.includes(r)) { Game.selected.push(r); const el = document.querySelectorAll('.hero-card')[r]; if(el) el.classList.add('selected'); } } const btn = document.getElementById('btn-start'); btn.innerText = `⚔️ 전투 시작 (3/3)`; btn.disabled = false; },
     checkMode: function() { const diff = document.getElementById('diff-select').value; const statusEl = document.getElementById('challenge-status'); if (diff === 'hell') { statusEl.style.display = 'block'; const savedStage = localStorage.getItem('et_challenge_stage'); let maxStage = savedStage ? parseInt(savedStage) : 0; if (maxStage >= ChallengeDB.length) maxStage = ChallengeDB.length - 1; if(this.challengeStage > maxStage) this.challengeStage = maxStage; const select = document.getElementById('stage-select'); select.innerHTML = ''; ChallengeDB.forEach((st, i) => { if (i <= maxStage) { const opt = document.createElement('option'); opt.value = i; opt.text = `${i+1}. ${st.name}`; if (i === this.challengeStage) opt.selected = true; select.appendChild(opt); } }); this.updateStageInfo(); } else { statusEl.style.display = 'none'; } },
     selectStage: function() { const select = document.getElementById('stage-select'); this.challengeStage = parseInt(select.value); this.updateStageInfo(); },
     updateStageInfo: function() { const stage = ChallengeDB[this.challengeStage]; if (stage) { document.getElementById('stage-desc').innerText = `[${stage.name}] ${stage.desc}`; } },
@@ -1143,13 +1325,10 @@ const Game = {
         this.render(); const delay = isFast ? 100 : 1500; this.timer = setTimeout(()=>this.turn(), delay);
     },
 
-    // [Refactored Execute Function]
     execute: function(atk, def, sIdx, isRemote = false) {
         document.querySelectorAll('.unit').forEach(el=>el.onclick=null);
         if (isOnlineMode && !isRemote) { 
             if (atk.team !== 0) { alert("내 유닛이 아닙니다!"); return; } 
-            
-            // [수정] 전역 변수 초기화 (이번 턴의 새로운 난수를 담기 위해)
             netRndBuffer = []; 
         }
         
@@ -1157,10 +1336,7 @@ const Game = {
         const logic = SKILL_LOGIC[key];
         
         if (!logic) { console.error(`Logic missing for ${key}`); return; }
-        
-        // Execute the strategy
         const playedSound = logic.useSkill(atk, def, sIdx, this);
-        
         if (!playedSound) AudioSys.play('SKILL');
         
         if (isOnlineMode && !isRemote) { socket.emit('action', { room: myRoom, attackerId: atk.id, attackerTeam: atk.team, targetId: def ? def.id : null, targetTeam: def ? def.team : null, skillIdx: sIdx, rndBuffer: netRndBuffer }); }
@@ -1171,7 +1347,7 @@ const Game = {
         if(this.timer) clearTimeout(this.timer); if(this.watchdog) clearTimeout(this.watchdog); UI.closeModal();
         document.getElementById('battle-screen').style.display='none'; document.getElementById('selection-screen').style.display='flex';
         document.querySelectorAll('.hero-card.selected').forEach(el => el.classList.remove('selected')); this.selected = [];
-        document.getElementById('btn-start').innerText = "전투 시작 (0/3)"; document.getElementById('btn-start').disabled = true;
+        document.getElementById('btn-start').innerText = "⚔️ 전투 시작 (0/3)"; document.getElementById('btn-start').disabled = true;
         this.init(); 
     },
     recordStat: function(unit, type, amount) { if(!unit || amount <= 0) return; if(type === 'dmg') unit.stats.dmg += amount; if(type === 'shield') unit.stats.shieldGiven += amount; if(type === 'heal') unit.stats.heal += amount; },
@@ -1203,49 +1379,35 @@ const Game = {
         const k = u.getKey(); 
         const s = SKILL_DB[k];
         let targetType = 'ENEMY';
-        
         if (idx === 0) { targetType = 'ENEMY'; } 
         else if (idx === 1) { 
             if (['Tree'].includes(k)) targetType = 'SELF'; 
             else if (['Tree-Dark', 'Water-Light', 'Metal-Light'].includes(k)) targetType = 'ENEMY'; 
-            // [Fix] 청염 S1을 ANY_ALLY로 설정하여 아무 아군이나 눌러도 발동되게 변경 (기존 SELF는 본인만 눌러야 해서 UX 혼란)
             else if (['Fire-Light'].includes(k)) targetType = 'ANY_ALLY'; 
             else targetType = 'ENEMY'; 
         } 
         else if (idx === 2) { targetType = s.target; }
-        
         this.highlightTargets(targetType, u);
     },
     highlightTargets: function(targetType, actingUnit) {
         if (!actingUnit) { const tVal = this.queue[this.curr]; actingUnit = tVal%2===0 ? this.pTeam[tVal/2] : this.eTeam[(tVal-1)/2]; }
         document.querySelectorAll('.unit').forEach(el => { el.classList.remove('target-enemy', 'target-ally', 'target-aoe'); el.onclick = null; });
-        
         const isAOE = ['ALL_ENEMY', 'ALL_ALLY', 'AOE'].includes(targetType); 
-        // ANY_ALLY 추가: 아군 전체 대상이지만 클릭 트리거가 필요한 경우
         const isAllyTarget = ['ALLY','ALL_ALLY','SELF','SELF_BUFF', 'ANY_ALLY'].includes(targetType);
-        
         const myTeam = actingUnit.team === 0 ? this.pTeam : this.eTeam; 
         const oppTeam = actingUnit.team === 0 ? this.eTeam : this.pTeam;
         const targets = isAllyTarget ? myTeam : oppTeam;
-        
         let targetClass = isAllyTarget ? 'target-ally' : 'target-enemy'; 
         if (isAOE && !isAllyTarget) targetClass = 'target-aoe'; 
-        
         targets.forEach((t) => { 
             if(!t.isDead) { 
-                // Tree-Dark 예외처리 유지
                 if (actingUnit.getKey() === 'Tree-Dark' && this.selectedSkillIdx === 2 && t.id === actingUnit.id) return; 
-                
                 const el = document.getElementById(t.team === 0 ? `p-card-${t.id}` : `e-card-${t.id}`); 
                 el.classList.add(targetClass); 
-                
                 el.onclick = () => { 
                     if (Game.isProcessing) return; 
                     Game.isProcessing = true; 
-                    
-                    // SELF일 경우 본인이 아니면 리턴
                     if(targetType === 'SELF' && t.id !== actingUnit.id) return; 
-                    
                     this.noInput(); 
                     document.querySelectorAll('.unit').forEach(el => el.classList.remove('target-enemy', 'target-ally', 'target-aoe')); 
                     this.execute(actingUnit, t, this.selectedSkillIdx); 
@@ -1254,32 +1416,100 @@ const Game = {
         });
     },
 
+    // [AI 강화] Super Smart AI 적용
     ai: function(u) {
         if (isOnlineMode || this.difficulty === 'local' || this.difficulty === 'pvp') return;
+
         try {
-            const silenced = u.hasStatus('SILENCE'); const provoked = u.status.find(st => st.type.startsWith('PROVOKED_BY_'));
-            if(provoked) { const targetId = parseInt(provoked.type.split('_')[2]); const target = this.pTeam.find(p => p.id === targetId) || this.eTeam.find(e => e.id === targetId); if(!target || target.isDead) { u.status = u.status.filter(s => !s.type.startsWith('PROVOKED')); this.render(); } else { this.execute(u, target, 0); return; } }
-            const enemies = u.team === 0 ? this.eTeam : this.pTeam; const aliveEnemies = enemies.filter(e => !e.isDead); if (aliveEnemies.length === 0) { this.endTurn(); return; }
-            let skillIdx = 0; const rnd = this.netRandom(); if (!silenced) { if (rnd > 0.7) skillIdx = 2; else if (rnd > 0.4) skillIdx = 1; }
-            const k = u.getKey(); const s = SKILL_DB[k]; let potentialTargets = aliveEnemies;
-            if (skillIdx === 2) { const isAllySkill = ['ALLY', 'ALL_ALLY', 'SELF', 'SELF_BUFF'].includes(s.target) || ['HEAL', 'BUFF', 'TARGET_BUFF'].includes(s.type); if (isAllySkill) { const allies = u.team === 0 ? this.pTeam : this.eTeam; potentialTargets = allies.filter(a => !a.isDead); if (s.type === 'HEAL' || k === 'Water') { potentialTargets.sort((a,b) => (a.hp/a.maxHp) - (b.hp/b.maxHp)); if(potentialTargets.length > 0) potentialTargets = [potentialTargets[0]]; } } }
-            if (skillIdx === 1) { if (['Tree', 'Fire-Light'].includes(k)) potentialTargets = [u]; }
-            let target = potentialTargets[Math.floor(this.netRandom() * potentialTargets.length)];
-            
-            // [Fix] AI Safety: If no target found, skip turn instead of crashing
-            if (!target) { 
-                if (skillIdx !== 0) { // Fallback to basic attack
-                    skillIdx = 0; 
-                    target = aliveEnemies[Math.floor(this.netRandom() * aliveEnemies.length)];
-                }
-                if (!target) {
-                    this.log("AI: 타겟 없음, 턴 종료"); 
-                    this.endTurn(); 
-                    return; 
-                }
+            const enemies = u.team === 0 ? this.eTeam : this.pTeam;
+            const allies = u.team === 0 ? this.pTeam : this.eTeam;
+            const aliveEnemies = enemies.filter(e => !e.isDead);
+            const aliveAllies = allies.filter(a => !a.isDead);
+            if (aliveEnemies.length === 0) { this.endTurn(); return; }
+
+            const provoked = u.status.find(st => st.type.startsWith('PROVOKED_BY_'));
+            if(provoked) {
+                const targetId = parseInt(provoked.type.split('_')[2]);
+                const target = enemies.find(e => e.id === targetId) || allies.find(p => p.id === targetId);
+                if(target && !target.isDead) { this.execute(u, target, 0); return; }
             }
-            this.execute(u, target, skillIdx);
-        } catch (e) { console.error(e); this.endTurn(); }
+
+            const silenced = u.hasStatus('SILENCE');
+            const k = u.getKey(); const s = SKILL_DB[k];
+            let actions = [];
+
+            const getEnemyScore = (target) => {
+                if (!target) return -999;
+                let score = 0;
+                const baseDmg = Math.floor(u.getAtk() * Game.calc(u, target).v);
+                if (target.hp <= baseDmg) score += 1000; 
+                const tInfo = SKILL_DB[target.getKey()];
+                if (tInfo.role === 'supp' || target.getKey().includes('Water')) score += 50; 
+                if (tInfo.role === 'nuker' && target.hp < target.maxHp * 0.5) score += 40; 
+                if (Game.calc(u, target).v > 1.0) score += 30;
+                score += (1 - target.hp / target.maxHp) * 30;
+                return score;
+            };
+
+            const getAllyScore = (ally) => {
+                let score = 0;
+                const hpRatio = ally.hp / ally.maxHp;
+                if (hpRatio < 0.3) score += 200;       
+                else if (hpRatio < 0.6) score += 80;   
+                else if (hpRatio >= 0.9) score -= 50;  
+                if (ally.hasStatus('STUN') || ally.hasStatus('FREEZE') || ally.hasStatus('SLEEP')) score += 300; 
+                if (ally.hasStatus('SILENCE') || ally.hasStatus('POISON') || ally.hasStatus('BURN')) score += 50; 
+                return score;
+            };
+
+            aliveEnemies.forEach(e => {
+                actions.push({ idx: 0, target: e, score: getEnemyScore(e) });
+                if (!silenced) {
+                    [1, 2].forEach(sIdx => {
+                        const skillDesc = sIdx === 1 ? s.s1d : s.s2d;
+                        const skillType = sIdx === 2 ? s.type : 'DMG'; 
+                        if (skillType !== 'HEAL' && skillType !== 'BUFF' && skillType !== 'TARGET_BUFF' && s.role !== 'supp') {
+                            let skScore = getEnemyScore(e) + 10; 
+                            const match = skillDesc.match(/([\d.]+)배/);
+                            if (match && parseFloat(match[1]) > 1.0) skScore += (parseFloat(match[1]) - 1.0) * 50;
+                            const isCC = skillDesc.includes('기절') || skillDesc.includes('빙결') || skillDesc.includes('침묵');
+                            if (isCC) {
+                                if (e.hasStatus('STUN') || e.hasStatus('FREEZE')) skScore -= 100; 
+                                else if (e.hp > e.maxHp * 0.5) skScore += 60; 
+                            }
+                            actions.push({ idx: sIdx, target: e, score: skScore });
+                        }
+                    });
+                }
+            });
+
+            if (!silenced) {
+                [1, 2].forEach(sIdx => {
+                    const skillDesc = sIdx === 1 ? s.s1d : s.s2d;
+                    const isSupportSkill = s.role === 'supp' || s.type === 'HEAL' || s.type === 'BUFF' || s.type === 'TARGET_BUFF' || skillDesc.includes('힐') || skillDesc.includes('정화') || skillDesc.includes('쉴드');
+                    const isCleanse = skillDesc.includes('정화') || skillDesc.includes('해제'); 
+
+                    if (isSupportSkill) {
+                        aliveAllies.forEach(a => {
+                            if ((s.target === 'SELF' || s.target === 'SELF_BUFF') && a.id !== u.id) return;
+                            let supScore = getAllyScore(a);
+                            if (isCleanse && a.status.length === 0) supScore -= 30;
+                            if ((skillDesc.includes('힐') || s.type === 'HEAL') && a.hp >= a.maxHp * 0.9) supScore -= 100;
+                            actions.push({ idx: sIdx, target: a, score: supScore });
+                        });
+                    }
+                });
+            }
+
+            actions.sort((a, b) => b.score - a.score);
+            let best = actions[0];
+            if (!best || !best.target) { best = { idx: 0, target: aliveEnemies[Math.floor(this.netRandom() * aliveEnemies.length)] }; }
+
+            if (k === 'Tree' && best.idx === 1) best.target = u;
+            if (k === 'Fire-Light' && best.idx === 1) best.target = u;
+
+            this.execute(u, best.target, best.idx);
+        } catch (e) { console.error("Super Smart AI Error:", e); this.endTurn(); }
     },
 
     die: function(u) { 
@@ -1296,7 +1526,6 @@ const Game = {
             if(this.timer) clearTimeout(this.timer); 
             AudioSys.play('WIN'); 
             
-            // [Fix] Draw condition added
             if (pd && ed) {
                 UI.showResult("무승부 (Draw)");
             } else if (ed && this.difficulty === 'hell' && !pd) { 
