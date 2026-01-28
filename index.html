@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v11.0 Ultimate</title>
+    <title>Elemental Tactics: v12.0 Abyss Walker</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -661,6 +661,9 @@
         }
         /* 선공방어 면역 태그 스타일 */
         .tag.start-immunity { background: #00bcd4; color: #fff; border: 1px solid #80deea; box-shadow: 0 0 5px #00e5ff; }
+        /* [신규] 세뇌 관련 태그 스타일 */
+        .tag.mc-wait { background: #5e35b1; color: #fff; border: 1px solid #b39ddb; animation: jelly-bounce 2s infinite; }
+        .tag.mc-ready { background: #d500f9; color: #fff; border: 2px solid #ea80fc; box-shadow: 0 0 10px #d500f9; font-weight:900; }
 
         .bg-Fire { background: linear-gradient(135deg, #ff8a80, #ef5350); }
         .bg-Water { background: linear-gradient(135deg, #80d8ff, #29b6f6); }
@@ -861,7 +864,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v11.0 Ultimate (Unminified)</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v12.0 Abyss Walker</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -961,6 +964,40 @@ let isOnlineMode = false;
 let netRndBuffer = [];
 let netRndIdx = 0;
 let isReplaying = false;
+
+// [추가] 글로벌 에러 핸들러 (게임 멈춤 방지)
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+    console.error('⚠️ Global Error:', {
+        message: msg,
+        line: lineNo,
+        column: columnNo,
+        error: error
+    });
+    
+    // 게임이 이미 끝났거나, Game 객체가 없으면 무시
+    if (typeof Game === 'undefined' || Game.isOver) return false;
+
+    // 게임 중단 방지 (자동 복구 시도)
+    if (Game.timer) clearTimeout(Game.timer);
+    if (Game.watchdog) clearTimeout(Game.watchdog);
+    
+    // UI에 알림 표시 (Game.log가 있다면)
+    if (Game.log) {
+        Game.log("<span class='log-sys' style='color:red;'>⚠️ 오류 발생! 자동 복구(턴 넘기기) 시도 중...</span>");
+    }
+
+    // 1초 뒤 강제로 턴을 넘겨서 게임을 살림
+    setTimeout(() => {
+        try {
+            if (Game.endTurn) Game.endTurn();
+        } catch(e) {
+            console.error('Recovery failed:', e);
+            alert("심각한 오류가 발생했습니다. 새로고침 해주세요.");
+        }
+    }, 1000);
+    
+    return true; // 에러가 브라우저 콘솔에 빨갛게 도배되는 것을 방지
+};
 
 function getNetRandom() {
     if (isOnlineMode && isReplaying) return netRndBuffer[netRndIdx++] || Math.random();
@@ -1074,26 +1111,26 @@ const ATTR = { 'Fire':{i:'🔥', n:'불', c:'#e74c3c'}, 'Water':{i:'💧', n:'�
 const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light':'숲', 'Metal-Light':'독가스', 'Earth-Light':'모래', 'Water-Dark':'얼음', 'Fire-Dark':'검은불', 'Tree-Dark':'가시', 'Metal-Dark':'전기', 'Earth-Dark':'바위', 'Light-Light':'빛(강화)', 'Dark-Dark':'어둠(강화)', 'Normal':'노말' };
 
 const SKILL_DB = {
-    'Metal': { s1:'강철베기', s1d:'1.3배+30%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15/데미지X', type:'DEBUFF', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>최대피해 30% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 30%를 넘지 않습니다.' },
-    'Tree': { s1:'광합성', s1d:'공+18/쉴드+30(무한)', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'ALLY', role:'tank', icon:'🌳', desc:'성장형 탱커<br>자가성장 + 힐', passive:'🌿 성장: 광합성 사용 시 영구적으로 공격력과 쉴드가 증가합니다.' },
+    'Metal': { s1:'강철베기', s1d:'1.3배+30%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15/데미지X', type:'DEBUFF', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>받는 피해 MaxHP 30% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 30%를 넘지 않습니다.' },
+    'Tree': { s1:'광합성', s1d:'공+18/쉴드+30(영구중첩)', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'ALLY', role:'tank', icon:'🌳', desc:'성장형 탱커<br>자가성장 + 힐', passive:'🌿 성장: 광합성 사용 시 영구적으로 공격력과 쉴드가 증가합니다.' },
     'Fire-Light': { s1:'흡혈부여', s1d:'아군전체 흡혈(2턴)', s2:'폭주', s2d:'자신공+20(영구)/전체공+10', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🔷', desc:'공격형 탱커<br>흡혈 + 폭주', passive:'🩸 흡혈: 매 턴 공격 시 피해량의 25%를 회복합니다. (최대 50)' },
-    'Water-Light': { s1:'스팀젯', s1d:'0.9배+실명(30%)', s2:'안개', s2d:'잃은체력15%힐+회피', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'☁️', desc:'서폿형 탱커<br>회피 + 어그로', passive:'☁️ 기화: 체력 20% 이하 시 체력회복 및 회피 상태가 됩니다. (게임당 1회)' },
+    'Water-Light': { s1:'스팀젯', s1d:'0.9배+실명(30%)', s2:'안개', s2d:'잃은체력15%힐+회피', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'☁️', desc:'서폿형 탱커<br>회피 + 어그로', passive:'☁️ 기화: 체력 20% 이하 시 1회 자동 회복 및 회피 상태가 됩니다.' },
     'Fire': { s1:'화염방사', s1d:'1.6배+화상', s2:'메테오', s2d:'광역 0.8배+화상(25%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', desc:'메인 딜러<br>초반 강력 (유통기한)', passive:'🔥 불의 기세: 1~2턴 공+20, 3~6턴 공+10, 7턴 이후 0' },
-    'Normal': { s1:'균형타', s1d:'1.5배/내HP-30/쉴드60', s2:'주사위', s2d:'0.8~2.3배 랜덤/노코스트', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'🎲', desc:'메인 딜러<br>랜덤 한방', passive:'🎲 면역: CC기(기절,빙결,침묵 등)를 무시합니다. (도트딜 제외)' },
-    'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상', s2:'소각', s2d:'체력비례피해(+10%)', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', desc:'메인 딜러<br>체력비례 브루저', passive:'🔥 소각: 적의 체력이 많을수록 더 큰 피해를 입힙니다.' },
+    'Normal': { s1:'균형타', s1d:'1.5배/내HP-30/쉴드60', s2:'주사위', s2d:'0.8~2.3배 랜덤/노코스트', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'🎲', desc:'메인 딜러<br>랜덤 한방', passive:'🎲 면역: 행동 제어기(기절,빙결,침묵,세뇌)에 걸리지 않습니다.' },
+    'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상', s2:'소각', s2d:'1.0배+적MaxHP 10%추가타', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', desc:'메인 딜러<br>체력비례 브루저', passive:'🔥 소각: 적의 체력이 많을수록 더 큰 피해를 입힙니다.' },
     'Metal-Dark': { s1:'전기충격', s1d:'1.5배+공격력10↑', s2:'방전', s2d:'광역 0.8배+기절(15%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'⚡', desc:'메인 딜러<br>성장형 광역', passive:'⚡ 과부하: S1 사용 시 공격력이 10 증가합니다 (최대 3회).' },
-    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+자가기절', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 후 기절 상태에서는 받는 피해가 10 증가합니다.' },
+    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+자가기절(2턴)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 후 기절 상태에서는 받는 피해가 10 증가합니다.' },
     'Earth': { s1:'암석투척', s1d:'1.3배+기절/침묵', s2:'지진', s2d:'광역 0.8배 (1:1강화)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🏜️', desc:'CC형 딜러<br>기절 / 침묵', passive:null },
     'Water-Dark': { s1:'고드름', s1d:'1.5배', s2:'절대영도', s2d:'1.0배+빙결(35%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'❄️', desc:'CC형 딜러<br>빙결', passive:null },
-    'Metal-Light': { s1:'가스탄', s1d:'0.3배/해제/스택다운', s2:'맹독살포', s2d:'전체 중독(3턴)', type:'DEBUFF', target:'ALL_ENEMY', role:'nuker', icon:'☣️', desc:'특수 딜러<br>버프 제거 + 스택 파괴', passive:null },
-    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배+쉴드무시', s2:'모래지옥', s2d:'속박+치유감소(강)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'🦂', desc:'특수 딜러<br>속박 + 치유감소', passive:null },
-    'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+반사강화', s2:'영혼결속', s2d:'아군결속/저항↑', type:'TARGET_BUFF', target:'ALLY', role:'nuker', icon:'🥀', desc:'특수 딜러<br>복수 + 결속', passive:'🥀 복수: 결속된 아군 사망 시 공격력+20, S1계수+0.3 증가.' },
+    'Metal-Light': { s1:'가스탄', s1d:'0.3배/해제/스택파괴', s2:'맹독살포', s2d:'전체 중독(3턴)', type:'DEBUFF', target:'ALL_ENEMY', role:'nuker', icon:'☣️', desc:'특수 딜러<br>버프 제거 + 스택 파괴', passive:null },
+    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배(쉴드무시)', s2:'모래지옥', s2d:'속박+치유감소(60%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'🦂', desc:'특수 딜러<br>속박 + 치유감소', passive:null },
+    'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+반사강화', s2:'영혼결속', s2d:'아군결속/저항↑', type:'TARGET_BUFF', target:'ALLY', role:'nuker', icon:'🥀', desc:'특수 딜러<br>복수 + 결속', passive:'🥀 복수: 결속된 아군 사망 시 공격력+20, S1계수+0.3 영구 증가.' },
     'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'전체120+(20%확률50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'메인 힐러<br>광역 회복', passive:null },
-    'Tree-Light': { s1:'숲의분노', s1d:'1.2배(관통)+랜덤힐20', s2:'축복', s2d:'아군 정화/HP+70', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚', desc:'메인 힐러<br>공격 + 회복', passive:null },
-    'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+15(중첩시+20)', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', desc:'메인 버퍼<br>광역 쉴드', passive:null },
+    'Tree-Light': { s1:'숲의분노', s1d:'1.2배+아군랜덤힐20', s2:'축복', s2d:'아군 정화/HP+70', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚', desc:'메인 힐러<br>공격 + 회복', passive:null },
+    'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+15', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', desc:'메인 버퍼<br>광역 쉴드', passive:null },
     'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'👼', desc:'메인 버퍼<br>정화 + 쉴드', passive:null },
-    'Dark': { s1:'다크볼', s1d:'1.5배+업보(반사)', s2:'공포', s2d:'광역 0.3배/공20~35%↓/쉴드30%파괴', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'👻', desc:'광역 디버퍼<br>공포 + 쉴드파괴', passive:'👁️ 업보: 다크볼 피격자가 상태이상을 걸면 50% 확률로 반사.' },
-    'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵', s2:'블랙홀', s2d:'턴 스킵(75%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🕳️', desc:'스페셜리스트<br>턴 삭제', passive:'🌑 심연의 힘: 블랙홀 성공 시 공격력이 10 영구 증가합니다.' }
+    'Dark': { s1:'다크볼', s1d:'1.5배+업보(반사)', s2:'공포', s2d:'광역 0.3배/공35%↓/쉴드30%파괴', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'👻', desc:'광역 디버퍼<br>공포 + 쉴드파괴', passive:'👁️ 업보: 다크볼 피격자가 상태이상을 걸면 50% 확률로 반사.' },
+    'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵(1턴)', s2:'정신지배', s2d:'HP15%소모/적 1회 조종(스턴X)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🧠', desc:'심연의 지배자<br>적 제어권 탈취', passive:'🌑 심연의 힘: 세뇌 성공 시 다음 턴 적을 1회 조종합니다. 행동 후 즉시 풀려납니다.' }
 };
 
 const ChallengeDB = [
@@ -1133,12 +1170,9 @@ const Common = {
         if(act !== -1) {
             Common.logAction(game, 'dmg', atk, def, act, aff.t);
             const isCrit = (act >= 200) || (atk.isNormal && def.isNormal && act > baseAtk);
-            
-            // [폰트 개선] 데미지 타입별 스타일 적용
             let type = isCrit ? "ft-crit" : "ft-dmg";
-            if (aff.v > 1.0) type = "ft-weak"; // 약점
-            else if (aff.v < 1.0) type = "ft-resist"; // 저항
-            
+            if (aff.v > 1.0) type = "ft-weak";
+            else if (aff.v < 1.0) type = "ft-resist";
             UI.floatText(def, act, type);
             if (isCrit || aff.v > 1.0) { AudioSys.play('CRITICAL'); UI.screenShake(); } else game.shake(def);
             if ((atk.getKey() === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
@@ -1161,7 +1195,6 @@ const Common = {
             let type = act>=200 ? "ft-crit" : "ft-dmg";
             if (aff.v > 1.0) type = "ft-weak";
             else if (aff.v < 1.0) type = "ft-resist";
-            
             UI.floatText(def, act, type); 
             game.shake(def); 
             if ((atk.getKey() === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
@@ -1173,8 +1206,23 @@ const Common = {
         }
         return act;
     },
-    forEachAlly: function(unit, game, callback) { const team = unit.team === 0 ? game.pTeam : game.eTeam; team.forEach(u => { if(!u.isDead) callback(u); }); },
-    forEachEnemy: function(unit, game, callback) { const team = unit.team === 0 ? game.eTeam : game.pTeam; team.forEach(u => { if(!u.isDead) callback(u); }); }
+    // [수정] 세뇌 상태일 때 피아식별 반전 로직 (광역기 버그 수정)
+    forEachAlly: function(unit, game, callback) { 
+        let effectiveTeam = unit.team;
+        if (Game.isMindControlling && unit.id === Game.isMindControlling.id) {
+            effectiveTeam = unit.team === 0 ? 1 : 0; // 세뇌됨: 적이 내 아군
+        }
+        const team = effectiveTeam === 0 ? game.pTeam : game.eTeam; 
+        team.forEach(u => { if(!u.isDead) callback(u); }); 
+    },
+    forEachEnemy: function(unit, game, callback) { 
+        let effectiveTeam = unit.team;
+        if (Game.isMindControlling && unit.id === Game.isMindControlling.id) {
+            effectiveTeam = unit.team === 0 ? 1 : 0; // 세뇌됨: 원래 아군이 적
+        }
+        const team = effectiveTeam === 0 ? game.eTeam : game.pTeam; 
+        team.forEach(u => { if(!u.isDead) callback(u); }); 
+    }
 };
 
 const SKILL_LOGIC = {
@@ -1487,7 +1535,6 @@ const SKILL_LOGIC = {
                 const act = Common.applyDamage(atk, def, 0.3, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
             } else {
-                // [수정 완료] 즉발 데미지 제거 (0), 맹독 부여만 수행
                 game.log(`<b>[${atk.name}]</b> 맹독살포 ☠️`);
                 Common.forEachEnemy(atk, game, (e) => e.addStatus('POISON', 3, 0, atk));
             }
@@ -1501,7 +1548,6 @@ const SKILL_LOGIC = {
                 const act = Common.applyDamage(atk, def, 1.3, game, true);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "(쉴드무시)");
             } else {
-                // [수정 완료] 즉발 데미지 제거 (0), 속박/치유감소 부여만 수행
                 game.log(`<b>[${atk.name}]</b> 모래지옥 ⏳`);
                 def.addStatus('TRAP', 2, 0, atk);
                 def.addStatus('HEAL_DOWN', 2, 0, atk);
@@ -1639,32 +1685,60 @@ const SKILL_LOGIC = {
             }
         }
     },
-    'Dark-Dark': {
-        useSkill: function(atk, def, sIdx, game) {
-            if (sIdx === 0) Common.basicAttack(atk, def, game);
-            else if (sIdx === 1) {
-                game.log(`<b>[${atk.name}]</b> 심연일격 🗡️`);
-                const act = Common.applyDamage(atk, def, 0.9, game);
-                if (act !== -1) {
-                    Common.logAction(game, 'dmg', atk, def, act, "");
-                    def.addStatus('SILENCE', 1, 0, atk);
-                }
+'Dark-Dark': {
+    useSkill: function(atk, def, sIdx, game) {
+        if (sIdx === 0) Common.basicAttack(atk, def, game);
+        else if (sIdx === 1) {
+            game.log(`<b>[${atk.name}]</b> 심연일격 🗡️`);
+            const act = Common.applyDamage(atk, def, 0.9, game);
+            if (act !== -1) {
+                Common.logAction(game, 'dmg', atk, def, act, "");
+                def.addStatus('SILENCE', 1, 0, atk);
+            }
+} else {
+            // [수정] 마인드 컨트롤 (로직 강화 v2)
+            game.log(`<b>[${atk.name}]</b> 마인드 컨트롤 🧠`);
+
+            // [제약 1] 이미 누군가를 조종 중이면 불가
+            if (Game.isMindControlling) {
+                game.log("<span class='log-sys'>🚫 이미 조종 중인 대상이 있습니다!</span>");
+                UI.floatText(atk, "사용불가", "ft-miss");
+                return;
+            }
+            
+            // [제약 2] 면역 체크 (동족 or 상태이상 면역)
+            // Normal(기초)은 패시브로 면역, Dark-Dark(동족) 면역, 이미 면역 상태인 적
+            if (def.getKey() === 'Dark-Dark' || def.hasStatus('IMMUNITY') || (def.isNormal && !def.extra)) {
+                game.log("<span class='log-sys'>🚫 정신 지배가 통하지 않는 대상입니다.</span>");
+                UI.floatText(def, "면역", "ft-miss");
+                return;
+            }
+
+            // 1. 코스트 지불
+            const cost = Math.floor(atk.hp * 0.15);
+            atk.hp = Math.max(1, atk.hp - cost);
+            UI.floatText(atk, `HP소모(-${cost})`, "ft-miss");
+            
+            // 2. 확률 계산
+            const missingPct = 1.0 - (def.hp / def.maxHp);
+            const chance = 0.20 + (missingPct * 0.25);
+
+            if (game.netRandom() < chance) {
+                // 성공: 세뇌 대기(MC_WAIT) 부여
+                // MC_WAIT는 '정화' 스킬로 풀 수 있습니다. (전략적 요소)
+                def.addStatus('MC_WAIT', 3, 0, atk, false); 
+                game.log(` 🌀 <b>[${def.name}]</b> 정신 지배 시작! (다음 턴 발동)`);
+                UI.floatText(def, "세뇌 대기", "ft-crit");
+                AudioSys.play('DEBUFF');
             } else {
-                game.log(`<b>[${atk.name}]</b> 블랙홀 🌀`);
-                if (game.netRandom() < 0.75) {
-                    def.addStatus('BANISH', 1, 0, atk);
-                    atk.atk += 10;
-                    game.log(" (추방!)");
-                } else {
-                    game.log(" (추방 실패)");
-                    UI.floatText(def, "저항", "ft-miss");
-                }
+                // 실패
+                game.log(" (정신 지배 실패)");
+                UI.floatText(def, "저항", "ft-miss");
             }
         }
     }
+}
 };
-
-
 
 class Unit {
     constructor(id, team, base, extra) {
@@ -1771,8 +1845,6 @@ class Unit {
     takeDamage(dmg, isFire = false, ignoreShield = false, source = null) {
         if (isFire && this.hasStatus('BURN')) dmg = Math.floor(dmg * 1.25);
 
-        // [수정됨] 선공방어(데미지 무효) 로직 삭제됨 - 데미지는 정상 적용
-
         if (this.base === 'Metal' && !this.extra && this.shield > 0) {
             const cap = Math.floor(this.maxHp * 0.30);
             if (dmg > cap) {
@@ -1825,11 +1897,8 @@ class Unit {
         }
         this.hp = Math.max(0, this.hp - hpDmg);
 
-        // [컷신 트리거 & 킬 카운트]
         if (this.hp <= 0 && source) {
             source.stats.kills = (source.stats.kills || 0) + 1;
-
-            // 컷신 조건: 슈퍼히어로 + 팀 유일 생존자 + 킬
             if (source.isSuper && !source.isDead) {
                 const allies = source.team === 0 ? Game.pTeam : Game.eTeam;
                 const aliveAllies = allies.filter(a => !a.isDead);
@@ -1853,16 +1922,13 @@ class Unit {
     }
 
     addStatus(type, turn, val = 0, source = null, force = false) {
-        // [버그 수정] 변수 이름 충돌 방지 (HARD_CC -> CC_LIST)
         const CC_LIST = ['STUN', 'FREEZE', 'BANISH', 'SILENCE', 'SLEEP'];
         
         if (this.hasStatus('START_IMMUNITY') && !force) {
-            // 들어오는 상태이상이 하드 CC인 경우에만 방어
             if (CC_LIST.includes(type)) { 
                 UI.floatText(this, "🛡️CC방어", "ft-miss");
                 return;
             }
-            // 독, 화상, 표식 등은 통과됨
         }
 
         if (source && source.id !== this.id && !force) {
@@ -1905,38 +1971,43 @@ class Unit {
             }
         }
         if (this.resist > 0 && Game.netRandom() < this.resist && ['POISON', 'BURN', 'FREEZE', 'STUN', 'SILENCE', 'BLIND', 'TRAP', 'BANISH', 'ATK_DOWN'].includes(type)) return;
+        
         if (type === 'ATK_DOWN') {
             const s = this.status.filter(s => s.type === 'ATK_DOWN');
             if (s.length < 2) {
                 this.status.push({
                     type,
                     turn,
-                    val
+                    val,
+                    sourceId: source ? source.id : -1
                 });
             } else {
                 const shortest = s.sort((a, b) => a.turn - b.turn)[0];
                 shortest.turn = turn;
+                if(source) shortest.sourceId = source.id;
             }
             return;
         }
 
         const idx = this.status.findIndex(s => s.type === type);
-        if (idx >= 0) {
-            this.status[idx].turn = turn;
-            if (val !== 0) this.status[idx].val = val;
-        } else {
-            this.status.push({
-                type,
-                turn,
-                val
-            });
-        }
+    if (idx >= 0) {
+        this.status[idx].turn = turn;
+        if (val !== 0) this.status[idx].val = val;
+        if (source) this.status[idx].sourceId = source.id; // ✅ 갱신 시에도 sourceId 저장
+    } else {
+        this.status.push({
+            type,
+            turn,
+            val,
+            sourceId: source ? source.id : -1 // ✅ 신규 생성 시 sourceId 저장
+        });
     }
+}
     hasStatus(type) {
         return this.status.some(s => s.type === type);
     }
     cleanse() {
-        const bad = ['POISON', 'BURN', 'FREEZE', 'STUN', 'SILENCE', 'BLIND', 'TRAP', 'BANISH', 'ATK_DOWN', 'KARMA_VICTIM'];
+        const bad = ['POISON', 'BURN', 'FREEZE', 'STUN', 'SILENCE', 'BLIND', 'TRAP', 'BANISH', 'ATK_DOWN', 'KARMA_VICTIM', 'MC_WAIT'];
         this.status = this.status.filter(s => !bad.includes(s.type) && !s.type.startsWith('PROVOKED') && !s.type.startsWith('KARMA_VICTIM'));
     }
     dispel() {
@@ -1982,6 +2053,7 @@ class Unit {
     }
 }
 
+// ... (이하 Game 객체 및 나머지 코드는 오류가 없어 그대로 유지되나, Unit 클래스와 SKILL_DB 수정이 적용된 전체 파일입니다)
 const AudioSys = {
     ctx: null,
     isMuted: false,
@@ -2056,6 +2128,7 @@ const AudioSys = {
         }
     }
 };
+
 const UI = {
     showModal: function(title, content) {
         document.getElementById('modal-overlay').style.display = 'flex';
@@ -2236,6 +2309,16 @@ const UI = {
 };
 
 const Game = {
+    // [추가] 디버그 모드 설정
+    DEBUG_MODE: true, // 개발 중엔 true, 배포 시 false로 변경
+
+    debugLog: function(msg, data) {
+        if (this.DEBUG_MODE) {
+            // 데이터가 있으면 객체로, 없으면 메시지만 출력
+            if (data) console.log(`%c[DEBUG] ${msg}`, 'color: #bada55; font-weight: bold;', data);
+            else console.log(`%c[DEBUG] ${msg}`, 'color: #bada55; font-weight: bold;');
+        }
+    },
     pool: [],
     selected: [],
     pTeam: [],
@@ -2251,6 +2334,8 @@ const Game = {
     mode: 'pve',
     isProcessing: false,
     challengeStage: 0,
+    isMindControlling: null, // [신규] 세뇌 조종 상태 플래그
+
     netRandom: function() {
         return getNetRandom();
     },
@@ -2259,6 +2344,7 @@ const Game = {
         if (this.timer) clearTimeout(this.timer);
         if (this.watchdog) clearTimeout(this.watchdog);
         this.isOver = false;
+        this.isMindControlling = null; // 초기화
         this.pool = [];
         this.selected = [];
         const allCombos = [{
@@ -2404,35 +2490,48 @@ const Game = {
 
     // 1. 배경 클래스 결정
     let bgClass = 'bg-' + u.base;
-    if (u.isEnhanced) bgClass = 'bg-' + u.base + '-Enhanced';
-    else if (u.isNormal) bgClass = 'bg-Normal';
+    if (u.isEnhanced) {
+        bgClass = 'bg-' + u.base + '-Enhanced';
+    } else if (u.isNormal) {
+        bgClass = 'bg-Normal';
+    }
 
-    // 2. 데이터 안전하게 가져오기 (DB에 없으면 기본값)
+    // 2. 데이터 안전하게 가져오기
     const key = u.getKey();
-    const info = SKILL_DB[key] || { icon: '?', desc: '정보 없음' };
+    const info = SKILL_DB[key];
+    
+    if (!info) {
+        console.error('SKILL_DB missing for key:', key);
+        return '<div class="attr-icon bg-Normal">?</div><div style="font-weight:bold;">ERROR</div>';
+    }
 
-    // 3. 아이콘 및 텍스트 준비 (복잡한 식을 밖으로 뺌)
+    // 3. 아이콘 및 텍스트 준비
     const mainIcon = info.icon || (ATTR[u.base] ? ATTR[u.base].i : '?');
     const baseIcon = ATTR[u.base] ? ATTR[u.base].i : '?';
-    // 듀얼 속성일 때만 두 번째 미니 아이콘 표시
     const extraIconHtml = (u.extra && ATTR[u.extra]) 
                         ? '<div class="mini-icon">' + ATTR[u.extra].i + '</div>' 
                         : '';
     const displayName = u.name ? u.name.split(' ')[0] : 'Unknown';
+    const fullName = u.name || 'Unknown';
+    const description = info.desc || '정보 없음';
 
-    // 4. 최종 HTML 반환 (백틱 중첩 제거하여 문법 오류 방지)
-    return '<div class="attr-icon ' + bgClass + '">' +
-                mainIcon +
-                '<div class="mini-attr-box">' +
-                    '<div class="mini-icon">' + baseIcon + '</div>' +
-                    extraIconHtml +
+    // 4. HTML 조립 (백틱 중첩 없이)
+    const html = '<div class="attr-icon ' + bgClass + '">' +
+                    mainIcon +
+                    '<div class="mini-attr-box">' +
+                        '<div class="mini-icon">' + baseIcon + '</div>' +
+                        extraIconHtml +
+                    '</div>' +
                 '</div>' +
-            '</div>' +
-            '<div style="font-weight:bold; margin-bottom:2px; font-size:15px;">' + displayName + '</div>' +
-            '<div style="font-size:11px; color:#999;">' + u.name + '</div>' +
-            '<div style="margin-top:8px; font-size:11px; background:#f5f5f5; padding:4px 8px; border-radius:10px; border:1px solid #eee;">' +
-                info.desc +
-            '</div>';
+                '<div style="font-weight:bold; margin-bottom:2px; font-size:15px;">' + 
+                    displayName + 
+                '</div>' +
+                '<div style="font-size:11px; color:#999;">' + fullName + '</div>' +
+                '<div style="margin-top:8px; font-size:11px; background:#f5f5f5; padding:4px 8px; border-radius:10px; border:1px solid #eee;">' +
+                    description +
+                '</div>';
+    
+    return html;
 },
     toggle: function(i, el) {
         if (!el) el = document.getElementById(`card-${i}`);
@@ -2690,6 +2789,64 @@ const Game = {
             return;
         }
 
+        // [신규] 세뇌 대기 (MC_WAIT) -> 턴 스킵 & 조종권 이양
+const mcWaitStatus = u.status.find(s => s.type === 'MC_WAIT');
+if (mcWaitStatus) {
+    Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배로 인해 행동 불가!</span>`);
+    UI.floatText(u, "정신지배", "ft-crit");
+    
+    let caster = null;
+    if (mcWaitStatus.sourceId !== undefined && mcWaitStatus.sourceId !== -1) {
+        const allUnits = [...Game.pTeam, ...Game.eTeam];
+        caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
+    }
+    
+    if (!caster) {
+        const enemyTeam = u.team === 0 ? Game.eTeam : Game.pTeam;
+        caster = enemyTeam.find(e => e.getKey() === 'Dark-Dark' && !e.isDead);
+    }
+
+    u.status = u.status.filter(s => s.type !== 'MC_WAIT');
+    
+    if (caster && !caster.isDead) {
+        u.addStatus('MC_READY', 99, 0, caster);
+    } else {
+        Game.log("<span class='log-sys'>(시전자가 사망하여 세뇌가 풀렸습니다)</span>");
+    }
+    
+    setTimeout(() => this.endTurn(), 1000);
+    return;
+}
+
+        // [신규] 세뇌 조종 (MC_READY) 실행
+if (u.getKey() === 'Dark-Dark' && !u.isDead) {
+    const enemies = u.team === 0 ? Game.eTeam : Game.pTeam;
+    const puppet = enemies.find(e => e.hasStatus('MC_READY'));
+    
+    if (puppet) {
+        Game.log(`<span class='log-crit'>🎮 [${u.name}] ${puppet.name}의 정신을 조종합니다!</span>`);
+        Game.isMindControlling = puppet;
+        
+        document.getElementById('turn-indicator').innerText = `🧠 조종 중 : ${puppet.name}`;
+        UI.showTurnBanner(u.team === 0);
+        
+        document.querySelector('.control-panel').style.borderTop = "5px solid #d500f9";
+
+        if (isMyTurn || this.difficulty === 'local') {
+            this.input(puppet);
+            setTimeout(() => {
+                const cardId = u.team === 0 ? `e-card-${puppet.id}` : `p-card-${puppet.id}`;
+                const el = document.getElementById(cardId);
+                if(el) UI.showTooltip(puppet, el);
+            }, 100);
+            Game.log("<span class='log-sys'>💡 적군(원래 아군)을 공격하세요!</span>");
+        } else {
+            this.timer = setTimeout(() => this.ai(puppet), 1000);
+        }
+        return;
+    }
+}
+
         UI.showTurnBanner(isMyTurn);
         if (u.hasStatus('FREEZE') || u.hasStatus('STUN') || u.hasStatus('BANISH')) {
             UI.floatText(u, "SKIP", "ft-miss");
@@ -2798,7 +2955,10 @@ const Game = {
                         'LIGHT_MIGHT': 'atkup',
                         'LIFESTEAL_BUFF': 'lifesteal',
                         'ATK_BUFF_SMALL': 'atkup_s',
-                        'START_IMMUNITY': 'start-immunity'
+                        'START_IMMUNITY': 'start-immunity',
+                        'MC_WAIT': 'mc-wait', // [신규]
+                        'MC_READY': 'mc-ready'    // [신규]
+
                     };
                     if (s.type.includes('PROVOKED')) c += ' taunt';
                     else if (s.type.startsWith('KARMA_VICTIM')) c += ' karma';
@@ -2822,7 +2982,9 @@ const Game = {
                         'LIGHT_MIGHT': '공격↑',
                         'LIFESTEAL_BUFF': '🩸흡혈',
                         'ATK_BUFF_SMALL': '🔥공격↑',
-                        'START_IMMUNITY': '🛡️선공방어'
+                        'START_IMMUNITY': '🛡️선공방어',
+                        'MC_WAIT': '🌀세뇌중...', // [신규]
+                        'MC_READY': '🧠조종가능'   // [신규]
                     };
                     if (s.type.includes('PROVOKED')) txt = '도발';
                     else if (s.type.startsWith('KARMA_VICTIM')) txt = '👁️업보';
@@ -2852,15 +3014,43 @@ const Game = {
         draw('enemy-row', this.eTeam, 1);
     },
 
-    endTurn: function(isFast = false) {
+endTurn: function(isFast = false) {
         if (this.isOver) return;
         if (this.watchdog) clearTimeout(this.watchdog);
+        
+        // 현재 턴 주인 유닛 찾기
         const u = this.queue[this.curr] % 2 === 0 ? this.pTeam[this.queue[this.curr] / 2] : this.eTeam[(this.queue[this.curr] - 1) / 2];
+
+        // [밸런스 수정] 세뇌 해제 로직 (스턴 삭제, 무조건 해제)
+        if (Game.isMindControlling) {
+             const puppet = Game.isMindControlling;
+             
+             Game.log(`<span class='log-sys'>🧠 [${puppet.name}] 정신 지배가 풀렸습니다. (행동 가능)</span>`);
+             UI.floatText(puppet, "지배 해제", "ft-heal");
+             
+             // 1. 세뇌 상태 아이콘(MC_READY) 제거
+             puppet.status = puppet.status.filter(s => s.type !== 'MC_READY');
+             
+             // [삭제됨] 스턴 부여 로직 삭제 (유저 요청: 세뇌 후 즉시 행동 가능)
+             // puppet.addStatus('STUN', 1, 0, null, true); <--- 삭제됨
+             
+             // 2. 전역 변수 초기화 (필수: 자아 분열 방지)
+             Game.isMindControlling = null;
+             
+             // 3. UI 테두리 복구
+             const cp = document.querySelector('.control-panel');
+             if(cp) cp.style.borderTop = "5px solid #ff80ab";
+        }
+
         if (u && !u.isDead) u.decayStatus();
+        
         [...this.pTeam, ...this.eTeam].forEach(u => {
             if (u.hp <= 0) this.die(u)
         });
+        
         this.curr = (this.curr + 1) % 6;
+        
+        // 데스매치 로직
         if (this.curr === 0) {
             const round = Math.ceil(this.turnCount / 6);
             if (round > 20) {
@@ -2870,15 +3060,19 @@ const Game = {
                 this.log("<span class='log-crit'>💀 데스매치! 모든 영웅 공격력 +10</span>");
             }
         }
+        
         this.render();
         const delay = isFast ? 100 : 1500;
         this.timer = setTimeout(() => this.turn(), delay);
-    },
+    }, // 이 뒤에 코드가 없어야 합니다! 바로 execute 함수가 나와야 합니다.
 
     execute: function(atk, def, sIdx, isRemote = false) {
         document.querySelectorAll('.unit').forEach(el => el.onclick = null);
+        
+        // [수정] 세뇌 중일 때는 내 유닛 체크(atk.team !== 0)를 우회해야 함
         if (isOnlineMode && !isRemote) {
-            if (atk.team !== 0) {
+            const isMindControlAction = Game.isMindControlling && atk.id === Game.isMindControlling.id;
+            if (atk.team !== 0 && !isMindControlAction) { // 예외 처리 추가
                 alert("내 유닛이 아닙니다!");
                 return;
             }
@@ -2909,6 +3103,7 @@ const Game = {
                 rndBuffer: netRndBuffer
             });
         }
+       // [수정] 세뇌 해제 로직은 endTurn()으로 이동됨 (기절 시 해제 안 되는 버그 수정)
         this.endTurn();
     },
 
@@ -2933,49 +3128,95 @@ const Game = {
         unit.checkAwakening();
     },
     input: function(u) {
-        const k = u.getKey();
-        const s = SKILL_DB[k];
-        if (!s) {
-            console.error("Skill info missing for:", k);
+    // 세뇌 상태 UI 표시
+    const cp = document.querySelector('.control-panel');
+    if (cp) {
+        cp.style.borderTop = Game.isMindControlling ? "5px solid #d500f9" : "5px solid #ff80ab";
+    }
+    
+    const k = u.getKey();
+    const s = SKILL_DB[k];
+    
+    // 스킬 정보 없음 방어 코드
+    if (!s) {
+        console.error("❌ SKILL_DB missing for key:", k, "Unit:", u.name);
+        document.getElementById('p-icon').innerText = '❓';
+        document.getElementById('p-desc').innerText = 'ERROR: 스킬 정보 없음';
+        document.getElementById('sk-0').innerHTML = '<span class="skill-name">기본공격</span><br><span class="skill-desc">1.0배</span>';
+        document.getElementById('sk-1').innerHTML = '<span class="skill-name">ERROR</span><br><span class="skill-desc">스킬 정보 없음</span>';
+        document.getElementById('sk-2').innerHTML = '<span class="skill-name">ERROR</span><br><span class="skill-desc">스킬 정보 없음</span>';
+        [0, 1, 2].forEach(i => document.getElementById(`sk-${i}`).disabled = true);
+        this.log(`<span class='log-sys'>⚠️ [${u.name}] 스킬 정보 오류 발생</span>`);
+        return;
+    }
+    
+    const silenced = u.hasStatus('SILENCE');
+    
+    // 패시브 정보
+    document.getElementById('p-icon').innerText = s.icon || '❓';
+    document.getElementById('p-desc').innerText = s.passive || '패시브: 없음';
+    
+    // 스킬 버튼 정보
+    document.getElementById('sk-0').innerHTML = 
+        '<span class="skill-name">기본공격</span><br>' +
+        '<span class="skill-desc">1.0배 피해</span>';
+    
+    document.getElementById('sk-1').innerHTML = 
+        '<span class="skill-name">' + (s.s1 || 'ERROR') + '</span><br>' +
+        '<span class="skill-desc">' + (s.s1d || '정보 없음') + '</span>';
+    
+    document.getElementById('sk-2').innerHTML = 
+        '<span class="skill-name">' + (s.s2 || 'ERROR') + '</span><br>' +
+        '<span class="skill-desc">' + (s.s2d || '정보 없음') + '</span>';
+    
+    // 버튼 활성화 상태
+    document.getElementById('sk-0').disabled = false;
+    document.getElementById('sk-1').disabled = silenced;
+    
+    // S2 비활성화 조건
+    let sk2Disable = silenced;
+    
+    if (k === 'Fire-Light' && (u.s2Count || 0) >= 5) {
+        sk2Disable = true;
+    }
+    
+    if (k === 'Tree-Dark') {
+        const myTeam = u.team === 0 ? Game.pTeam : Game.eTeam;
+        const aliveAllies = myTeam.filter(a => !a.isDead && a.id !== u.id);
+        if (aliveAllies.length === 0 || u.linkedAllyId !== -1) {
+            sk2Disable = true;
+        }
+    }
+    
+    document.getElementById('sk-2').disabled = sk2Disable;
+    
+    if (silenced) {
+        this.log(`<span class='log-sys'>😶 [${u.name}] 침묵 상태!</span>`);
+    }
+    
+    // 도발 확인
+    const provoked = u.status.find(st => st.type.startsWith('PROVOKED_BY_'));
+    if (provoked) {
+        const targetId = parseInt(provoked.type.split('_')[2]);
+        const enemies = u.team === 0 ? this.eTeam : this.pTeam;
+        const allies = u.team === 0 ? this.pTeam : this.eTeam;
+        const target = enemies.find(e => e.id === targetId) || allies.find(p => p.id === targetId);
+        
+        if (!target || target.isDead) {
+            u.status = u.status.filter(s => !s.type.startsWith('PROVOKED'));
+            this.log(`<span class='log-sys'>🕊️ [${u.name}] 도발 시전자 사망! 자유!</span>`);
+            UI.floatText(u, "자유!", "ft-heal");
+            this.render();
+        } else {
+            this.log(`<span class='log-sys'>💢 [${u.name}] 도발 당함!</span>`);
+            this.noInput();
+            setTimeout(() => this.execute(u, target, 0), 1000);
             return;
         }
-        const silenced = u.hasStatus('SILENCE');
-        document.getElementById('p-icon').innerText = s.icon;
-        document.getElementById('p-desc').innerText = s.passive || '패시브: 없음';
-        document.getElementById('sk-1').innerHTML = `<span class="skill-name">${s.s1}</span><br><span class="skill-desc">${s.s1d}</span>`;
-        document.getElementById('sk-2').innerHTML = `<span class="skill-name">${s.s2}</span><br><span class="skill-desc">${s.s2d}</span>`;
-        document.getElementById('sk-0').disabled = false;
-        document.getElementById('sk-1').disabled = silenced;
-        let s2Limit = false;
-        if (k === 'Fire-Light' && u.s2Count >= 5) s2Limit = true;
-        let sk2Disable = silenced || s2Limit;
-        if (k === 'Tree-Dark') {
-            const myTeam = u.team === 0 ? Game.pTeam : Game.eTeam;
-            const aliveAllies = myTeam.filter(a => !a.isDead && a.id !== u.id);
-            if (aliveAllies.length === 0 || u.linkedAllyId !== -1) sk2Disable = true;
-        }
-        document.getElementById('sk-2').disabled = sk2Disable;
-        if (silenced) this.log(`<span class='log-sys'>😶 [${u.name}] 침묵 상태!</span>`);
-        const provoked = u.status.find(st => st.type.startsWith('PROVOKED_BY_'));
-        if (provoked) {
-            const targetId = parseInt(provoked.type.split('_')[2]);
-            const enemies = u.team === 0 ? this.eTeam : this.pTeam;
-            const allies = u.team === 0 ? this.pTeam : this.eTeam;
-            const target = enemies.find(e => e.id === targetId) || allies.find(p => p.id === targetId);
-            if (!target || target.isDead) {
-                u.status = u.status.filter(s => !s.type.startsWith('PROVOKED'));
-                this.log(`<span class='log-sys'>🕊️ [${u.name}] 도발 시전자 사망! 자유!</span>`);
-                UI.floatText(u, "자유!", "ft-heal");
-                this.render();
-            } else {
-                this.log(`<span class='log-sys'>💢 [${u.name}] 도발 당함!</span>`);
-                this.noInput();
-                setTimeout(() => this.execute(u, target, 0), 1000);
-                return;
-            }
-        }
-        this.selectedSkillIdx = -1;
-    },
+    }
+    
+    this.selectedSkillIdx = -1;
+},
     noInput: function() {
         [0, 1, 2].forEach(i => {
             const b = document.getElementById(`sk-${i}`);
@@ -2984,70 +3225,184 @@ const Game = {
         });
     },
     prepareSkill: function(idx) {
+        // [디버그] 스킬 선택 로그 출력
+        this.debugLog('Skill Button Clicked', { skillIndex: idx });
+
         [0, 1, 2].forEach(i => {
             const b = document.getElementById(`sk-${i}`);
             if (i === idx) b.classList.add('selected');
             else b.classList.remove('selected');
         });
+        
         this.selectedSkillIdx = idx;
-        const tVal = this.queue[this.curr];
-        const u = tVal % 2 === 0 ? this.pTeam[tVal / 2] : this.eTeam[(tVal - 1) / 2];
+        
+        // 현재 행동 주체 찾기
+        let u;
+        if (Game.isMindControlling) {
+            u = Game.isMindControlling;
+        } else {
+            const tVal = this.queue[this.curr];
+            u = tVal % 2 === 0 ? this.pTeam[tVal / 2] : this.eTeam[(tVal - 1) / 2];
+        }
+
+        // [디버그] 행동 유닛 정보 출력
+        this.debugLog('Acting Unit Identified', { name: u.name, id: u.id, isMindControlled: !!Game.isMindControlling });
+
         const k = u.getKey();
         const s = SKILL_DB[k];
         let targetType = 'ENEMY';
+
+        // [안전장치] 스킬 인덱스별 타겟 타입 명확화
         if (idx === 0) {
-            targetType = 'ENEMY';
+            targetType = 'ENEMY'; // 평타는 무조건 공격
         } else if (idx === 1) {
-            if (['Tree'].includes(k)) targetType = 'SELF';
-            else if (['Tree-Dark', 'Water-Light', 'Metal-Light'].includes(k)) targetType = 'ENEMY';
-            else if (['Fire-Light'].includes(k)) targetType = 'ANY_ALLY';
-            else targetType = 'ENEMY';
+            // S1 스킬들의 타겟 타입 하드코딩 (버그 방지)
+            if (['Tree', 'Fire-Light'].includes(k)) targetType = 'SELF_BUFF'; // 자가버프류
+            else if (['Tree-Dark'].includes(k)) targetType = 'ANY_ALLY'; // 아군 타겟
+            else if (['Water-Light', 'Metal-Light'].includes(k)) targetType = 'ENEMY'; // 디버프류
+            else targetType = 'ENEMY'; // 나머지는 대부분 공격기
         } else if (idx === 2) {
-            targetType = s.target;
+            // S2는 DB에 있는 target 속성 사용
+            targetType = s.target || 'ENEMY';
         }
+
+        // 타겟팅 함수 호출
         this.highlightTargets(targetType, u);
     },
     highlightTargets: function(targetType, actingUnit) {
-        if (!actingUnit) {
+    // 1. 행동 유닛 확정
+    if (!actingUnit) {
+        if (Game.isMindControlling) {
+            actingUnit = Game.isMindControlling;
+        } else {
             const tVal = this.queue[this.curr];
             actingUnit = tVal % 2 === 0 ? this.pTeam[tVal / 2] : this.eTeam[(tVal - 1) / 2];
         }
-        document.querySelectorAll('.unit').forEach(el => {
-            el.classList.remove('target-enemy', 'target-ally', 'target-aoe');
-            el.onclick = null;
+    }
+
+    // 2. 기존 타겟팅 초기화
+    document.querySelectorAll('.unit').forEach(el => {
+        el.classList.remove('target-enemy', 'target-ally', 'target-aoe');
+        el.onclick = null;
+    });
+
+    // 3. 스킬 타입 분류
+    const SUPPORT_TYPES = ['ALLY', 'ALL_ALLY', 'SELF', 'SELF_BUFF', 'TARGET_BUFF', 'HEAL', 'BUFF'];
+    const isSupportSkill = SUPPORT_TYPES.includes(targetType);
+    const isAOE = ['ALL_ENEMY', 'ALL_ALLY', 'AOE'].includes(targetType);
+    const isSelfOnly = ['SELF', 'SELF_BUFF'].includes(targetType);
+
+    // 4. 팀 정의 (원래 소속 기준)
+    const originalAllies = actingUnit.team === 0 ? this.pTeam : this.eTeam;
+    const originalEnemies = actingUnit.team === 0 ? this.eTeam : this.pTeam;
+
+    let finalTargets = [];
+
+    // 5. 세뇌 여부에 따른 타겟 결정
+    const isMindControlled = Game.isMindControlling && actingUnit.id === Game.isMindControlling.id;
+
+    if (isSelfOnly) {
+        // 자가 버프는 항상 자신
+        finalTargets = [actingUnit];
+    } else if (isMindControlled) {
+        // 세뇌 상태: 타겟 반전
+        if (isSupportSkill) {
+            // 지원 스킬 -> 적(플레이어)을 돕기
+            finalTargets = originalEnemies.filter(u => !u.isDead);
+        } else {
+            // 공격 스킬 -> 아군(원래 동료) 공격
+            finalTargets = originalAllies.filter(u => !u.isDead && u.id !== actingUnit.id);
+        }
+    } else {
+        // 정상 상태
+        if (isSupportSkill) {
+            finalTargets = originalAllies.filter(u => !u.isDead);
+        } else {
+            // [수정] 적군 + "세뇌당한 아군"도 공격 가능해야 함
+            const realEnemies = originalEnemies.filter(u => !u.isDead);
+            const traitors = originalAllies.filter(u => !u.isDead && (u.hasStatus('MC_WAIT') || u.hasStatus('MC_READY')));
+            finalTargets = [...realEnemies, ...traitors];
+        }
+    }
+
+    // 6. Tree-Dark 예외 처리
+    if (actingUnit.getKey() === 'Tree-Dark' && this.selectedSkillIdx === 2) {
+        // 영혼결속은 자신 제외
+        finalTargets = finalTargets.filter(t => t.id !== actingUnit.id);
+    }
+
+    // 7. 타겟 렌더링
+    let targetClass = isSupportSkill ? 'target-ally' : 'target-enemy';
+    if (isAOE && !isSupportSkill) targetClass = 'target-aoe';
+
+    let targetCount = 0;
+
+    finalTargets.forEach((t) => {
+        const cardId = t.team === 0 ? `p-card-${t.id}` : `e-card-${t.id}`;
+        const el = document.getElementById(cardId);
+        
+        if (el) {
+            el.classList.add(targetClass);
+            el.onclick = () => {
+                if (Game.isProcessing) return;
+                Game.isProcessing = true;
+                
+                // 입력 잠금
+                this.noInput();
+                document.querySelectorAll('.unit').forEach(e => {
+                    e.classList.remove('target-enemy', 'target-ally', 'target-aoe');
+                });
+                
+                // 실행
+                this.execute(actingUnit, t, this.selectedSkillIdx);
+            };
+            targetCount++;
+        }
+    });
+
+// 8. 디버깅 및 예외 처리 (Option 2 적용)
+    if (targetCount === 0) {
+        console.warn('⚠️ No valid targets:', {
+            skillIdx: this.selectedSkillIdx,
+            targetType: targetType,
+            actingUnit: actingUnit.name,
+            isMindControlled: isMindControlled, // 상단 변수 활용
+            finalTargets: finalTargets.map(t => t.name)
         });
-        const isAOE = ['ALL_ENEMY', 'ALL_ALLY', 'AOE'].includes(targetType);
-        const isAllyTarget = ['ALLY', 'ALL_ALLY', 'SELF', 'SELF_BUFF', 'ANY_ALLY'].includes(targetType);
-        const myTeam = actingUnit.team === 0 ? this.pTeam : this.eTeam;
-        const oppTeam = actingUnit.team === 0 ? this.eTeam : this.pTeam;
-        const targets = isAllyTarget ? myTeam : oppTeam;
-        let targetClass = isAllyTarget ? 'target-ally' : 'target-enemy';
-        if (isAOE && !isAllyTarget) targetClass = 'target-aoe';
-        targets.forEach((t) => {
-            if (!t.isDead) {
-                if (actingUnit.getKey() === 'Tree-Dark' && this.selectedSkillIdx === 2 && t.id === actingUnit.id) return;
-                const el = document.getElementById(t.team === 0 ? `p-card-${t.id}` : `e-card-${t.id}`);
-                el.classList.add(targetClass);
-                el.onclick = () => {
-                    if (Game.isProcessing) return;
-                    Game.isProcessing = true;
-                    if (targetType === 'SELF' && t.id !== actingUnit.id) return;
-                    this.noInput();
-                    document.querySelectorAll('.unit').forEach(el => el.classList.remove('target-enemy', 'target-ally', 'target-aoe'));
-                    this.execute(actingUnit, t, this.selectedSkillIdx);
-                };
-            }
-        });
-    },
+
+        // 타겟이 없는 경우 UI 피드백
+        if (isMindControlled && !isSupportSkill) {
+            // [상황 1] 세뇌 상태라서 팀킬할 아군(원래 동료)이 다 죽어서 없는 경우
+            UI.floatText(actingUnit, "대상없음", "ft-miss");
+            this.log(`<span class='log-sys'>⚠️ [${actingUnit.name}] 공격할 수 있는 대상이 없습니다.</span>`);
+        } else if (!isMindControlled && finalTargets.length === 0) {
+            // [상황 2] 정상 상태인데 타겟이 없음 (치명적 버그 가능성)
+            console.error('🚨 Critical: No targets found in normal state!');
+            UI.floatText(actingUnit, "타겟오류", "ft-miss");
+            this.log(`<span class='log-sys'>🚨 [${actingUnit.name}] 타겟팅 오류 발생</span>`);
+        }
+    }
+}, // 콤마 필수 (뒤에 ai 함수가 있음)
+
 
     ai: function(u) {
         if (isOnlineMode || this.difficulty === 'local' || this.difficulty === 'pvp') return;
 
         try {
-            const enemies = u.team === 0 ? this.eTeam : this.pTeam;
-            const allies = u.team === 0 ? this.pTeam : this.eTeam;
+            // [수정] 세뇌 중이라면 피아식별 반전 (팀킬 유도)
+            let enemies, allies;
+            if (Game.isMindControlling && u.id === Game.isMindControlling.id) {
+                // 세뇌된 AI 입장에서 '적'은 '자신의 원래 아군'이어야 함
+                enemies = u.team === 0 ? this.pTeam : this.eTeam; // 나의 팀을 적으로 인식
+                allies = u.team === 0 ? this.eTeam : this.pTeam;  // 상대 팀을 아군으로 인식
+            } else {
+                enemies = u.team === 0 ? this.eTeam : this.pTeam;
+                allies = u.team === 0 ? this.pTeam : this.eTeam;
+            }
+            
             const aliveEnemies = enemies.filter(e => !e.isDead);
-            const aliveAllies = allies.filter(a => !a.isDead);
+            const aliveAllies = allies.filter(a => !a.isDead); // Added for ally checks
+
             if (aliveEnemies.length === 0) {
                 this.endTurn();
                 return;
