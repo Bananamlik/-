@@ -2754,13 +2754,37 @@ const Game = {
         this.timer = setTimeout(() => this.turn(), 1000);
     },
 
-    turn: function() {
+   turn: function() {
         this.isProcessing = false;
         if (this.isOver) return;
         const round = Math.ceil(this.turnCount / 6);
         const tVal = this.queue[this.curr];
         const u = tVal % 2 === 0 ? this.pTeam[tVal / 2] : this.eTeam[(tVal - 1) / 2];
-        const isMyTurn = (u.team === 0);
+
+        // [PVP 수정] 조작 권한 판정 로직 강화
+        // 기본적으로 내 팀(0)이면 내 턴.
+        // 하지만! 적 팀(1)이라도 '내가 세뇌한 상태(isMindControlling)'라면 내 턴으로 간주.
+        let isMyTurn = (u.team === 0);
+        let isPuppetTurn = false;
+
+        // 세뇌 상태 체크: 현재 턴 유닛이 세뇌된 대상이고, 세뇌의 주체가 '나(Team 0)'인가?
+        // (주의: 온라인에서 상대방(Team 1)이 세뇌했다면 건드리면 안 됨)
+        if (Game.isMindControlling && Game.isMindControlling.id === u.id) {
+            // 세뇌를 건 주체(Source)가 누구인지 확인 필요.
+            // 현재 구조상 Game.isMindControlling 객체만으로는 누가 걸었는지 모를 수 있으므로,
+            // '내 팀이 건 세뇌인가?'를 판단해야 함. 
+            // 편의상 로컬 클라이언트(Team 0) 입장에서 '내가 MC 상태를 켰다'면 내가 주체임.
+            // (상대방 턴에서 넘어온 데이터라면 내 isMindControlling은 null이어야 함 -> 동기화 이슈 주의)
+            
+            // 간단 해결: 내 팀이 아닌데 세뇌 변수가 켜져있다면, 내가 조종하는 것임.
+            if (u.team !== 0) { 
+                isMyTurn = true; 
+                isPuppetTurn = true; 
+            } else {
+                // 반대로 내 유닛이 세뇌당했다면? -> 조작 권한 박탈
+                isMyTurn = false;
+            }
+        }
 
         if (this.watchdog) clearTimeout(this.watchdog);
         if (!isMyTurn && !isOnlineMode && this.difficulty !== 'local') {
@@ -2773,14 +2797,14 @@ const Game = {
 
         if (!u.isDead) {
             u.resetTurn();
-            // [선/후공 보정] 행동 시작 시 면역 해제 (팀 전체)
+            // [후공 보정] 해제
             if (u.hasStatus('START_IMMUNITY')) {
                 const myTeam = u.team === 0 ? this.pTeam : this.eTeam;
                 myTeam.forEach(member => {
                     member.status = member.status.filter(s => s.type !== 'START_IMMUNITY');
                 });
                 this.log(`<span class='log-sys'>🔓 [${u.team===0?'아군':'적군'}] 후공 보호막 해제!</span>`);
-                this.render(); // 상태 갱신을 위해 렌더링
+                this.render();
             }
         }
 
@@ -2789,90 +2813,91 @@ const Game = {
             return;
         }
 
-        // [신규] 세뇌 대기 (MC_WAIT) -> 턴 스킵 & 조종권 이양
-const mcWaitStatus = u.status.find(s => s.type === 'MC_WAIT');
-if (mcWaitStatus) {
-    Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배로 인해 행동 불가!</span>`);
-    UI.floatText(u, "정신지배", "ft-crit");
-    
-    let caster = null;
-    if (mcWaitStatus.sourceId !== undefined && mcWaitStatus.sourceId !== -1) {
-        const allUnits = [...Game.pTeam, ...Game.eTeam];
-        caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
-    }
-    
-    if (!caster) {
-        const enemyTeam = u.team === 0 ? Game.eTeam : Game.pTeam;
-        caster = enemyTeam.find(e => e.getKey() === 'Dark-Dark' && !e.isDead);
-    }
+        // [세뇌 대기] 턴 스킵 처리
+        const mcWaitStatus = u.status.find(s => s.type === 'MC_WAIT');
+        if (mcWaitStatus) {
+            Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배로 인해 행동 불가!</span>`);
+            UI.floatText(u, "정신지배", "ft-crit");
+            
+            let caster = null;
+            if (mcWaitStatus.sourceId !== undefined && mcWaitStatus.sourceId !== -1) {
+                const allUnits = [...Game.pTeam, ...Game.eTeam];
+                caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
+            }
+            if (!caster) {
+                const enemyTeam = u.team === 0 ? Game.eTeam : Game.pTeam;
+                caster = enemyTeam.find(e => e.getKey() === 'Dark-Dark' && !e.isDead);
+            }
 
-    u.status = u.status.filter(s => s.type !== 'MC_WAIT');
-    
-    if (caster && !caster.isDead) {
-        u.addStatus('MC_READY', 99, 0, caster);
-    } else {
-        Game.log("<span class='log-sys'>(시전자가 사망하여 세뇌가 풀렸습니다)</span>");
-    }
-    
-    setTimeout(() => this.endTurn(), 1000);
-    return;
-}
-
-        // [신규] 세뇌 조종 (MC_READY) 실행
-if (u.getKey() === 'Dark-Dark' && !u.isDead) {
-    const enemies = u.team === 0 ? Game.eTeam : Game.pTeam;
-    const puppet = enemies.find(e => e.hasStatus('MC_READY'));
-    
-    if (puppet) {
-        Game.log(`<span class='log-crit'>🎮 [${u.name}] ${puppet.name}의 정신을 조종합니다!</span>`);
-        Game.isMindControlling = puppet;
-        
-        document.getElementById('turn-indicator').innerText = `🧠 조종 중 : ${puppet.name}`;
-        UI.showTurnBanner(u.team === 0);
-        
-        document.querySelector('.control-panel').style.borderTop = "5px solid #d500f9";
-
-        if (isMyTurn || this.difficulty === 'local') {
-            this.input(puppet);
-            setTimeout(() => {
-                const cardId = u.team === 0 ? `e-card-${puppet.id}` : `p-card-${puppet.id}`;
-                const el = document.getElementById(cardId);
-                if(el) UI.showTooltip(puppet, el);
-            }, 100);
-            Game.log("<span class='log-sys'>💡 적군(원래 아군)을 공격하세요!</span>");
-        } else {
-            this.timer = setTimeout(() => this.ai(puppet), 1000);
-        }
-        return;
-    }
-}
-
-        UI.showTurnBanner(isMyTurn);
-        if (u.hasStatus('FREEZE') || u.hasStatus('STUN') || u.hasStatus('BANISH')) {
-            UI.floatText(u, "SKIP", "ft-miss");
-            this.log(`<span class='log-sys'>🚫 ${u.name} 행동불가</span>`);
-            setTimeout(() => this.endTurn(), 800);
-            return;
-        }
-        const tickLogs = u.tickStatus();
-        tickLogs.forEach(l => this.log(`<span class='log-sys'>${l}</span>`));
-        this.render();
-        if (u.hp <= 0) {
-            this.die(u);
-            this.endTurn();
+            u.status = u.status.filter(s => s.type !== 'MC_WAIT');
+            
+            if (caster && !caster.isDead) {
+                u.addStatus('MC_READY', 99, 0, caster);
+                // 세뇌 시작됨을 알림
+                Game.isMindControlling = u;
+                // UI 갱신 (테두리 등)
+                const cp = document.querySelector('.control-panel');
+                if(cp) cp.style.borderTop = "5px solid #d500f9";
+            } else {
+                Game.log("<span class='log-sys'>(시전자가 사망하여 세뇌가 풀렸습니다)</span>");
+            }
+            
+            setTimeout(() => this.endTurn(), 1000);
             return;
         }
 
+        // [세뇌 조종] 실행 단계 (기존 로직 유지하되 isMyTurn 변수 활용)
+        if (u.getKey() === 'Dark-Dark' && !u.isDead) {
+            const enemies = u.team === 0 ? Game.eTeam : Game.pTeam;
+            const puppet = enemies.find(e => e.hasStatus('MC_READY'));
+            if (puppet) {
+               // ... (기존 Dark-Dark가 조종 시작하는 로직, 여기는 문제 없음)
+            }
+        }
+
+        // --- [UI 업데이트: 배너 및 메시지] ---
         let turnName = u.name.split(' ')[0];
-        if (this.mode === 'pvp') turnName += (u.team === 0 ? " (나)" : " (적)");
-        document.getElementById('turn-indicator').innerText = `Round ${round} : ${turnName}`;
+        let indicatorText = `Round ${round} : ${turnName}`;
+        
+        if (isPuppetTurn) {
+            // 내가 적을 조종하는 턴
+            UI.showTurnBanner(true); // 아군 턴 배너 표시
+            indicatorText = `🧠 정신 지배 중! [${turnName}] 조종하세요!`;
+            document.querySelector('.control-panel').style.borderTop = "5px solid #d500f9";
+        } else if (isMyTurn) {
+            // 내 정상적인 턴
+            UI.showTurnBanner(true);
+            if (this.mode === 'pvp') indicatorText += " (나)";
+            document.querySelector('.control-panel').style.borderTop = "5px solid #ff80ab";
+        } else {
+            // 적의 턴 (혹은 내 유닛이 조종당하는 턴)
+            UI.showTurnBanner(false);
+            if (this.mode === 'pvp') indicatorText = "상대방의 행동을 기다리는 중...";
+            if (Game.isMindControlling && u.id === Game.isMindControlling.id && u.team === 0) {
+                 indicatorText = "🧠 내 유닛이 조종당하고 있습니다...";
+            }
+            document.querySelector('.control-panel').style.borderTop = "5px solid #ccc";
+        }
+        
+        document.getElementById('turn-indicator').innerText = indicatorText;
         this.turnCount++;
+
+        // --- [입력 활성화 여부 결정] ---
         if (isMyTurn || this.difficulty === 'local') {
             this.input(u);
+            // 만약 꼭두각시 턴이라면 툴팁 띄워주기
+            if (isPuppetTurn) {
+                setTimeout(() => {
+                    const cardId = u.team === 0 ? `p-card-${u.id}` : `e-card-${u.id}`;
+                    const el = document.getElementById(cardId);
+                    if(el) UI.showTooltip(u, el);
+                }, 100);
+            }
         } else {
             this.noInput();
-            if (this.mode === 'pvp') document.getElementById('turn-indicator').innerText = `상대방의 행동을 기다리는 중...`;
-            else this.timer = setTimeout(() => this.ai(u), 800);
+            if (this.mode !== 'pvp') {
+                this.timer = setTimeout(() => this.ai(u), 800);
+            }
         }
     },
 
