@@ -836,6 +836,38 @@
             .tag { font-size: 8px; padding: 1px 3px; height: 12px; }
             .tag-container { max-height: 26px; }
         }
+/* [신규] 데미지 미리보기 & 감정표현 */
+        .hp-preview {
+            position: absolute; top: 0; right: 0; bottom: 0;
+            background: rgba(255, 23, 68, 0.6); /* 붉은색 빗금 */
+            z-index: 2; pointer-events: none;
+            transition: width 0.2s;
+            box-shadow: -2px 0 0 rgba(255,255,255,0.5);
+        }
+        .emote-bubble {
+            position: absolute; top: -45px; left: 50%; transform: translateX(-50%);
+            background: #fff; border: 3px solid #333; border-radius: 20px;
+            padding: 8px 12px; font-size: 24px; z-index: 50;
+            animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            white-space: nowrap; pointer-events: none;
+        }
+        @keyframes pop-in { from { transform: translateX(-50%) scale(0); } to { transform: translateX(-50%) scale(1); } }
+        
+        .emote-menu {
+            position: absolute; display: flex; gap: 8px; 
+            background: rgba(255,255,255,0.95); padding: 8px; 
+            border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 100; border: 2px solid #eee;
+            animation: fade-up 0.2s;
+        }
+        @keyframes fade-up { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        .emote-btn { 
+            font-size: 22px; cursor: pointer; transition: 0.2s; 
+            width: 36px; height: 36px; border-radius: 50%; 
+            display:flex; align-items:center; justify-content:center;
+        }
+        .emote-btn:hover { transform: scale(1.2); background: #f0f0f0; }
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -2305,6 +2337,56 @@ const UI = {
         setTimeout(() => {
             ov.style.display = 'none';
         }, 1200);
+    }, // 👈 여기에 콤마(,)가 있어야 하고, 괄호를 닫으면 안 됩니다!
+
+    // [신규] 감정표현 메뉴 열기
+    showEmoteMenu: function(u, el) {
+        const existing = document.querySelector('.emote-menu');
+        if (existing) existing.remove();
+
+        const menu = document.createElement('div');
+        menu.className = 'emote-menu';
+        const emojis = ['👍', '😡', '😱', '😜', '🏳️'];
+        emojis.forEach(e => {
+            const btn = document.createElement('span');
+            btn.className = 'emote-btn';
+            btn.innerText = e;
+            btn.onclick = (ev) => {
+                ev.stopPropagation();
+                UI.triggerEmote(u, e);
+                menu.remove();
+            };
+            menu.appendChild(btn);
+        });
+        
+        const rect = el.getBoundingClientRect();
+        // 유닛 머리 위에 표시
+        menu.style.top = (rect.top - 60 + window.scrollY) + 'px';
+        menu.style.left = (rect.left + rect.width/2 - 100 + window.scrollX) + 'px';
+        
+        document.body.appendChild(menu);
+        
+        // 바깥 클릭 시 닫기
+        setTimeout(() => {
+            document.addEventListener('click', function close() {
+                if(menu.parentNode) menu.remove();
+                document.removeEventListener('click', close);
+            }, {once:true});
+        }, 0);
+    },
+
+    // [신규] 감정표현 실행
+    triggerEmote: function(u, emoji) {
+        const id = u.team === 0 ? `p-card-${u.id}` : `e-card-${u.id}`;
+        const el = document.getElementById(id);
+        if (!el) return;
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'emote-bubble';
+        bubble.innerText = emoji;
+        el.appendChild(bubble);
+        
+        setTimeout(() => bubble.remove(), 2000);
     }
 };
 
@@ -2936,80 +3018,77 @@ const Game = {
                 if (tid === 0) isActive = this.queue[this.curr] === u.id * 2;
                 else isActive = this.queue[this.curr] === (u.id - 3) * 2 + 1;
                 const role = SKILL_DB[u.getKey()].role || 'nuker';
-                // [각성] super-hero 클래스 추가
+                
                 d.className = `unit role-${role} ${u.isSuper ? 'super-hero' : ''} ${u.isDead?'dead':''} ${isActive?'active-turn':''} ${tid===1?'target-enemy':''} ${tid===0?'target-ally':''}`;
 
-                // [툴팁] 이벤트 리스너 추가
+                // [툴팁 & 감정표현 로직 통합]
                 d.onmousedown = (e) => {
-                    if (d.classList.contains('target-enemy') || d.classList.contains('target-ally')) return; // 타겟팅 중엔 툴팁 X
+                    if (d.classList.contains('target-enemy') || d.classList.contains('target-ally')) return;
                     d.pressTimer = setTimeout(() => UI.showTooltip(u, d), 500);
                 };
-                d.onmouseup = () => {
-                    clearTimeout(d.pressTimer);
-                    UI.hideTooltip();
-                };
-                d.onmouseleave = () => {
-                    clearTimeout(d.pressTimer);
-                    UI.hideTooltip();
+                d.onmouseup = () => { clearTimeout(d.pressTimer); UI.hideTooltip(); };
+                d.onmouseleave = () => { 
+                    clearTimeout(d.pressTimer); UI.hideTooltip();
+                    // 미리보기 제거
+                    const p = d.querySelector('.hp-preview');
+                    if(p) p.remove();
                 };
                 d.ontouchstart = (e) => {
                     if (d.classList.contains('target-enemy') || d.classList.contains('target-ally')) return;
                     d.pressTimer = setTimeout(() => UI.showTooltip(u, d), 500);
                 };
-                d.ontouchend = () => {
-                    clearTimeout(d.pressTimer);
-                    UI.hideTooltip();
+                d.ontouchend = () => { clearTimeout(d.pressTimer); UI.hideTooltip(); };
+
+                // [신규] 클릭 시 감정표현 메뉴 (스킬 선택 중이 아닐 때만)
+                d.onclick = (e) => {
+                    if (Game.selectedSkillIdx !== -1) return; // 타겟팅 중이면 무시
+                    if (u.team === 0) { // 내 유닛만
+                        UI.showEmoteMenu(u, d);
+                        e.stopPropagation();
+                    }
+                };
+
+                // [신규] 마우스 오버 시 데미지 미리보기
+                d.onmouseenter = () => {
+                    // 스킬 선택 중이고 + 적군이며 + 내가 조작 중일 때
+                    if (Game.selectedSkillIdx !== -1 && tid !== 0 && !Game.isProcessing) {
+                        const pred = Game.predictDmg(u);
+                        if (pred > 0) {
+                            const bar = d.querySelector('.status-bar');
+                            if (bar) {
+                                const preview = document.createElement('div');
+                                preview.className = 'hp-preview';
+                                // 체력바 비율 계산
+                                const widthPct = Math.min(100, (pred / u.maxHp) * 100);
+                                preview.style.width = widthPct + '%';
+                                bar.appendChild(preview);
+                            }
+                        }
+                    }
                 };
 
                 let tags = u.status.map(s => {
                     let c = 'tag';
                     const map = {
-                        'POISON': 'poison',
-                        'FREEZE': 'freeze',
-                        'SILENCE': 'silence',
-                        'EVADE': 'evade',
-                        'BURN': 'burn',
-                        'BANISH': 'banish',
-                        'TRAP': 'trap',
-                        'BIND': 'bind',
-                        'GROWTH': 'growth',
-                        'ATK_DOWN': 'atkdown',
-                        'BLIND': 'blind',
-                        'IMMUNITY': 'immunity',
-                        'HEAL_DOWN': 'healdown',
-                        'LIGHT_MIGHT': 'atkup',
-                        'LIFESTEAL_BUFF': 'lifesteal',
-                        'ATK_BUFF_SMALL': 'atkup_s',
-                        'START_IMMUNITY': 'start-immunity',
-                        'MC_WAIT': 'mc-wait', // [신규]
-                        'MC_READY': 'mc-ready'    // [신규]
-
+                        'POISON': 'poison', 'FREEZE': 'freeze', 'SILENCE': 'silence',
+                        'EVADE': 'evade', 'BURN': 'burn', 'BANISH': 'banish',
+                        'TRAP': 'trap', 'BIND': 'bind', 'GROWTH': 'growth',
+                        'ATK_DOWN': 'atkdown', 'BLIND': 'blind', 'IMMUNITY': 'immunity',
+                        'HEAL_DOWN': 'healdown', 'LIGHT_MIGHT': 'atkup', 'LIFESTEAL_BUFF': 'lifesteal',
+                        'ATK_BUFF_SMALL': 'atkup_s', 'START_IMMUNITY': 'start-immunity',
+                        'MC_WAIT': 'mc-wait', 'MC_READY': 'mc-ready'
                     };
                     if (s.type.includes('PROVOKED')) c += ' taunt';
                     else if (s.type.startsWith('KARMA_VICTIM')) c += ' karma';
                     else if (map[s.type]) c += ` ${map[s.type]}`;
                     let txt = s.type;
                     const tMap = {
-                        'POISON': '독',
-                        'FREEZE': '빙결',
-                        'SILENCE': '침묵',
-                        'DMG_RED': '방어↑',
-                        'EVADE': '회피',
-                        'BURN': '화상',
-                        'TRAP': '속박',
-                        'BANISH': '추방',
-                        'BIND': '결속',
-                        'GROWTH': '성장',
-                        'ATK_DOWN': '공격↓',
-                        'BLIND': '실명',
-                        'IMMUNITY': '면역',
-                        'HEAL_DOWN': '치유↓',
-                        'LIGHT_MIGHT': '공격↑',
-                        'LIFESTEAL_BUFF': '🩸흡혈',
-                        'ATK_BUFF_SMALL': '🔥공격↑',
-                        'START_IMMUNITY': '🛡️선공방어',
-                        'MC_WAIT': '🌀세뇌중...', // [신규]
-                        'MC_READY': '🧠조종가능'   // [신규]
+                        'POISON': '독', 'FREEZE': '빙결', 'SILENCE': '침묵', 'DMG_RED': '방어↑',
+                        'EVADE': '회피', 'BURN': '화상', 'TRAP': '속박', 'BANISH': '추방',
+                        'BIND': '결속', 'GROWTH': '성장', 'ATK_DOWN': '공격↓', 'BLIND': '실명',
+                        'IMMUNITY': '면역', 'HEAL_DOWN': '치유↓', 'LIGHT_MIGHT': '공격↑',
+                        'LIFESTEAL_BUFF': '🩸흡혈', 'ATK_BUFF_SMALL': '🔥공격↑', 'START_IMMUNITY': '🛡️선공방어',
+                        'MC_WAIT': '🌀세뇌중...', 'MC_READY': '🧠조종가능'
                     };
                     if (s.type.includes('PROVOKED')) txt = '도발';
                     else if (s.type.startsWith('KARMA_VICTIM')) txt = '👁️업보';
@@ -3031,7 +3110,13 @@ const Game = {
                     else if (role === 'supp') displayName = `😇구원자 ${displayName}`;
                 }
 
-                const innerHTML = ` ${extraBadge} <div class="tag-container">${tags}</div> <div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div> <div class="unit-name" style="font-size:15px; margin-bottom:3px; ${u.isSuper ? 'color:#fbc02d; text-shadow:0 0 5px rgba(255,235,59,0.5);' : ''}">${displayName} <span class="atk-text">⚔️${u.getAtk()}</span></div> <div class="status-bar" style="height:14px;"><div class="hp-fill" style="width:${(u.hp/u.maxHp)*100}%; background:${u.hp<150?'var(--hp-low)':'var(--hp-high)'}"></div><div class="shield-fill" style="width:${(u.shield/u.maxHp)*100}%"></div></div> <div style="font-size:12px; margin-top:3px; color:#777; font-weight:bold;">${u.hp}${u.shield>0?` (+${u.shield})`:''}</div> `;
+                // [신규] 동적 체력바 색상 (Dynamic HP Color)
+                const hpPct = (u.hp / u.maxHp) * 100;
+                let hpColor = '#66bb6a'; // Green (Safe)
+                if (hpPct <= 25) hpColor = '#ef5350'; // Red (Danger)
+                else if (hpPct <= 50) hpColor = '#ffb74d'; // Orange (Warning)
+
+                const innerHTML = ` ${extraBadge} <div class="tag-container">${tags}</div> <div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div> <div class="unit-name" style="font-size:15px; margin-bottom:3px; ${u.isSuper ? 'color:#fbc02d; text-shadow:0 0 5px rgba(255,235,59,0.5);' : ''}">${displayName} <span class="atk-text">⚔️${u.getAtk()}</span></div> <div class="status-bar" style="height:14px;"><div class="hp-fill" style="width:${hpPct}%; background:${hpColor};"></div><div class="shield-fill" style="width:${(u.shield/u.maxHp)*100}%"></div></div> <div style="font-size:12px; margin-top:3px; color:#777; font-weight:bold;">${u.hp}${u.shield>0?` (+${u.shield})`:''}</div> `;
                 if (d.innerHTML !== innerHTML) d.innerHTML = innerHTML;
             });
         };
