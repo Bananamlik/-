@@ -3329,14 +3329,18 @@ turn: function() {
                 caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
             }
 
-            // 시전자가 내 팀이면 -> 내 턴으로 강제 전환 (모든 스킬 사용 가능)
-            if (caster && !caster.isDead && caster.team === 0) {
-                isMyTurn = true;
-                isPuppetTurn = true;
-                this.isMindControlling = u; // 전역 변수 설정
-                this.currentMCCasterId = caster.id; // [추가] 시전자 ID 저장 (사망 판정용)
-				
-                this.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 성공! 제어권을 탈취했습니다.</span>`);
+                    // 시전자가 내 팀이면 -> 내 턴으로 강제 전환 (모든 스킬 사용 가능)
+        if (caster && !caster.isDead && caster.team === 0) {
+            // [수정] 세뇌 성공 시, 이미 돌아가고 있는 AI 감시자(Watchdog)를 반드시 꺼야 함
+            if (this.watchdog) clearTimeout(this.watchdog);
+
+            isMyTurn = true;
+            isPuppetTurn = true;
+            this.isMindControlling = u; // 전역 변수 설정
+            this.currentMCCasterId = caster.id; // [추가] 시전자 ID 저장 (사망 판정용)
+
+            this.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 성공! 제어권을 탈취했습니다.</span>`);
+
                 UI.floatText(u, "제어권 획득", "ft-crit");
                 
                 // 상태 제거 (이번 턴에 바로 행동하므로 상태 아이콘 삭제)
