@@ -4015,7 +4015,7 @@ ai: function(u) {
                 allies = u.team === 0 ? this.pTeam : this.eTeam;
             }
 
-            // 3. 생존자 필터링 (자기 자신 제외 - 자해 방지 핵심)
+            // 3. 생존자 필터링 (자기 자신 제외 - 자해 방지)
             let aliveEnemies = enemies.filter(e => !e.isDead && e.id !== u.id);
             const aliveAllies = allies.filter(a => !a.isDead);
 
@@ -4106,28 +4106,23 @@ ai: function(u) {
                 return score;
             };
 
-            // [헬퍼] 스킬 타입 판별
+            // [헬퍼] 스킬 타입 판별 (수정됨: '배'가 있으면 무조건 공격 스킬로 분류)
             const isAttackSkill = (desc, type) => {
-               if (!desc) return false;
-               
-               // 1단계: 절대 공격 아님 (도발 포함!)
-               const nonAttackKeywords = ['힐', '쉴드', '정화', '버프', '회피', '도발', '결속'];
-               const nonAttackTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
-               
-               if (nonAttackKeywords.some(kw => desc.includes(kw)) || nonAttackTypes.includes(type)) {
-                   return false;
-               }
-               
-               // 2단계: 데미지X 명시된 경우 공격 아님
-               if (desc.includes('데미지X')) return false;
-               
-               // 3단계: 공격 키워드 확인
-               const attackKeywords = ['배', '데미지', '공격'];
-               return attackKeywords.some(kw => desc.includes(kw));
-           };
+                if (!desc) return false;
+                const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피'];
+                const supportTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
+                // 공격 키워드('배')가 있으면 우선적으로 공격 스킬로 판단
+                if (desc.includes('배')) return true;
+                
+                if (supportKeywords.some(kw => desc.includes(kw)) || supportTypes.includes(type)) return false;
+                return true;
+            };
 
             const isSupportSkill = (desc, type) => {
                 if (!desc) return false;
+                // 🚨 핵심 수정: 데미지 배율('배')이 있는 스킬은 절대 지원 스킬이 아님! (힐 스킬 제외)
+                if (desc.includes('배') && type !== 'HEAL') return false;
+
                 const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피', '성장'];
                 const supportTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
                 return supportKeywords.some(kw => desc.includes(kw)) || supportTypes.includes(type);
@@ -4176,7 +4171,9 @@ ai: function(u) {
 
             // 7. [최종 안전장치] Friendly Fire 방지
             if (!isBrainwashed && best.target && best.target.team === u.team) {
-                if (best.type === 'attack') {
+                // 공격 타입이거나, 설명에 '배'가 들어가는 경우 강제 리다이렉트
+                const info = best.idx === 0 ? "평타" : (best.idx === 1 ? sk.s1d : sk.s2d);
+                if (best.type === 'attack' || (info && info.includes('배') && sk.type !== 'HEAL')) {
                     console.warn(`🚨 Friendly Fire Prevented! [${u.name}] redirected.`);
                     best.target = aliveEnemies[Math.floor(this.netRandom() * aliveEnemies.length)];
                     best.idx = 0;
