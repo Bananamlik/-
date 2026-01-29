@@ -874,6 +874,26 @@
             animation-play-state: paused !important;
             transition: none !important;
         }
+       /* [신규] 투사체 및 타격 이펙트 */
+        .projectile {
+            position: absolute;
+            font-size: 24px;
+            z-index: 150;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));
+        }
+        .impact-effect {
+            position: absolute;
+            font-size: 40px;
+            z-index: 151;
+            pointer-events: none;
+            animation: impact-pop 0.3s ease-out forwards;
+        }
+        @keyframes impact-pop {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -906,6 +926,7 @@
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
+                <button class="btn-restart" onclick="UI.showCollection()">💎 Codex</button>
                 <button class="btn-restart" onclick="Game.loadGame()">📂 이어하기</button>
             </div>
         </div>
@@ -1171,6 +1192,44 @@ const SKILL_DB = {
     'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵(1턴)', s2:'정신지배', s2d:'HP15%소모/적 1회 조종(성공률 20~45%/스턴X)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🧠', desc:'심연의 지배자<br>적 제어권 탈취', passive:'🌑 심연의 힘: 세뇌 성공률은 기본 20%이며, 대상의 체력이 낮을수록 최대 45%까지 증가합니다. 성공 시 다음 턴 적을 1회 조종합니다. 행동 후 즉시 풀려납니다.' }
 };
 
+// [신규] Emotion Alias Database (English)
+const EMOTION_DB = {
+    'Fire': { t: 'Rage', d: 'Burning instinct of destruction' },
+    'Water': { t: 'Sorrow', d: 'Cold grief that freezes the heart' },
+    'Tree': { t: 'Vigor', d: 'Unstoppable life force' },
+    'Metal': { t: 'Coldness', d: 'Reason without emotion' },
+    'Earth': { t: 'Stoicism', d: 'Unshakable calmness' },
+    'Light': { t: 'Bliss', d: 'Pure joy and light' },
+    'Dark': { t: 'Terror', d: 'Fear of the unknown' },
+    'Normal': { t: 'Void', d: 'Emptiness unaffected by anything' },
+    
+    'Fire-Light': { t: 'Passion', d: 'Rage sublimated into positivity' },
+    'Fire-Dark': { t: 'Madness', d: 'Uncontrollable frenzy' },
+    'Water-Light': { t: 'Compassion', d: 'Sorrow that embraces others' },
+    'Water-Dark': { t: 'Misery', d: 'Solidified pain and cold' },
+    'Tree-Light': { t: 'Hope', d: 'A forest embracing everyone' },
+    'Tree-Dark': { t: 'Obsession', d: 'Twisted love and pain' },
+    'Metal-Light': { t: 'Critique', d: 'Sharp and piercing analysis' },
+    'Metal-Dark': { t: 'Thrill', d: 'Hidden stimulating excitement' },
+    'Earth-Light': { t: 'Tenacity', d: 'Persistence that never lets go' },
+    'Earth-Dark': { t: 'Pride', d: 'Overwhelming weight of arrogance' },
+    'Light-Light': { t: 'Salvation', d: 'Liberation from suffering' },
+    'Dark-Dark': { t: 'Domination', d: 'Power to control minds' }
+};
+
+// [신규] Title Manager (Unlock System)
+const TitleManager = {
+    unlocked: JSON.parse(localStorage.getItem('et_titles_en') || '[]'),
+    unlock: function(key) {
+        if (!this.unlocked.includes(key)) {
+            this.unlocked.push(key);
+            localStorage.setItem('et_titles_en', JSON.stringify(this.unlocked));
+            return true;
+        }
+        return false;
+    }
+};
+
 const ChallengeDB = [
     { name: "뉴비 절단기", desc: "단단한 쇠(Metal)와 힐러 조합. 딜이 부족하면 뚫다가 지칩니다.", team: ['Metal', 'Water', 'Fire'] },
     { name: "빙결 지옥", desc: "얼리고(Water-Dark) 기절(Earth)시키는 무한 CC 조합.", team: ['Water-Dark', 'Earth', 'Water'] },
@@ -1253,7 +1312,7 @@ const Common = {
     // [수정] 세뇌 상태일 때 피아식별 반전 로직 (광역기 버그 수정)
     forEachAlly: function(unit, game, callback) { 
         let effectiveTeam = unit.team;
-        if (Game.isMindControlling && unit.id === Game.isMindControlling.id) {
+        if (game.isMindControlling && unit.id === game.isMindControlling.id) {
             effectiveTeam = unit.team === 0 ? 1 : 0; // 세뇌됨: 적이 내 아군
         }
         const team = effectiveTeam === 0 ? game.pTeam : game.eTeam; 
@@ -1261,7 +1320,7 @@ const Common = {
     },
     forEachEnemy: function(unit, game, callback) { 
         let effectiveTeam = unit.team;
-        if (Game.isMindControlling && unit.id === Game.isMindControlling.id) {
+        if (game.isMindControlling && unit.id === game.isMindControlling.id) {
             effectiveTeam = unit.team === 0 ? 1 : 0; // 세뇌됨: 원래 아군이 적
         }
         const team = effectiveTeam === 0 ? game.eTeam : game.pTeam; 
@@ -1750,7 +1809,7 @@ const SKILL_LOGIC = {
             game.log(`<b>[${atk.name}]</b> 마인드 컨트롤 🧠`); // ✅ 한 번만
             
             // [제약 1] 이미 누군가를 조종 중이면 불가
-            if (Game.isMindControlling) {
+            if (game.isMindControlling) {
                 game.log("<span class='log-sys'>🚫 이미 조종 중인 대상이 있습니다!</span>");
                 UI.floatText(atk, "사용불가", "ft-miss");
                 return;
@@ -1850,9 +1909,31 @@ class Unit {
         } else if (role === 'supp') {
             if ((this.stats.heal + this.stats.shieldGiven) >= 1000) awakened = true;
         }
-        if (awakened) {
+if (awakened) {
             this.isSuper = true;
-            UI.floatText(this, "⚡AWAKENING!!⚡", "ft-crit");
+            
+            // [Modified] Emotion Awakening Logic
+            const emo = EMOTION_DB[key];
+            if (emo) {
+                const isNew = TitleManager.unlock(key);
+                const titleText = `[${emo.t}] Awakened!`;
+                UI.floatText(this, titleText, "ft-crit");
+                
+                if (isNew) {
+                    setTimeout(() => {
+                        Game.log(`<span class="log-crit" style="color:#d500f9;">🏆 New Title Unlocked: [${emo.t}]</span>`);
+                        // 알림 메시지는 한 번만
+                        const bubble = document.createElement('div');
+                        bubble.style.cssText = "position:fixed; top:20%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.8); color:#fff; padding:15px 25px; border-radius:30px; z-index:9999; font-size:18px; box-shadow:0 5px 15px rgba(0,0,0,0.3); animation:floatUp 2s forwards;";
+                        bubble.innerHTML = `💎 New Emotion: <b>${emo.t}</b><br><span style='font-size:12px; color:#aaa;'>${emo.d}</span>`;
+                        document.body.appendChild(bubble);
+                        setTimeout(() => bubble.remove(), 2500);
+                    }, 500);
+                }
+            } else {
+                UI.floatText(this, "⚡AWAKENING!!⚡", "ft-crit");
+            }
+
             AudioSys.play('AWAKEN');
             Game.render();
         }
@@ -2206,6 +2287,65 @@ const AudioSys = {
         }
     }
 };
+// [신규] 배경음악 관리자 (Cute & Bouncy Ver.)
+const BGM = {
+    timer: null,
+    isPlaying: false,
+    state: 'NORMAL', // NORMAL, DANGER
+    beat: 0,
+    
+    start: function() {
+        if (this.isPlaying) return;
+        this.isPlaying = true;
+        this.beat = 0;
+        this.loop();
+    },
+    
+    stop: function() {
+        this.isPlaying = false;
+        if (this.timer) clearTimeout(this.timer);
+    },
+    
+    setState: function(newState) {
+        this.state = newState;
+    },
+
+    loop: function() {
+        if (!this.isPlaying) return;
+        // 템포: 평상시(450ms) / 위기시(300ms - 호다닥 느낌)
+        const tempo = this.state === 'DANGER' ? 300 : 450;
+        this.playBeat(this.beat);
+        this.beat = (this.beat + 1) % 4; 
+        this.timer = setTimeout(() => this.loop(), tempo);
+    },
+
+    playBeat: function(beat) {
+        if (AudioSys.isMuted || !AudioSys.ctx) return;
+        
+        // 1. 베이스 (통통 튀는 '뿅' 소리 - Triangle 파형 + Pitch Slide)
+        if (beat % 2 === 0) {
+            AudioSys.playTone(350, 'triangle', 0.15, 0.3, 150); 
+        }
+        
+        // 2. 리듬 (가벼운 탬버린 - 짧은 Sine)
+        if (beat % 2 !== 0) {
+             AudioSys.playTone(1200, 'sine', 0.05, 0.1); 
+        }
+
+        // 3. 멜로디 (랜덤 실로폰 - Sine 파형)
+        // 위기 상황이면 약간 급한 느낌, 아니면 평화로운 펜타토닉
+        if (Math.random() < 0.6) { 
+            const normalScale = [523, 587, 659, 783, 880, 1046]; // 도레미솔라도 (맑음)
+            const dangerScale = [523, 622, 698, 830, 932];       // 단조 (긴박함)
+            
+            const scale = this.state === 'DANGER' ? dangerScale : normalScale;
+            const pitch = scale[Math.floor(Math.random() * scale.length)];
+            
+            // 살짝 위로 튕기는 소리 (pitch + 20)
+            AudioSys.playTone(pitch, 'sine', 0.15, 0.1, pitch + 20);
+        }
+    }
+};
 
 const UI = {
     showModal: function(title, content) {
@@ -2445,6 +2585,97 @@ const UI = {
         
         setTimeout(() => bubble.remove(), 2000);
     }, 
+
+// [New] Emotion Codex UI
+    showCollection: function() {
+        const list = Object.keys(EMOTION_DB);
+        let html = `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;">`;
+        let unlockedCount = 0;
+
+        list.forEach(key => {
+            const isUnlocked = TitleManager.unlocked.includes(key);
+            if (isUnlocked) unlockedCount++;
+            
+            const data = EMOTION_DB[key];
+            const base = key.split('-')[0] === 'Normal' ? 'Normal' : key.split('-')[0];
+            let bgClass = `bg-${base}`;
+            if (key.includes('-') && key.split('-')[0] === key.split('-')[1]) bgClass += '-Enhanced';
+            if (key === 'Normal') bgClass = 'bg-Normal';
+
+            // Style: Unlocked vs Locked
+            const style = isUnlocked 
+                ? `border:2px solid #ff80ab; background:#fff; color:#333;` 
+                : `background:#eee; color:#aaa; border:2px dashed #ccc; opacity:0.7;`;
+            
+            const icon = isUnlocked ? (SKILL_DB[key].icon || ATTR[base].i) : '🔒';
+            const title = isUnlocked ? data.t : '???';
+            const desc = isUnlocked ? data.d : 'Unlock by Awakening';
+
+            html += `
+                <div style="padding:10px; border-radius:15px; display:flex; flex-direction:column; align-items:center; text-align:center; ${style}">
+                    <div class="attr-icon ${isUnlocked ? bgClass : ''}" style="width:36px; height:36px; font-size:20px; margin-bottom:5px; ${!isUnlocked?'background:#ccc;':''}">${icon}</div>
+                    <div style="font-weight:bold; font-size:14px; margin-bottom:3px;">${title}</div>
+                    <div style="font-size:10px; line-height:1.2;">${desc}</div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        
+        const pct = Math.floor((unlockedCount / list.length) * 100);
+        const header = `
+            <div style="text-align:center; margin-bottom:15px; padding-bottom:10px; border-bottom:2px dashed #ffcdd2;">
+                <h3 style="margin:0 0 5px 0; color:#ff80ab;">💎 Emotion Codex</h3>
+                <div style="font-size:14px; color:#888;">
+                    Collection: <b style="color:${pct===100?'#ffca28':'#5d4037'}">${unlockedCount} / ${list.length}</b> (${pct}%)
+                </div>
+            </div>
+        `;
+
+        this.showModal("Codex", header + html);
+    },
+    // [신규] 투사체 발사 애니메이션
+    fireProjectile: function(atk, def, icon) {
+        return new Promise(resolve => {
+            // 위치 계산
+            const startId = atk.team === 0 ? `p-card-${atk.id}` : `e-card-${atk.id}`;
+            const endId = def.team === 0 ? `p-card-${def.id}` : `e-card-${def.id}`;
+            const sEl = document.getElementById(startId);
+            const eEl = document.getElementById(endId);
+            
+            if (!sEl || !eEl) { resolve(); return; }
+
+            const sRect = sEl.getBoundingClientRect();
+            const eRect = eEl.getBoundingClientRect();
+
+            // 투사체 생성
+            const p = document.createElement('div');
+            p.className = 'projectile';
+            p.innerText = icon;
+            p.style.left = (sRect.left + sRect.width/2) + 'px';
+            p.style.top = (sRect.top + sRect.height/2) + 'px';
+            document.body.appendChild(p);
+
+            // 발사 (강제 리플로우 후 이동)
+            requestAnimationFrame(() => {
+                p.style.left = (eRect.left + eRect.width/2) + 'px';
+                p.style.top = (eRect.top + eRect.height/2) + 'px';
+            });
+
+            // 도착 후 처리
+            setTimeout(() => {
+                p.remove();
+                // 타격 이펙트
+                const boom = document.createElement('div');
+                boom.className = 'impact-effect';
+                boom.innerText = '💥';
+                boom.style.left = (eRect.left + eRect.width/2) + 'px';
+                boom.style.top = (eRect.top + eRect.height/2) + 'px';
+                document.body.appendChild(boom);
+                setTimeout(() => boom.remove(), 300);
+                resolve();
+            }, 400); // 0.4초 비행
+        });
+    },
 
     // [신규] 히트 스톱 (타격감 극대화)
     hitStop: function(duration = 150) {
@@ -2750,6 +2981,7 @@ const Game = {
     start: function() {
         AudioSys.init();
         AudioSys.resume();
+        BGM.start(); // 음악 큐!
         const diffVal = document.getElementById('diff-select').value;
         this.difficulty = diffVal;
         this.mode = (diffVal === 'pvp' || diffVal === 'local') ? 'pvp' : 'pve';
@@ -2900,8 +3132,8 @@ turn: function() {
         const round = Math.ceil(this.turnCount / 6);
         const tVal = this.queue[this.curr];
         
-        // 1. 유닛 정의 (기존 찌꺼기 오류 해결됨)
-        const u = tVal % 2 === 0 ? this.pTeam[tVal / 2] : this.eTeam[(tVal - 1) / 2];
+        // 1. 유닛 정의 (기존 찌꺼기 오류 해결됨) - 정수 변환 추가
+        const u = tVal % 2 === 0 ? this.pTeam[Math.floor(tVal / 2)] : this.eTeam[Math.floor((tVal - 1) / 2)];
 
         // 2. [로직 삭제됨] 즉시 제어권 탈취 방식으로 변경되어, 사전 준비(MC_READY) 단계가 불필요합니다.
         // (이곳에 있던 문법 오류 및 구버전 로직을 삭제했습니다.)
@@ -2913,7 +3145,7 @@ turn: function() {
         let isPuppetTurn = false;
 
         // 세뇌 상태 체크: 현재 턴 유닛이 세뇌된 대상이고, 세뇌의 주체가 '나'인가?
-        if (Game.isMindControlling && Game.isMindControlling.id === u.id) {
+        if (this.isMindControlling && this.isMindControlling.id === u.id) {
             // 간단 해결: 내 팀이 아닌데(적군인데) 세뇌 변수가 켜져있다면, 내가 조종하는 것임.
             if (u.team !== 0) { 
                 isMyTurn = true; 
@@ -2980,7 +3212,7 @@ turn: function() {
             // 시전자(주인) 확인
             let caster = null;
             if (mcWaitStatus.sourceId !== undefined && mcWaitStatus.sourceId !== -1) {
-                const allUnits = [...Game.pTeam, ...Game.eTeam];
+                const allUnits = [...this.pTeam, ...this.eTeam];
                 caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
             }
 
@@ -2988,10 +3220,10 @@ turn: function() {
             if (caster && !caster.isDead && caster.team === 0) {
                 isMyTurn = true;
                 isPuppetTurn = true;
-                Game.isMindControlling = u; // 전역 변수 설정
-                Game.currentMCCasterId = caster.id; // [추가] 시전자 ID 저장 (사망 판정용)
+                this.isMindControlling = u; // 전역 변수 설정
+                this.currentMCCasterId = caster.id; // [추가] 시전자 ID 저장 (사망 판정용)
 				
-                Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 성공! 제어권을 탈취했습니다.</span>`);
+                this.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 성공! 제어권을 탈취했습니다.</span>`);
                 UI.floatText(u, "제어권 획득", "ft-crit");
                 
                 // 상태 제거 (이번 턴에 바로 행동하므로 상태 아이콘 삭제)
@@ -3000,15 +3232,15 @@ turn: function() {
             // 시전자가 적 팀이면 -> 적이 조종 (내 입력 차단)
             else if (caster && !caster.isDead && caster.team === 1) {
                 isMyTurn = false;
-                Game.isMindControlling = u;
+                this.isMindControlling = u;
                 
-                Game.log(`<span class='log-crit'>🧠 [${u.name}] 적에게 조종당합니다!</span>`);
+                this.log(`<span class='log-crit'>🧠 [${u.name}] 적에게 조종당합니다!</span>`);
                 u.status = u.status.filter(s => s.type !== 'MC_WAIT');
             }
             // 시전자가 죽었으면 해제
             else {
                 u.status = u.status.filter(s => s.type !== 'MC_WAIT');
-                Game.log(`<span class='log-sys'>🕊️ 시전자가 사망하여 정신 지배가 풀렸습니다.</span>`);
+                this.log(`<span class='log-sys'>🕊️ 시전자가 사망하여 정신 지배가 풀렸습니다.</span>`);
             }
             
             // 주의: 기존의 'return'을 삭제하여 아래의 input() 로직으로 흐르게 함
@@ -3031,7 +3263,7 @@ turn: function() {
         } else {
             UI.showTurnBanner(false);
             if (this.mode === 'pvp') indicatorText = "상대방의 행동을 기다리는 중...";
-            if (Game.isMindControlling && u.id === Game.isMindControlling.id && u.team === 0) {
+            if (this.isMindControlling && u.id === this.isMindControlling.id && u.team === 0) {
                  indicatorText = "🧠 내 유닛이 조종당하고 있습니다...";
             }
             const cp = document.querySelector('.control-panel');
@@ -3039,6 +3271,9 @@ turn: function() {
         }
         
         document.getElementById('turn-indicator').innerText = indicatorText;
+        // [신규] BGM 상태 업데이트 (아군 체력 30% 미만 유닛 있으면 위기)
+        const danger = this.pTeam.some(u => !u.isDead && u.hp < u.maxHp * 0.3);
+        BGM.setState(danger ? 'DANGER' : 'NORMAL');
         this.turnCount++;
 
         // 8. [입력 활성화 여부 결정]
@@ -3067,9 +3302,10 @@ turn: function() {
             const idx = (this.curr + i) % 6;
             const qId = this.queue[idx];
             const isP = qId % 2 === 0;
-            const uIdx = isP ? qId / 2 : (qId - 1) / 2;
+            const uIdx = isP ? Math.floor(qId / 2) : Math.floor((qId - 1) / 2);
             const team = isP ? this.pTeam : this.eTeam;
             const u = team[uIdx];
+            if (!u) continue; // null 체크 추가
             const n = document.createElement('div');
             n.className = `tl-node ${isP?'ally':'enemy'} ${i===0?'curr':''}`;
             if (u.isDead) n.style.opacity = 0.3;
@@ -3182,9 +3418,16 @@ turn: function() {
 
                 let displayName = u.name.split(' ')[0];
                 if (u.isSuper) {
-                    if (role === 'nuker') displayName = `👹파괴신 ${displayName}`;
-                    else if (role === 'tank') displayName = `🛡️수호신 ${displayName}`;
-                    else if (role === 'supp') displayName = `😇구원자 ${displayName}`;
+                    const emo = EMOTION_DB[u.getKey()];
+                    // 1. 감정 DB에 있고, 해금된 상태라면 타이틀 표시
+                    if (emo) {
+                        displayName = `[${emo.t}] ${displayName}`;
+                    } else {
+                        // 2. 예외 처리 (기존 로직)
+                        if (role === 'nuker') displayName = `👹God ${displayName}`;
+                        else if (role === 'tank') displayName = `🛡️Lord ${displayName}`;
+                        else if (role === 'supp') displayName = `😇Saint ${displayName}`;
+                    }
                 }
 
                 // [신규] 동적 체력바 색상 (Dynamic HP Color)
@@ -3206,21 +3449,22 @@ endTurn: function(isFast = false) {
         if (this.watchdog) clearTimeout(this.watchdog);
         
         // 현재 턴 주인 유닛 찾기
-        const u = this.queue[this.curr] % 2 === 0 ? this.pTeam[this.queue[this.curr] / 2] : this.eTeam[(this.queue[this.curr] - 1) / 2];
+        const tVal = this.queue[this.curr];
+        const u = tVal % 2 === 0 ? this.pTeam[Math.floor(tVal / 2)] : this.eTeam[Math.floor((tVal - 1) / 2)];
 
         // [밸런스 수정] 세뇌 해제 로직
         // "현재 턴을 마친 유닛(u)"이 "조종 중인 유닛(isMindControlling)"일 때만 해제
-        if (Game.isMindControlling && u && u.id === Game.isMindControlling.id) {
-             const puppet = Game.isMindControlling;
+        if (this.isMindControlling && u && u.id === this.isMindControlling.id) {
+             const puppet = this.isMindControlling;
              
-             Game.log(`<span class='log-sys'>🧠 [${puppet.name}] 정신 지배가 풀렸습니다.</span>`);
+             this.log(`<span class='log-sys'>🧠 [${puppet.name}] 정신 지배가 풀렸습니다.</span>`);
              UI.floatText(puppet, "지배 해제", "ft-heal");
              
              // 1. 세뇌 상태 아이콘(MC_READY) 제거
              puppet.status = puppet.status.filter(s => s.type !== 'MC_READY');
              
              // 2. 전역 변수 초기화
-             Game.isMindControlling = null;
+             this.isMindControlling = null;
              
              // 3. UI 테두리 복구
              const cp = document.querySelector('.control-panel');
@@ -3251,15 +3495,13 @@ endTurn: function(isFast = false) {
         this.timer = setTimeout(() => this.turn(), delay);
     }, 
 
-    execute: function(atk, def, sIdx, isRemote = false) {
+    // [수정] async 키워드 추가 (투사체 대기용)
+    execute: async function(atk, def, sIdx, isRemote = false) {
         document.querySelectorAll('.unit').forEach(el => el.onclick = null);
-        
-        // [신규] 공격 전 옹알이 (귀여움 +100)
         AudioSys.speak(atk);
 
-        // [수정] 세뇌 중일 때는 내 유닛 체크(atk.team !== 0)를 우회해야 함
         if (isOnlineMode && !isRemote) {
-            const isMindControlAction = Game.isMindControlling && atk.id === Game.isMindControlling.id;
+            const isMindControlAction = this.isMindControlling && atk.id === this.isMindControlling.id;
             if (atk.team !== 0 && !isMindControlAction) {
                 alert("내 유닛이 아닙니다!");
                 return;
@@ -3269,23 +3511,40 @@ endTurn: function(isFast = false) {
 
         const key = atk.getKey();
         const logic = SKILL_LOGIC[key];
-
         if (!logic) {
-            console.error(`Logic missing for ${key}`);
             this.endTurn(); 
             return;
         }
 
-        // [추가] 타겟 필수 스킬에 대한 안전장치
         if (sIdx > 0 && !def) {
              const needsTarget = !['SELF', 'SELF_BUFF', 'ALL_ENEMY', 'ALL_ALLY', 'AOE'].includes(SKILL_DB[key].type);
-             
-             if (needsTarget) {  // !def는 이미 위에서 체크됨
-                 console.warn(`Skill execution blocked: Target is missing for ${key} skill ${sIdx}`);
+             if (needsTarget) {
                  this.log(`<span class='log-sys'>⚠️ [${atk.name}] 대상을 찾을 수 없습니다.</span>`);
                  this.endTurn();
                  return;
              }
+        }
+
+        // [신규] 투사체 발사 (타겟이 있고, 자신이 아닐 때)
+        if (def && atk.id !== def.id) {
+            const skillType = (sIdx === 0) ? 'ATTACK' : SKILL_DB[key].type;
+            // 스킬 타입이 버프/힐이 아니거나, 힐이라도 적에게 쓸 때(세뇌)는 공격 이펙트
+            // 간단하게 아이콘 매핑
+            let pIcon = '✨';
+            if (atk.base === 'Fire') pIcon = '🔥';
+            else if (atk.base === 'Water') pIcon = '💧';
+            else if (atk.base === 'Tree') pIcon = '🍃';
+            else if (atk.base === 'Metal') pIcon = '⚔️';
+            else if (atk.base === 'Earth') pIcon = '🪨';
+            else if (atk.base === 'Dark') pIcon = '💀';
+            else if (atk.base === 'Normal') pIcon = '👊';
+            
+            // 특수 스킬 아이콘 오버라이드
+            if (sIdx === 1 && atk.base === 'Metal-Light') pIcon = '☣️'; // 독가스
+            if (sIdx === 2 && atk.base === 'Water-Dark') pIcon = '❄️'; // 절대영도
+
+            // 애니메이션 대기 (0.4초)
+            await UI.fireProjectile(atk, def, pIcon);
         }
         
         // ✅ try-catch로 스킬 실행 보호
@@ -3342,7 +3601,7 @@ endTurn: function(isFast = false) {
     // 세뇌 상태 UI 표시
     const cp = document.querySelector('.control-panel');
     if (cp) {
-        cp.style.borderTop = Game.isMindControlling ? "5px solid #d500f9" : "5px solid #ff80ab";
+        cp.style.borderTop = this.isMindControlling ? "5px solid #d500f9" : "5px solid #ff80ab";
     }
     
     const k = u.getKey();
@@ -3410,7 +3669,7 @@ endTurn: function(isFast = false) {
     if (provoked) {
         // [수정] 세뇌된 상태(isMindControlling)라면 도발 자동공격을 무시하고 플레이어에게 제어권 줌
         // 단, 세뇌된 유닛 본인(u)이 조종 중인 유닛이어야 함
-        if (Game.isMindControlling && Game.isMindControlling.id === u.id) {
+        if (this.isMindControlling && this.isMindControlling.id === u.id) {
              this.log(`<span class='log-sys'>🧠 세뇌됨: 도발을 무시하고 조종 가능합니다!</span>`);
              // 여기서 return 하지 않고 아래로 흘려보내서 input 로직(스킬 선택)이 실행되게 함
         } else {
@@ -3462,15 +3721,15 @@ endTurn: function(isFast = false) {
         
         // 현재 행동 주체 찾기
         let u;
-        if (Game.isMindControlling) {
-            u = Game.isMindControlling;
+        if (this.isMindControlling) {
+            u = this.isMindControlling;
         } else {
             const tVal = this.queue[this.curr];
-            u = tVal % 2 === 0 ? this.pTeam[tVal / 2] : this.eTeam[(tVal - 1) / 2];
+            u = tVal % 2 === 0 ? this.pTeam[Math.floor(tVal / 2)] : this.eTeam[Math.floor((tVal - 1) / 2)];
         }
 
         // [디버그] 행동 유닛 정보 출력
-        this.debugLog('Acting Unit Identified', { name: u.name, id: u.id, isMindControlled: !!Game.isMindControlling });
+        if (u) this.debugLog('Acting Unit Identified', { name: u.name, id: u.id, isMindControlled: !!this.isMindControlling });
 
         const k = u.getKey();
         const s = SKILL_DB[k];
@@ -3497,11 +3756,11 @@ endTurn: function(isFast = false) {
     highlightTargets: function(targetType, actingUnit) {
     // 1. 행동 유닛 확정
     if (!actingUnit) {
-        if (Game.isMindControlling) {
-            actingUnit = Game.isMindControlling;
+        if (this.isMindControlling) {
+            actingUnit = this.isMindControlling;
         } else {
             const tVal = this.queue[this.curr];
-            actingUnit = tVal % 2 === 0 ? this.pTeam[tVal / 2] : this.eTeam[(tVal - 1) / 2];
+            actingUnit = tVal % 2 === 0 ? this.pTeam[Math.floor(tVal / 2)] : this.eTeam[Math.floor((tVal - 1) / 2)];
         }
     }
 
@@ -3524,7 +3783,7 @@ endTurn: function(isFast = false) {
     let finalTargets = [];
 
     // 5. 세뇌 여부에 따른 타겟 결정
-    const isMindControlled = Game.isMindControlling && actingUnit.id === Game.isMindControlling.id;
+    const isMindControlled = this.isMindControlling && actingUnit.id === this.isMindControlling.id;
     
     // [수정] 세뇌된 상태여도 '자가 버프(Self Buff)'는 자신에게만 써야 함
     if (isSelfOnly) {
@@ -3630,7 +3889,7 @@ endTurn: function(isFast = false) {
 
         try {
             // 1. [세뇌 판정] 현재 유닛이 세뇌 상태인지 확인
-            const isBrainwashed = (Game.isMindControlling && Game.isMindControlling.id === u.id);
+            const isBrainwashed = (this.isMindControlling && this.isMindControlling.id === u.id);
             
             // 2. [피아식별 재설정] 세뇌 여부에 따라 적/아군 목록 반전
             let enemies, allies;
@@ -3853,15 +4112,15 @@ endTurn: function(isFast = false) {
         });
 
         // [수정] 2. 현재 '조종 중'인 상태에서 시전자가 죽었을 때 강제 해제
-        // Game.currentMCCasterId는 위에서 새로 추가한 변수입니다.
-        if (Game.isMindControlling && (Game.currentMCCasterId === u.id || !Game.currentMCCasterId)) {
-             const puppet = Game.isMindControlling;
+        // this.currentMCCasterId는 위에서 새로 추가한 변수입니다.
+        if (this.isMindControlling && (this.currentMCCasterId === u.id || !this.currentMCCasterId)) {
+             const puppet = this.isMindControlling;
              
              // 세뇌 상태 아이콘 제거 (MC_READY 등 잔여물)
              puppet.status = puppet.status.filter(s => s.type !== 'MC_READY');
              
-             Game.isMindControlling = null;
-             Game.currentMCCasterId = null;
+             this.isMindControlling = null;
+             this.currentMCCasterId = null;
              
              Game.log(`<span class='log-sys'>🕊️ 시전자 사망! [${puppet.name}]의 정신 지배가 즉시 풀립니다.</span>`);
              UI.floatText(puppet, "지배 해제", "ft-heal");
@@ -3898,6 +4157,7 @@ endTurn: function(isFast = false) {
             this.isOver = true;
             if (this.timer) clearTimeout(this.timer);
             AudioSys.play('WIN');
+            BGM.stop(); // 전투 종료 시 음악 끔
 
             if (pd && ed) {
                 UI.showResult("무승부 (Draw)");
@@ -3976,7 +4236,11 @@ endTurn: function(isFast = false) {
             this.render();
             if (this.timer) clearTimeout(this.timer);
             const tVal = this.queue[this.curr];
-            const u = tVal % 2 === 0 ? this.pTeam[tVal / 2] : this.eTeam[(tVal - 1) / 2];
+            const u = tVal % 2 === 0 ? this.pTeam[Math.floor(tVal / 2)] : this.eTeam[Math.floor((tVal - 1) / 2)];
+            if (!u) {
+                alert("세이브 파일이 손상되었습니다.");
+                return;
+            }
             let turnName = u.name.split(' ')[0];
             if (this.mode === 'pvp') turnName += (u.team === 0 ? " (1P)" : " (2P)");
             document.getElementById('turn-indicator').innerText = `Turn ${Math.ceil(this.turnCount/6)} : ${turnName}`;
@@ -4033,30 +4297,37 @@ endTurn: function(isFast = false) {
         if (d.isSuper) u.isSuper = d.isSuper;
         return u;
     },
-    // [신규] 데미지 예측 계산기 (누락된 함수 추가)
+    // 데미지 예측 계산기
     predictDmg: function(target) {
-        if (this.selectedSkillIdx === -1) return 0;
+        if (this.selectedSkillIdx === -1 || !target) return 0;
         
         // 현재 턴을 잡은 유닛(공격자) 찾기
         let atkUnit;
-        if (Game.isMindControlling) {
-            atkUnit = Game.isMindControlling;
+        if (this.isMindControlling) {
+            atkUnit = this.isMindControlling;
         } else {
             const tVal = this.queue[this.curr];
-            atkUnit = tVal % 2 === 0 ? this.pTeam[tVal/2] : this.eTeam[(tVal-1)/2];
+            if (tVal === undefined || tVal === null) return 0;
+            atkUnit = tVal % 2 === 0 ? this.pTeam[Math.floor(tVal/2)] : this.eTeam[Math.floor((tVal-1)/2)];
         }
-        if (!atkUnit) return 0;
+        if (!atkUnit || atkUnit.isDead) return 0;
 
         const k = atkUnit.getKey();
         const s = SKILL_DB[k];
+        if (!s) return 0;
+        
         let mult = 1.0;
         
-        if (this.selectedSkillIdx === 0) mult = 1.0;
-        else {
+        if (this.selectedSkillIdx === 0) {
+            mult = 1.0;
+        } else {
             const desc = this.selectedSkillIdx === 1 ? s.s1d : s.s2d;
-            // [수정] 타겟팅 버프, 자가 버프 등 비공격 스킬 타입 추가 필터링
+            if (!desc) return 0;
+            
+            // 비공격 스킬 타입 필터링
             const nonAtkTypes = ['HEAL', 'BUFF', 'ALLY', 'ALL_ALLY', 'SELF_BUFF', 'TARGET_BUFF'];
-            if (nonAtkTypes.includes(s.type) || desc.includes('힐') || desc.includes('쉴드') || desc.includes('정화')) return 0;
+            if (s.type && nonAtkTypes.includes(s.type)) return 0;
+            if (desc.includes('힐') || desc.includes('쉴드') || desc.includes('정화')) return 0;
             
             const match = desc.match(/([\d.]+)배/);
             if (match) mult = parseFloat(match[1]);
