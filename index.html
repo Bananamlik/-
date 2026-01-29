@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v12.0 Abyss Walker</title>
+    <title>Elemental Tactics: v12.1 Fixed</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -902,7 +902,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v12.0 Abyss Walker</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v12.1 Fixed (AI Crash & Save/Load)</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -1168,7 +1168,7 @@ const SKILL_DB = {
     'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+15', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', desc:'메인 버퍼<br>광역 쉴드', passive:null },
     'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'👼', desc:'메인 버퍼<br>정화 + 쉴드', passive:null },
     'Dark': { s1:'다크볼', s1d:'1.5배+업보(반사)', s2:'공포', s2d:'광역 0.3배/공35%↓/쉴드30%파괴', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'👻', desc:'광역 디버퍼<br>공포 + 쉴드파괴', passive:'👁️ 업보: 다크볼 피격자가 상태이상을 걸면 50% 확률로 반사.' },
-    'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵(1턴)', s2:'정신지배', s2d:'HP15%소모/적 1회 조종(스턴X)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🧠', desc:'심연의 지배자<br>적 제어권 탈취', passive:'🌑 심연의 힘: 세뇌 성공 시 다음 턴 적을 1회 조종합니다. 행동 후 즉시 풀려납니다.' }
+    'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵(1턴)', s2:'정신지배', s2d:'HP15%소모/적 1회 조종(성공률 20~45%/스턴X)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🧠', desc:'심연의 지배자<br>적 제어권 탈취', passive:'🌑 심연의 힘: 세뇌 성공률은 기본 20%이며, 대상의 체력이 낮을수록 최대 45%까지 증가합니다. 성공 시 다음 턴 적을 1회 조종합니다. 행동 후 즉시 풀려납니다.' }
 };
 
 const ChallengeDB = [
@@ -1773,7 +1773,7 @@ const SKILL_LOGIC = {
             const chance = 0.20 + (missingPct * 0.25);
 
             if (game.netRandom() < chance) {
-                def.addStatus('MC_WAIT', 1, 0, atk, false); 
+                def.addStatus('MC_WAIT', 1, 0, atk, true); 
                 game.log(` 🌀 <b>[${def.name}]</b> 정신 지배 시작! (1턴 후 스킵, 그 다음 조종)`);
                 UI.floatText(def, "세뇌 대기", "ft-crit");
                 AudioSys.play('DEBUFF');
@@ -1971,7 +1971,7 @@ class Unit {
         const CC_LIST = ['STUN', 'FREEZE', 'BANISH', 'SILENCE', 'SLEEP'];
         
         if (this.hasStatus('START_IMMUNITY') && !force) {
-            if (CC_LIST.includes(type)) { 
+            if (CC_LIST.includes(type) || type.startsWith('PROVOKED')) { 
                 UI.floatText(this, "🛡️CC방어", "ft-miss");
                 return;
             }
@@ -2060,7 +2060,7 @@ class Unit {
         return this.status.some(s => s.type === type);
     }
     cleanse() {
-        const bad = ['POISON', 'BURN', 'FREEZE', 'STUN', 'SILENCE', 'BLIND', 'TRAP', 'BANISH', 'ATK_DOWN', 'KARMA_VICTIM', 'MC_WAIT'];
+        const bad = ['POISON', 'BURN', 'FREEZE', 'STUN', 'SILENCE', 'BLIND', 'TRAP', 'BANISH', 'ATK_DOWN', 'KARMA_VICTIM', 'MC_WAIT', 'MC_READY'];
         this.status = this.status.filter(s => !bad.includes(s.type) && !s.type.startsWith('PROVOKED') && !s.type.startsWith('KARMA_VICTIM'));
     }
     dispel() {
@@ -2106,7 +2106,6 @@ class Unit {
     }
 }
 
-// ... (이하 Game 객체 및 나머지 코드는 오류가 없어 그대로 유지되나, Unit 클래스와 SKILL_DB 수정이 적용된 전체 파일입니다)
 const AudioSys = {
     ctx: null,
     isMuted: false,
@@ -2892,17 +2891,9 @@ turn: function() {
         // 1. 유닛 정의 (기존 찌꺼기 오류 해결됨)
         const u = tVal % 2 === 0 ? this.pTeam[tVal / 2] : this.eTeam[(tVal - 1) / 2];
 
-        // 2. [세뇌 수정] 턴 시작 시, MC_READY 상태면 '조종 모드' 활성화
-        // 주의: 여기서 블록을 닫아야 합니다! 변수 선언은 이 밖에서 해야 함.
-        if (u.hasStatus('MC_READY') && !u.isDead) {
-            Game.isMindControlling = u; 
-            
-            // 시전자가 내 팀인지 확인 (옵션)
-            const mcStatus = u.status.find(s => s.type === 'MC_READY');
-            if (mcStatus && mcStatus.sourceId !== undefined) {
-                 // 필요시 로직 추가
-            }
-        }
+        // 2. [로직 삭제됨] 즉시 제어권 탈취 방식으로 변경되어, 사전 준비(MC_READY) 단계가 불필요합니다.
+        // (이곳에 있던 문법 오류 및 구버전 로직을 삭제했습니다.)
+
 
         // 3. [권한 판정] 조작 권한 설정 (모든 유닛 공통 로직)
         // 기본적으로 내 팀(0)이면 내 턴.
@@ -2950,35 +2941,43 @@ turn: function() {
             return;
         }
 
-        // 6. [세뇌 대기] 턴 스킵 처리 (MC_WAIT)
+        // 6. [세뇌 발동] 턴 하이재킹 (즉시 제어권 탈취)
         const mcWaitStatus = u.status.find(s => s.type === 'MC_WAIT');
         if (mcWaitStatus) {
-            // 턴 카운트 체크: 1이하일 때 발동 (Wait 삭제 -> Ready 부여 -> 턴 스킵)
-            if (mcWaitStatus.turn <= 1) {
-                Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 준비 완료!</span>`);
+            // 시전자(주인) 확인
+            let caster = null;
+            if (mcWaitStatus.sourceId !== undefined && mcWaitStatus.sourceId !== -1) {
+                const allUnits = [...Game.pTeam, ...Game.eTeam];
+                caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
+            }
+
+            // 시전자가 내 팀이면 -> 내 턴으로 강제 전환 (모든 스킬 사용 가능)
+            if (caster && !caster.isDead && caster.team === 0) {
+                isMyTurn = true;
+                isPuppetTurn = true;
+                Game.isMindControlling = u; // 전역 변수 설정
                 
-                let caster = null;
-                if (mcWaitStatus.sourceId !== undefined && mcWaitStatus.sourceId !== -1) {
-                    const allUnits = [...Game.pTeam, ...Game.eTeam];
-                    caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
-                }
-
+                Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 성공! 제어권을 탈취했습니다.</span>`);
+                UI.floatText(u, "제어권 획득", "ft-crit");
+                
+                // 상태 제거 (이번 턴에 바로 행동하므로 상태 아이콘 삭제)
                 u.status = u.status.filter(s => s.type !== 'MC_WAIT');
-
-                if (caster && !caster.isDead) {
-                    u.addStatus('MC_READY', 99, 0, caster);
-                    Game.log(`<span class='log-sys'>🧠 [${u.name}] 세뇌 완료! 다음 턴에 조종 가능합니다.</span>`);
-                } else {
-                    Game.log("<span class='log-sys'>(시전자가 사망하여 세뇌가 풀렸습니다)</span>");
-                }
-            } else {
-                // 대기 중 메시지
-                Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 대기 중... (턴 스킵)</span>`);
-                UI.floatText(u, "🌀세뇌중", "ft-crit");
+            } 
+            // 시전자가 적 팀이면 -> 적이 조종 (내 입력 차단)
+            else if (caster && !caster.isDead && caster.team === 1) {
+                isMyTurn = false;
+                Game.isMindControlling = u;
+                
+                Game.log(`<span class='log-crit'>🧠 [${u.name}] 적에게 조종당합니다!</span>`);
+                u.status = u.status.filter(s => s.type !== 'MC_WAIT');
+            }
+            // 시전자가 죽었으면 해제
+            else {
+                u.status = u.status.filter(s => s.type !== 'MC_WAIT');
+                Game.log(`<span class='log-sys'>🕊️ 시전자가 사망하여 정신 지배가 풀렸습니다.</span>`);
             }
             
-            setTimeout(() => this.endTurn(), 1000);
-            return;
+            // 주의: 기존의 'return'을 삭제하여 아래의 input() 로직으로 흐르게 함
         }
 
         // 7. [UI 업데이트] 배너 및 메시지
@@ -3239,8 +3238,20 @@ endTurn: function(isFast = false) {
 
         if (!logic) {
             console.error(`Logic missing for ${key}`);
-            this.endTurn(); // ✅ 로직 없을 때도 턴 종료
+            this.endTurn(); 
             return;
+        }
+
+        // [추가] 타겟 필수 스킬에 대한 안전장치
+        if (sIdx > 0 && !def) {
+             const needsTarget = !['SELF', 'SELF_BUFF', 'ALL_ENEMY', 'ALL_ALLY', 'AOE'].includes(SKILL_DB[key].type);
+             
+             if (needsTarget) {  // !def는 이미 위에서 체크됨
+                 console.warn(`Skill execution blocked: Target is missing for ${key} skill ${sIdx}`);
+                 this.log(`<span class='log-sys'>⚠️ [${atk.name}] 대상을 찾을 수 없습니다.</span>`);
+                 this.endTurn();
+                 return;
+             }
         }
         
         // ✅ try-catch로 스킬 실행 보호
@@ -3435,11 +3446,12 @@ endTurn: function(isFast = false) {
         if (idx === 0) {
             targetType = 'ENEMY'; // 평타는 무조건 공격
         } else if (idx === 1) {
-            // S1 스킬들의 타겟 타입 하드코딩 (버그 방지)
-            if (['Tree', 'Fire-Light'].includes(k)) targetType = 'SELF_BUFF'; // 자가버프류
-            else if (['Tree-Dark'].includes(k)) targetType = 'ANY_ALLY'; // 아군 타겟
-            else if (['Water-Light', 'Metal-Light'].includes(k)) targetType = 'ENEMY'; // 디버프류
-            else targetType = 'ENEMY'; // 나머지는 대부분 공격기
+            // S1 스킬들의 타겟 타입 설정
+            // [수정] Tree-Dark의 S1(가시찌르기)은 공격기이므로 ENEMY여야 함
+            if (['Tree'].includes(k)) targetType = 'SELF_BUFF';
+            else if (['Fire-Light'].includes(k)) targetType = 'ALL_ALLY'; // 흡혈 부여는 전체 버프
+            else if (['Water-Light', 'Metal-Light'].includes(k)) targetType = 'ENEMY'; // 디버프 공격
+            else targetType = 'ENEMY'; // 나머지는 대부분 공격
         } else if (idx === 2) {
             // S2는 DB에 있는 target 속성 사용
             targetType = s.target || 'ENEMY';
@@ -3479,24 +3491,20 @@ endTurn: function(isFast = false) {
 
     // 5. 세뇌 여부에 따른 타겟 결정
     const isMindControlled = Game.isMindControlling && actingUnit.id === Game.isMindControlling.id;
-
+    
+    // [수정] 세뇌된 상태여도 '자가 버프(Self Buff)'는 자신에게만 써야 함
     if (isSelfOnly) {
-        // 자가 버프는 항상 자신
         finalTargets = [actingUnit];
-    } else if (isMindControlled) {
+    } 
+    else if (isMindControlled) {
         // 세뇌 상태: 타겟 반전
         if (isSupportSkill) {
-            // 지원 스킬 -> 적(플레이어)을 돕기
+            // 힐/버프 -> 적군(나를 조종하는 플레이어 팀)을 도움
             finalTargets = originalEnemies.filter(u => !u.isDead);
         } else {
-            // 공격 스킬 -> 아군(원래 동료) 공격
-            finalTargets = originalAllies.filter(u => !u.isDead && u.id !== actingUnit.id);
-            
-            // ✅ 자해 가능 로직: 공격할 대상이 없으면 자기 자신 추가
-            if (finalTargets.length === 0) {
-                finalTargets = [actingUnit];
-                console.log('🧠 세뇌된 유닛이 혼자 남아 자해 모드 활성화');
-            }
+            // 공격 -> 아군(나의 원래 동료)을 공격
+            // [개선] 자해(Self Attack)도 가능하도록 자신을 제외하지 않음
+            finalTargets = originalAllies.filter(u => !u.isDead);
         }
     } else {
         // 정상 상태
@@ -3512,8 +3520,10 @@ endTurn: function(isFast = false) {
 
     // 6. Tree-Dark 예외 처리
     if (actingUnit.getKey() === 'Tree-Dark' && this.selectedSkillIdx === 2) {
-        // 영혼결속은 자신 제외
-        finalTargets = finalTargets.filter(t => t.id !== actingUnit.id);
+        // 영혼결속은 자신 제외 (단, 세뇌 상태에서 혼자 남은 경우는 자해 가능)
+        if (!isMindControlled || finalTargets.length > 1) {
+            finalTargets = finalTargets.filter(t => t.id !== actingUnit.id);
+        }
     }
 
     // 7. 타겟 렌더링
