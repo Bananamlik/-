@@ -4126,16 +4126,18 @@ ai: function(u) {
                 return true;
             };
 
-            const isSupportSkill = (desc, type) => {
-                if (!desc) return false;
-                
-                // 🚨 [필수 수정] 데미지가 없더라도 '도발', '속박' 등은 적에게 쓰는 스킬임!
-                // 1. 데미지('배')가 있거나
-                // 2. '도발', '속박' 키워드가 있거나
-                // 3. 타입이 CC/DEBUFF 라면 -> 절대 지원 스킬 아님
-                if (desc.includes('배') && type !== 'HEAL') return false;
-                if (desc.includes('도발') || desc.includes('속박')) return false;
-                if (['CC', 'DEBUFF', 'AOE'].includes(type)) return false;
+                    const isSupportSkill = (desc, type) => {
+            if (!desc) return false;
+
+            // 🚨 [필수 수정] 데미지가 없더라도 '도발', '속박' 등은 적에게 쓰는 스킬임!
+
+            // [수정] 힐러(HEAL) 타입이라도 스킬 설명에 '배'(공격계수)가 있고 '힐/회복'이 없다면 공격기임 (예: 물대포)
+            // 이렇게 해야 힐러가 평타나 공격스킬을 아군에게 쏘는(자해) 현상을 막을 수 있음
+            if (desc.includes('배') && !desc.includes('힐') && !desc.includes('회복')) return false;
+
+            if (desc.includes('도발') || desc.includes('속박')) return false;
+            if (['CC', 'DEBUFF', 'AOE'].includes(type)) return false;
+
 
                 const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피', '성장'];
                 const supportTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
