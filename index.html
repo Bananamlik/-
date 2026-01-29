@@ -4106,25 +4106,36 @@ ai: function(u) {
                 return score;
             };
 
-            // [헬퍼] 스킬 타입 판별 (수정됨: '배'가 있으면 무조건 공격 스킬로 분류)
+            // [헬퍼] 스킬 타입 판별 (AI 로직 개선)
             const isAttackSkill = (desc, type) => {
                 if (!desc) return false;
+                // 1. 공격 계수('배') 혹은 공격적 키워드(도발, 속박 등)가 있으면 공격 스킬
+                if (desc.includes('배') || desc.includes('도발') || desc.includes('속박')) return true;
+                // 2. 타입이 명백한 공격/방해 계열이면 True
+                if (['CC', 'DEBUFF', 'AOE', 'NUKE_PER', 'ATK'].includes(type)) return true;
+
                 const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피'];
                 const supportTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
-                // 공격 키워드('배')가 있으면 우선적으로 공격 스킬로 판단
-                if (desc.includes('배')) return true;
                 
+                // 지원 키워드가 있으면 공격 아님
                 if (supportKeywords.some(kw => desc.includes(kw)) || supportTypes.includes(type)) return false;
                 return true;
             };
 
             const isSupportSkill = (desc, type) => {
                 if (!desc) return false;
-                // 🚨 핵심 수정: 데미지 배율('배')이 있는 스킬은 절대 지원 스킬이 아님! (힐 스킬 제외)
+                
+                // 🚨 [필수 수정] 데미지가 없더라도 '도발', '속박' 등은 적에게 쓰는 스킬임!
+                // 1. 데미지('배')가 있거나
+                // 2. '도발', '속박' 키워드가 있거나
+                // 3. 타입이 CC/DEBUFF 라면 -> 절대 지원 스킬 아님
                 if (desc.includes('배') && type !== 'HEAL') return false;
+                if (desc.includes('도발') || desc.includes('속박')) return false;
+                if (['CC', 'DEBUFF', 'AOE'].includes(type)) return false;
 
                 const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피', '성장'];
                 const supportTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
+                
                 return supportKeywords.some(kw => desc.includes(kw)) || supportTypes.includes(type);
             };
 
