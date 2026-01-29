@@ -1732,16 +1732,22 @@ const SKILL_LOGIC = {
     useSkill: function(atk, def, sIdx, game) {
         if (sIdx === 0) Common.basicAttack(atk, def, game);
         else if (sIdx === 1) {
-            game.log(`<b>[${atk.name}]</b> 심연일격 🗡️`);
+            game.log(`<b>[${atk.name}]</b> 심연일격 🗡️`); // ✅ 괄호 () 필요
             const act = Common.applyDamage(atk, def, 0.9, game);
             if (act !== -1) {
                 Common.logAction(game, 'dmg', atk, def, act, "");
                 def.addStatus('SILENCE', 1, 0, atk);
             }
-} else {
-            // [수정] 마인드 컨트롤 (로직 강화 v2)
-            game.log(`<b>[${atk.name}]</b> 마인드 컨트롤 🧠`);
-
+        } else {
+            // ✅ 온라인 모드 체크 추가
+            if (isOnlineMode) {
+                game.log("<span class='log-sys'>⚠️ 온라인 모드에서는 세뇌를 사용할 수 없습니다.</span>");
+                UI.floatText(atk, "온라인제한", "ft-miss");
+                return;
+            }
+            
+            game.log(`<b>[${atk.name}]</b> 마인드 컨트롤 🧠`); // ✅ 한 번만
+            
             // [제약 1] 이미 누군가를 조종 중이면 불가
             if (Game.isMindControlling) {
                 game.log("<span class='log-sys'>🚫 이미 조종 중인 대상이 있습니다!</span>");
@@ -1749,8 +1755,7 @@ const SKILL_LOGIC = {
                 return;
             }
             
-            // [제약 2] 면역 체크 (동족 or 상태이상 면역)
-            // Normal(기초)은 패시브로 면역, Dark-Dark(동족) 면역, 이미 면역 상태인 적
+            // [제약 2] 면역 체크
             if (def.getKey() === 'Dark-Dark' || def.hasStatus('IMMUNITY') || (def.isNormal && !def.extra)) {
                 game.log("<span class='log-sys'>🚫 정신 지배가 통하지 않는 대상입니다.</span>");
                 UI.floatText(def, "면역", "ft-miss");
@@ -1767,14 +1772,11 @@ const SKILL_LOGIC = {
             const chance = 0.20 + (missingPct * 0.25);
 
             if (game.netRandom() < chance) {
-                // 성공: 세뇌 대기(MC_WAIT) 부여
-                // MC_WAIT는 '정화' 스킬로 풀 수 있습니다. (전략적 요소)
                 def.addStatus('MC_WAIT', 3, 0, atk, false); 
-                game.log(` 🌀 <b>[${def.name}]</b> 정신 지배 시작! (다음 턴 발동)`);
+                game.log(` 🌀 <b>[${def.name}]</b> 정신 지배 시작! (다음 턴 발동)`); // ✅ 괄호
                 UI.floatText(def, "세뇌 대기", "ft-crit");
                 AudioSys.play('DEBUFF');
             } else {
-                // 실패
                 game.log(" (정신 지배 실패)");
                 UI.floatText(def, "저항", "ft-miss");
             }
@@ -2941,37 +2943,50 @@ const Game = {
         }
 
         // [세뇌 대기] 턴 스킵 처리
-        const mcWaitStatus = u.status.find(s => s.type === 'MC_WAIT');
-        if (mcWaitStatus) {
-            Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배로 인해 행동 불가!</span>`);
-            UI.floatText(u, "정신지배", "ft-crit");
-            
-            let caster = null;
-            if (mcWaitStatus.sourceId !== undefined && mcWaitStatus.sourceId !== -1) {
-                const allUnits = [...Game.pTeam, ...Game.eTeam];
-                caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
-            }
-            if (!caster) {
-                const enemyTeam = u.team === 0 ? Game.eTeam : Game.pTeam;
-                caster = enemyTeam.find(e => e.getKey() === 'Dark-Dark' && !e.isDead);
-            }
-
-            u.status = u.status.filter(s => s.type !== 'MC_WAIT');
-            
-            if (caster && !caster.isDead) {
-                u.addStatus('MC_READY', 99, 0, caster);
-                // 세뇌 시작됨을 알림
-                Game.isMindControlling = u;
-                // UI 갱신 (테두리 등)
-                const cp = document.querySelector('.control-panel');
-                if(cp) cp.style.borderTop = "5px solid #d500f9";
-            } else {
-                Game.log("<span class='log-sys'>(시전자가 사망하여 세뇌가 풀렸습니다)</span>");
-            }
-            
-            setTimeout(() => this.endTurn(), 1000);
-            return;
+const mcWaitStatus = u.status.find(s => s.type === 'MC_WAIT');
+if (mcWaitStatus) {
+    // ✅ 턴 카운트 체크: 1턴 남았을 때만 발동
+    if (mcWaitStatus.turn <= 1) {
+        Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 발동!</span>`);
+        
+        let caster = null;
+        if (mcWaitStatus.sourceId !== undefined && mcWaitStatus.sourceId !== -1) {
+            const allUnits = [...Game.pTeam, ...Game.eTeam];
+            caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
         }
+        if (!caster) {
+            // ✅ Dark-Dark 여러 명 있을 때 가장 최근에 MC_WAIT 건 놈 찾기
+            const enemyTeam = u.team === 0 ? Game.eTeam : Game.pTeam;
+            const darkDarks = enemyTeam.filter(e => e.getKey() === 'Dark-Dark' && !e.isDead);
+    
+            if (darkDarks.length === 1) {
+                caster = darkDarks[0];
+            } else if (darkDarks.length > 1) {
+                 // ✅ 여러 명이면 경고 로그 출력 (디버깅용)
+                console.warn('⚠️ Multiple Dark-Dark found, using first one');
+                caster = darkDarks[0];
+            }
+        }
+
+        u.status = u.status.filter(s => s.type !== 'MC_WAIT');
+        
+        if (caster && !caster.isDead) {
+            u.addStatus('MC_READY', 99, 0, caster);
+            Game.isMindControlling = u;
+            const cp = document.querySelector('.control-panel');
+            if(cp) cp.style.borderTop = "5px solid #d500f9";
+        } else {
+            Game.log("<span class='log-sys'>(시전자가 사망하여 세뇌가 풀렸습니다)</span>");
+        }
+    } else {
+    // ✅ 로그 개선
+    Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 대기 중... (<b>${mcWaitStatus.turn-1}턴 후 발동</b>)</span>`);
+    UI.floatText(u, `⏳${mcWaitStatus.turn-1}`, "ft-crit");
+    }
+    
+    setTimeout(() => this.endTurn(), 1000);
+    return;
+}
 
         // [세뇌 조종] 실행 단계 (기존 로직 유지하되 isMyTurn 변수 활용)
         if (u.getKey() === 'Dark-Dark' && !u.isDead) {
@@ -3225,12 +3240,12 @@ endTurn: function(isFast = false) {
         document.querySelectorAll('.unit').forEach(el => el.onclick = null);
         
         // [신규] 공격 전 옹알이 (귀여움 +100)
-        AudioSys.speak(atk); // "블라블라!"
+        AudioSys.speak(atk);
 
         // [수정] 세뇌 중일 때는 내 유닛 체크(atk.team !== 0)를 우회해야 함
         if (isOnlineMode && !isRemote) {
             const isMindControlAction = Game.isMindControlling && atk.id === Game.isMindControlling.id;
-            if (atk.team !== 0 && !isMindControlAction) { // 예외 처리 추가
+            if (atk.team !== 0 && !isMindControlAction) {
                 alert("내 유닛이 아닙니다!");
                 return;
             }
@@ -3242,26 +3257,37 @@ endTurn: function(isFast = false) {
 
         if (!logic) {
             console.error(`Logic missing for ${key}`);
+            this.endTurn(); // ✅ 로직 없을 때도 턴 종료
             return;
         }
-        const playedSound = logic.useSkill(atk, def, sIdx, this);
-        if (!playedSound) AudioSys.play('SKILL');
+        
+        // ✅ try-catch로 스킬 실행 보호
+        try {
+            const playedSound = logic.useSkill(atk, def, sIdx, this);
+            if (!playedSound) AudioSys.play('SKILL');
 
-        // [각성 체크] 스킬 사용 후 통계 갱신 시 각성 확인
-        atk.checkAwakening();
+            // [각성 체크] 스킬 사용 후 통계 갱신 시 각성 확인
+            atk.checkAwakening();
 
-        if (isOnlineMode && !isRemote) {
-            socket.emit('action', {
-                room: myRoom,
-                attackerId: atk.id,
-                attackerTeam: atk.team,
-                targetId: def ? def.id : null,
-                targetTeam: def ? def.team : null,
-                skillIdx: sIdx,
-                rndBuffer: netRndBuffer
-            });
+            // ✅ 성공 시에만 네트워크 전송
+            if (isOnlineMode && !isRemote) {
+                socket.emit('action', {
+                    room: myRoom,
+                    attackerId: atk.id,
+                    attackerTeam: atk.team,
+                    targetId: def ? def.id : null,
+                    targetTeam: def ? def.team : null,
+                    skillIdx: sIdx,
+                    rndBuffer: netRndBuffer
+                });
+            }
+        } catch(e) {
+            console.error('❌ Skill execution failed:', e);
+            this.log(`<span class='log-sys' style='color:red;'>⚠️ [${atk.name}] 스킬 실행 오류 발생</span>`);
+            netRndBuffer = []; // 실패 시 버퍼 초기화
         }
-       // [수정] 세뇌 해제 로직은 endTurn()으로 이동됨 (기절 시 해제 안 되는 버그 수정)
+        
+        // [수정] 세뇌 해제 로직은 endTurn()으로 이동됨
         this.endTurn();
     },
 
@@ -3524,21 +3550,24 @@ endTurn: function(isFast = false) {
             skillIdx: this.selectedSkillIdx,
             targetType: targetType,
             actingUnit: actingUnit.name,
-            isMindControlled: isMindControlled, // 상단 변수 활용
+            isMindControlled: isMindControlled,
             finalTargets: finalTargets.map(t => t.name)
         });
 
         // 타겟이 없는 경우 UI 피드백
         if (isMindControlled && !isSupportSkill) {
-            // [상황 1] 세뇌 상태라서 팀킬할 아군(원래 동료)이 다 죽어서 없는 경우
             UI.floatText(actingUnit, "대상없음", "ft-miss");
             this.log(`<span class='log-sys'>⚠️ [${actingUnit.name}] 공격할 수 있는 대상이 없습니다.</span>`);
         } else if (!isMindControlled && finalTargets.length === 0) {
-            // [상황 2] 정상 상태인데 타겟이 없음 (치명적 버그 가능성)
             console.error('🚨 Critical: No targets found in normal state!');
             UI.floatText(actingUnit, "타겟오류", "ft-miss");
             this.log(`<span class='log-sys'>🚨 [${actingUnit.name}] 타겟팅 오류 발생</span>`);
         }
+        
+        // ✅ 스킬 선택 초기화 추가 (버그 수정)
+        this.selectedSkillIdx = -1;
+        document.querySelectorAll('.skill-btn').forEach(b => b.classList.remove('selected'));
+        return; // 함수 종료
     }
 }, // 콤마 필수 (뒤에 ai 함수가 있음)
 
@@ -3546,6 +3575,13 @@ endTurn: function(isFast = false) {
     ai: function(u) {
         // 온라인, 로컬 PVP면 AI 작동 중지
         if (isOnlineMode || this.difficulty === 'local' || this.difficulty === 'pvp') return;
+
+        // ✅ 죽은 유닛 체크 (무한루프 방지)
+        if (u.isDead) {
+            console.warn('AI called on dead unit:', u.name);
+            this.endTurn(true);
+            return;
+        }
 
         try {
             // 1. [세뇌 판정] 현재 유닛이 세뇌 상태인지 확인
@@ -3570,9 +3606,14 @@ endTurn: function(isFast = false) {
 
             // 적이 없으면(세뇌 상태에서 나 혼자 남음) -> 자해를 위해 나 자신을 타겟으로 잡음
             if (aliveEnemies.length === 0 && isBrainwashed) {
+                // ✅ 자해 방지: HP가 너무 낮으면 평타만 사용
+                if (u.hp <= 100) {
+                    this.execute(u, u, 0); // 평타로만 자해
+                    return;
+                }
                 aliveEnemies.push(u);
             } else if (aliveEnemies.length === 0) {
-                // 진짜 적이 다 죽었으면 게임 끝 (여기 올 일 없음)
+                // 진짜 적이 다 죽었으면 게임 끝
                 this.endTurn();
                 return;
             }
