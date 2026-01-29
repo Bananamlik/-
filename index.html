@@ -1773,7 +1773,7 @@ const SKILL_LOGIC = {
             const chance = 0.20 + (missingPct * 0.25);
 
             if (game.netRandom() < chance) {
-                def.addStatus('MC_WAIT', 2, 0, atk, false); 
+                def.addStatus('MC_WAIT', 1, 0, atk, false); 
                 game.log(` 🌀 <b>[${def.name}]</b> 정신 지배 시작! (1턴 후 스킵, 그 다음 조종)`);
                 UI.floatText(def, "세뇌 대기", "ft-crit");
                 AudioSys.play('DEBUFF');
@@ -2883,50 +2883,45 @@ const Game = {
         this.timer = setTimeout(() => this.turn(), 1000);
     },
 
-   turn: function() {
+turn: function() {
         this.isProcessing = false;
         if (this.isOver) return;
         const round = Math.ceil(this.turnCount / 6);
         const tVal = this.queue[this.curr];
+        
+        // 1. 유닛 정의 (기존 찌꺼기 오류 해결됨)
         const u = tVal % 2 === 0 ? this.pTeam[tVal / 2] : this.eTeam[(tVal - 1) / 2];
 
-        // [세뇌 수정 1] 턴 시작 시, MC_READY 상태면 조종 모드 발동
+        // 2. [세뇌 수정] 턴 시작 시, MC_READY 상태면 '조종 모드' 활성화
+        // 주의: 여기서 블록을 닫아야 합니다! 변수 선언은 이 밖에서 해야 함.
         if (u.hasStatus('MC_READY') && !u.isDead) {
-            Game.isMindControlling = u; // 제어권 탈취
-            // 시전자(주인) 확인
+            Game.isMindControlling = u; 
+            
+            // 시전자가 내 팀인지 확인 (옵션)
             const mcStatus = u.status.find(s => s.type === 'MC_READY');
             if (mcStatus && mcStatus.sourceId !== undefined) {
-                 // 시전자가 내 팀(0)이라면 내가 조종
-                 // (주의: 온라인 모드 고려, 로컬에서는 무조건 내가 조종)
-                 // 여기서는 간단히 isMindControlling이 켜지면 아래 로직에서 처리됨
+                 // 필요시 로직 추가
             }
-        }am[(tVal - 1) / 2];
+        }
 
-        // [PVP 수정] 조작 권한 판정 로직 강화
+        // 3. [권한 판정] 조작 권한 설정 (모든 유닛 공통 로직)
         // 기본적으로 내 팀(0)이면 내 턴.
-        // 하지만! 적 팀(1)이라도 '내가 세뇌한 상태(isMindControlling)'라면 내 턴으로 간주.
         let isMyTurn = (u.team === 0);
         let isPuppetTurn = false;
 
-        // 세뇌 상태 체크: 현재 턴 유닛이 세뇌된 대상이고, 세뇌의 주체가 '나(Team 0)'인가?
-        // (주의: 온라인에서 상대방(Team 1)이 세뇌했다면 건드리면 안 됨)
+        // 세뇌 상태 체크: 현재 턴 유닛이 세뇌된 대상이고, 세뇌의 주체가 '나'인가?
         if (Game.isMindControlling && Game.isMindControlling.id === u.id) {
-            // 세뇌를 건 주체(Source)가 누구인지 확인 필요.
-            // 현재 구조상 Game.isMindControlling 객체만으로는 누가 걸었는지 모를 수 있으므로,
-            // '내 팀이 건 세뇌인가?'를 판단해야 함. 
-            // 편의상 로컬 클라이언트(Team 0) 입장에서 '내가 MC 상태를 켰다'면 내가 주체임.
-            // (상대방 턴에서 넘어온 데이터라면 내 isMindControlling은 null이어야 함 -> 동기화 이슈 주의)
-            
-            // 간단 해결: 내 팀이 아닌데 세뇌 변수가 켜져있다면, 내가 조종하는 것임.
+            // 간단 해결: 내 팀이 아닌데(적군인데) 세뇌 변수가 켜져있다면, 내가 조종하는 것임.
             if (u.team !== 0) { 
                 isMyTurn = true; 
                 isPuppetTurn = true; 
             } else {
-                // 반대로 내 유닛이 세뇌당했다면? -> 조작 권한 박탈
+                // 반대로 내 유닛이 적에게 세뇌당했다면? -> 조작 권한 박탈
                 isMyTurn = false;
             }
         }
 
+        // 4. AI 감시자 (Watchdog) 및 종료 체크
         if (this.watchdog) clearTimeout(this.watchdog);
         if (!isMyTurn && !isOnlineMode && this.difficulty !== 'local') {
             this.watchdog = setTimeout(() => {
@@ -2936,6 +2931,7 @@ const Game = {
         }
         if (this.endCheck()) return;
 
+        // 5. 상태이상 및 후공 보정 해제
         if (!u.isDead) {
             u.resetTurn();
             // [후공 보정] 해제
@@ -2954,76 +2950,65 @@ const Game = {
             return;
         }
 
-        // [세뇌 대기] 턴 스킵 처리
-const mcWaitStatus = u.status.find(s => s.type === 'MC_WAIT');
-if (mcWaitStatus) {
-    // 턴 카운트 체크: 1턴 남았을 때만 발동 (이제 MC_READY로 전환만 하고 턴은 넘김)
-    if (mcWaitStatus.turn <= 1) {
-        Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 준비 완료!</span>`);
-        
-        let caster = null;
-        // ... (시전자 찾는 로직 그대로 유지) ...
-        if (mcWaitStatus.sourceId !== undefined && mcWaitStatus.sourceId !== -1) {
-            const allUnits = [...Game.pTeam, ...Game.eTeam];
-            caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
-        }
-        // ... (중략) ...
+        // 6. [세뇌 대기] 턴 스킵 처리 (MC_WAIT)
+        const mcWaitStatus = u.status.find(s => s.type === 'MC_WAIT');
+        if (mcWaitStatus) {
+            // 턴 카운트 체크: 1이하일 때 발동 (Wait 삭제 -> Ready 부여 -> 턴 스킵)
+            if (mcWaitStatus.turn <= 1) {
+                Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 준비 완료!</span>`);
+                
+                let caster = null;
+                if (mcWaitStatus.sourceId !== undefined && mcWaitStatus.sourceId !== -1) {
+                    const allUnits = [...Game.pTeam, ...Game.eTeam];
+                    caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
+                }
 
-        if (caster && !caster.isDead) {
-            u.addStatus('MC_READY', 99, 0, caster);
-            // 💡 [수정] 여기서 Game.isMindControlling을 켜지 않습니다!
-            // 다음 턴 시작(turn 함수 도입부)에서 켜도록 변경했습니다.
-            Game.log(`<span class='log-sys'>🧠 [${u.name}] 세뇌 완료! 다음 행동을 조종할 수 있습니다.</span>`);
-        } else {
-            Game.log("<span class='log-sys'>(시전자가 사망하여 세뇌가 풀렸습니다)</span>");
-        }
-    } else {
-        // 대기 중 메시지
-        Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 대기 중... (턴 스킵)</span>`);
-        UI.floatText(u, "🌀세뇌중", "ft-crit");
-    }
-    
-    setTimeout(() => this.endTurn(), 1000);
-    return;
-}
+                u.status = u.status.filter(s => s.type !== 'MC_WAIT');
 
-        // [세뇌 조종] 실행 단계 (기존 로직 유지하되 isMyTurn 변수 활용)
-        if (u.getKey() === 'Dark-Dark' && !u.isDead) {
-            const enemies = u.team === 0 ? Game.eTeam : Game.pTeam;
-            const puppet = enemies.find(e => e.hasStatus('MC_READY'));
-            if (puppet) {
-               // ... (기존 Dark-Dark가 조종 시작하는 로직, 여기는 문제 없음)
+                if (caster && !caster.isDead) {
+                    u.addStatus('MC_READY', 99, 0, caster);
+                    Game.log(`<span class='log-sys'>🧠 [${u.name}] 세뇌 완료! 다음 턴에 조종 가능합니다.</span>`);
+                } else {
+                    Game.log("<span class='log-sys'>(시전자가 사망하여 세뇌가 풀렸습니다)</span>");
+                }
+            } else {
+                // 대기 중 메시지
+                Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 대기 중... (턴 스킵)</span>`);
+                UI.floatText(u, "🌀세뇌중", "ft-crit");
             }
+            
+            setTimeout(() => this.endTurn(), 1000);
+            return;
         }
 
-        // --- [UI 업데이트: 배너 및 메시지] ---
+        // 7. [UI 업데이트] 배너 및 메시지
         let turnName = u.name.split(' ')[0];
         let indicatorText = `Round ${round} : ${turnName}`;
         
         if (isPuppetTurn) {
-            // 내가 적을 조종하는 턴
-            UI.showTurnBanner(true); // 아군 턴 배너 표시
+            UI.showTurnBanner(true);
             indicatorText = `🧠 정신 지배 중! [${turnName}] 조종하세요!`;
-            document.querySelector('.control-panel').style.borderTop = "5px solid #d500f9";
+            const cp = document.querySelector('.control-panel');
+            if(cp) cp.style.borderTop = "5px solid #d500f9";
         } else if (isMyTurn) {
-            // 내 정상적인 턴
             UI.showTurnBanner(true);
             if (this.mode === 'pvp') indicatorText += " (나)";
-            document.querySelector('.control-panel').style.borderTop = "5px solid #ff80ab";
+            const cp = document.querySelector('.control-panel');
+            if(cp) cp.style.borderTop = "5px solid #ff80ab";
         } else {
-            // 적의 턴 (혹은 내 유닛이 조종당하는 턴)
             UI.showTurnBanner(false);
             if (this.mode === 'pvp') indicatorText = "상대방의 행동을 기다리는 중...";
             if (Game.isMindControlling && u.id === Game.isMindControlling.id && u.team === 0) {
                  indicatorText = "🧠 내 유닛이 조종당하고 있습니다...";
             }
-            document.querySelector('.control-panel').style.borderTop = "5px solid #ccc";
+            const cp = document.querySelector('.control-panel');
+            if(cp) cp.style.borderTop = "5px solid #ccc";
         }
         
         document.getElementById('turn-indicator').innerText = indicatorText;
         this.turnCount++;
 
-        // --- [입력 활성화 여부 결정] ---
+        // 8. [입력 활성화 여부 결정]
         if (isMyTurn || this.difficulty === 'local') {
             this.input(u);
             // 만약 꼭두각시 턴이라면 툴팁 띄워주기
@@ -3378,21 +3363,29 @@ endTurn: function(isFast = false) {
     // 도발 확인
     const provoked = u.status.find(st => st.type.startsWith('PROVOKED_BY_'));
     if (provoked) {
-        const targetId = parseInt(provoked.type.split('_')[2]);
-        const enemies = u.team === 0 ? this.eTeam : this.pTeam;
-        const allies = u.team === 0 ? this.pTeam : this.eTeam;
-        const target = enemies.find(e => e.id === targetId) || allies.find(p => p.id === targetId);
-        
-        if (!target || target.isDead) {
-            u.status = u.status.filter(s => !s.type.startsWith('PROVOKED'));
-            this.log(`<span class='log-sys'>🕊️ [${u.name}] 도발 시전자 사망! 자유!</span>`);
-            UI.floatText(u, "자유!", "ft-heal");
-            this.render();
+        // [수정] 세뇌된 상태(isMindControlling)라면 도발 자동공격을 무시하고 플레이어에게 제어권 줌
+        // 단, 세뇌된 유닛 본인(u)이 조종 중인 유닛이어야 함
+        if (Game.isMindControlling && Game.isMindControlling.id === u.id) {
+             this.log(`<span class='log-sys'>🧠 세뇌됨: 도발을 무시하고 조종 가능합니다!</span>`);
+             // 여기서 return 하지 않고 아래로 흘려보내서 input 로직(스킬 선택)이 실행되게 함
         } else {
-            this.log(`<span class='log-sys'>💢 [${u.name}] 도발 당함!</span>`);
-            this.noInput();
-            setTimeout(() => this.execute(u, target, 0), 1000);
-            return;
+            // [기존 로직] 일반적인 경우 도발 대상 강제 공격
+            const targetId = parseInt(provoked.type.split('_')[2]);
+            const enemies = u.team === 0 ? this.eTeam : this.pTeam;
+            const allies = u.team === 0 ? this.pTeam : this.eTeam;
+            const target = enemies.find(e => e.id === targetId) || allies.find(p => p.id === targetId);
+            
+            if (!target || target.isDead) {
+                u.status = u.status.filter(s => !s.type.startsWith('PROVOKED'));
+                this.log(`<span class='log-sys'>🕊️ [${u.name}] 도발 시전자 사망! 자유!</span>`);
+                UI.floatText(u, "자유!", "ft-heal");
+                this.render();
+            } else {
+                this.log(`<span class='log-sys'>💢 [${u.name}] 도발 당함!</span>`);
+                this.noInput();
+                setTimeout(() => this.execute(u, target, 0), 1000);
+                return; // 강제 공격 시에는 여기서 함수 종료
+            }
         }
     }
     
