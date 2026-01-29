@@ -2423,14 +2423,25 @@ const UI = {
 
     // [신규] 감정표현 실행
     triggerEmote: function(u, emoji) {
+        // 유닛 카드 위치 찾기
         const id = u.team === 0 ? `p-card-${u.id}` : `e-card-${u.id}`;
         const el = document.getElementById(id);
         if (!el) return;
         
+        const rect = el.getBoundingClientRect();
+        
+        // 말풍선 생성 (body에 직접 추가하여 최상위 레이어 보장)
         const bubble = document.createElement('div');
         bubble.className = 'emote-bubble';
         bubble.innerText = emoji;
-        el.appendChild(bubble);
+        
+        // 위치 절대값 계산 (스크롤 포함)
+        bubble.style.left = (rect.left + rect.width / 2) + 'px'; 
+        bubble.style.top = (rect.top - 50 + window.scrollY) + 'px';
+        // z-index를 아주 높게 설정
+        bubble.style.zIndex = "9999"; 
+        
+        document.body.appendChild(bubble);
         
         setTimeout(() => bubble.remove(), 2000);
     }, 
@@ -2471,7 +2482,8 @@ const Game = {
     isProcessing: false,
     challengeStage: 0,
     isMindControlling: null, // [신규] 세뇌 조종 상태 플래그
-
+    currentMCCasterId: null,
+	
     netRandom: function() {
         return getNetRandom();
     },
@@ -2922,9 +2934,20 @@ turn: function() {
         }
         if (this.endCheck()) return;
 
-        // 5. 상태이상 및 후공 보정 해제
+        // 5. [수정] 턴 시작 상태이상 처리 (도트 데미지 -> 사망 체크 -> CC 체크)
         if (!u.isDead) {
             u.resetTurn();
+            
+            // 5-1. 도트 데미지 처리 (맹독, 화상 등)
+            const dotLogs = u.tickStatus();
+            dotLogs.forEach(log => this.log(log));
+            
+            // 도트 데미지로 사망 시 턴 종료
+            if (u.isDead) {
+                this.endTurn(true);
+                return;
+            }
+
             // [후공 보정] 해제
             if (u.hasStatus('START_IMMUNITY')) {
                 const myTeam = u.team === 0 ? this.pTeam : this.eTeam;
@@ -2934,6 +2957,16 @@ turn: function() {
                 this.log(`<span class='log-sys'>🔓 [${u.team===0?'아군':'적군'}] 후공 보호막 해제!</span>`);
                 this.render();
             }
+        }
+
+        // 5-2. 행동 불가(CC) 체크 (기절, 빙결, 수면)
+        // 세뇌 대기(MC_WAIT) 상태일 때는 CC 체크를 건너뛰고 아래 6번 로직으로 넘김 (세뇌가 우선)
+        const hasCC = u.hasStatus('STUN') || u.hasStatus('FREEZE') || u.hasStatus('SLEEP');
+        if (hasCC && !u.hasStatus('MC_WAIT')) {
+            UI.floatText(u, "행동불가", "ft-miss");
+            this.log(`<span class='log-crit'>🚫 [${u.name}] 상태이상으로 행동할 수 없습니다.</span>`);
+            setTimeout(() => this.endTurn(), 1000);
+            return;
         }
 
         if (u.isDead) {
@@ -2956,7 +2989,8 @@ turn: function() {
                 isMyTurn = true;
                 isPuppetTurn = true;
                 Game.isMindControlling = u; // 전역 변수 설정
-                
+                Game.currentMCCasterId = caster.id; // [추가] 시전자 ID 저장 (사망 판정용)
+				
                 Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 성공! 제어권을 탈취했습니다.</span>`);
                 UI.floatText(u, "제어권 획득", "ft-crit");
                 
@@ -3808,18 +3842,33 @@ endTurn: function(isFast = false) {
         if (u.isDead) return;
         u.isDead = true;
         u.hp = 0;
-		// [버그 수정] 시전자 사망 시 걸어둔 세뇌 해제
-        if (Game.isMindControlling && Game.isMindControlling.status) {
+
+        // [수정] 1. 사망한 유닛(u)이 시전한 '세뇌 대기(MC_WAIT)' 상태 모두 제거
+        [...Game.pTeam, ...Game.eTeam].forEach(target => {
+            const wait = target.status.find(s => s.type === 'MC_WAIT');
+            if (wait && wait.sourceId === u.id) {
+                target.status = target.status.filter(s => s.type !== 'MC_WAIT');
+                Game.log(`<span class='log-sys'>🕊️ 시전자([${u.name}]) 사망으로 [${target.name}]의 세뇌 예약이 취소되었습니다.</span>`);
+            }
+        });
+
+        // [수정] 2. 현재 '조종 중'인 상태에서 시전자가 죽었을 때 강제 해제
+        // Game.currentMCCasterId는 위에서 새로 추가한 변수입니다.
+        if (Game.isMindControlling && (Game.currentMCCasterId === u.id || !Game.currentMCCasterId)) {
              const puppet = Game.isMindControlling;
-             const mcStatus = puppet.status.find(s => s.type === 'MC_READY');
-             // 죽은 유닛(u)이 세뇌를 건 시전자(sourceId)라면 해제
-             if (mcStatus && mcStatus.sourceId === u.id) {
-                 puppet.status = puppet.status.filter(s => s.type !== 'MC_READY');
-                 Game.isMindControlling = null;
-                 Game.log(`<span class='log-sys'>🕊️ 시전자 사망으로 [${puppet.name}]의 세뇌가 풀렸습니다.</span>`);
-                 const cp = document.querySelector('.control-panel');
-                 if(cp) cp.style.borderTop = "5px solid #ff80ab"; // UI 색상 복구
-             }
+             
+             // 세뇌 상태 아이콘 제거 (MC_READY 등 잔여물)
+             puppet.status = puppet.status.filter(s => s.type !== 'MC_READY');
+             
+             Game.isMindControlling = null;
+             Game.currentMCCasterId = null;
+             
+             Game.log(`<span class='log-sys'>🕊️ 시전자 사망! [${puppet.name}]의 정신 지배가 즉시 풀립니다.</span>`);
+             UI.floatText(puppet, "지배 해제", "ft-heal");
+             
+             // UI 복구
+             const cp = document.querySelector('.control-panel');
+             if(cp) cp.style.borderTop = "5px solid #ff80ab"; 
         }
 		
         u.status = [];
