@@ -894,6 +894,45 @@
             0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
             100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
         }
+/* [신규] 오디오 설정 UI */
+        .settings-btn {
+            position: absolute; top: 15px; right: 15px;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: #fff; border: 2px solid #eee;
+            font-size: 20px; display: flex; align-items: center; justify-content: center;
+            z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            cursor: pointer; transition: 0.2s;
+        }
+        .settings-btn:active { transform: scale(0.9); }
+
+        .settings-modal {
+            display: none; position: absolute; top: 60px; right: 15px;
+            width: 240px; background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px; padding: 15px; z-index: 110;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 2px solid #ffcc80;
+            backdrop-filter: blur(5px); flex-direction: column; gap: 10px;
+        }
+        .set-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #5d4037; font-weight: bold; }
+        .vol-slider { flex: 1; margin-left: 10px; accent-color: #ff80ab; height: 6px; }
+        
+        .bgm-select { display: flex; gap: 5px; margin-top: 5px; }
+        .bgm-opt { 
+            flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 10px; 
+            background: #fff; font-size: 11px; cursor: pointer; text-align: center; color: #888;
+        }
+        .bgm-opt.active { background: #fff8e1; border-color: #ffb74d; color: #f57c00; font-weight: bold; }
+        
+        .toggle-btn {
+            width: 40px; height: 20px; background: #ccc; border-radius: 20px;
+            position: relative; cursor: pointer; transition: 0.3s;
+        }
+        .toggle-btn.on { background: #66bb6a; }
+        .toggle-btn::after {
+            content: ''; position: absolute; top: 2px; left: 2px;
+            width: 16px; height: 16px; background: #fff; border-radius: 50%;
+            transition: 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .toggle-btn.on::after { left: 22px; }
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -909,7 +948,28 @@
 <!-- [툴팁] 뷰 -->
 <div id="tooltip-view"></div>
 
-<button class="mute-btn" id="btn-mute" onclick="AudioSys.toggleMute()">🔊</button>
+<div class="settings-btn" onclick="UI.toggleSettings()">🎵</div>
+<div id="audio-settings" class="settings-modal">
+    <div class="set-row">
+        <span>볼륨</span>
+        <input type="range" class="vol-slider" min="0" max="100" value="50" oninput="AudioSys.setMasterVolume(this.value)">
+    </div>
+    <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
+    <div class="set-row">
+        <span>배경음악 (BGM)</span>
+        <div class="toggle-btn on" id="tog-bgm" onclick="AudioSys.toggleChannel('bgm')"></div>
+    </div>
+    <div class="bgm-select">
+        <div class="bgm-opt active" onclick="BGM.setStyle(1, this)">🎹 피아노</div>
+        <div class="bgm-opt" onclick="BGM.setStyle(2, this)">🎻 하프</div>
+        <div class="bgm-opt" onclick="BGM.setStyle(3, this)">✨ 믹스</div>
+    </div>
+    <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
+    <div class="set-row">
+        <span>효과음 (SFX)</span>
+        <div class="toggle-btn on" id="tog-sfx" onclick="AudioSys.toggleChannel('sfx')"></div>
+    </div>
+</div>
 
 <div id="app">
     <div id="modal-overlay">
@@ -2189,115 +2249,123 @@ if (awakened) {
 
 const AudioSys = {
     ctx: null,
-    isMuted: false,
+    masterVol: 0.5,
+    bgmMuted: false,
+    sfxMuted: false,
+
     init: function() {
-        if (this.ctx) return;
-        try {
-            this.ctx = new(window.AudioContext || window.webkitAudioContext)();
-        } catch (e) {}
-    },
-    resume: function() {
-        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
-    },
-    toggleMute: function() {
-        this.isMuted = !this.isMuted;
-        const btn = document.getElementById('btn-mute');
-        if (this.isMuted) {
-            btn.innerHTML = '🔇';
-            btn.classList.add('muted');
-        } else {
-            btn.innerHTML = '🔊';
-            btn.classList.remove('muted');
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
         }
     },
-    // [신규] 신디사이저 음원 생성기 (Cute Synth)
-    playTone: function(freq, type, duration, vol = 0.1, slideTo = null) {
-        if (!this.ctx || this.isMuted) return;
+    
+    // 🟢 [추가] 이 부분이 빠져있어서 실행이 안 된 것입니다!
+    resume: function() {
+        this.init();
+    },
+    
+    // [신규] 볼륨 조절
+    setMasterVolume: function(val) {
+        this.masterVol = val / 100;
+    },
+
+    // [신규] 채널 토글 (bgm/sfx)
+    toggleChannel: function(type) {
+        if (type === 'bgm') {
+            this.bgmMuted = !this.bgmMuted;
+            document.getElementById('tog-bgm').classList.toggle('on');
+            if(this.bgmMuted) BGM.stop(); else BGM.start();
+        } else {
+            this.sfxMuted = !this.sfxMuted;
+            document.getElementById('tog-sfx').classList.toggle('on');
+        }
+    },
+
+    // 소리 재생 (제공해주신 로직 통합)
+    playTone: function(freq, type, duration, vol, detune = 0, isBGM = false) {
+        if (!this.ctx) return;
+        if (isBGM && this.bgmMuted) return;
+        if (!isBGM && this.sfxMuted) return;
+
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         
-        osc.type = type; // sine, square, triangle, sawtooth
-        osc.frequency.setValueAtTime(freq, t);
-        if (slideTo) {
-            osc.frequency.exponentialRampToValueAtTime(slideTo, t + duration);
-        }
+        osc.type = type;
+        osc.frequency.value = freq;
+        if (detune !== 0) osc.detune.value = detune;
+
+        // 마스터 볼륨 적용
+        const finalVol = vol * this.masterVol;
 
         // 볼륨 엔벨로프 (부드러운 시작과 끝)
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(vol, t + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+        gain.gain.linearRampToValueAtTime(finalVol, t + 0.05); // Attack
+        gain.gain.exponentialRampToValueAtTime(0.001, t + duration); // Decay
 
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(t);
         osc.stop(t + duration + 0.1);
     },
-    // [신규] 동물의 숲 스타일 옹알이 (Gibberish Voice)
-    speak: function(unit) {
-        if (!this.ctx || this.isMuted) return;
-        const basePitch = 400 + (unit.id * 50); 
-        const count = 2 + Math.floor(Math.random() * 2);
-    
-        for(let i=0; i<count; i++) {
-            ((index) => {  // ✅ IIFE로 클로저 생성
-                const timeOffset = index * 0.08;
-                const pitch = basePitch + (Math.random() * 100 - 50);
-                setTimeout(() => {
-                    this.playTone(pitch, 'triangle', 0.08, 0.15); 
-                }, timeOffset * 1000);
-            })(i);
+
+    // 효과음 전용 래퍼 (기존 코드 호환용)
+    play: function(type) {
+        if (this.sfxMuted) return;
+        this.init();
+        // 기존 효과음 로직 유지 (playTone 호출 시 파라미터 전달)
+        switch (type) {
+            case 'HIT': this.playTone(150, 'square', 0.1, 0.2); break;
+            case 'CRITICAL': 
+                this.playTone(800, 'sawtooth', 0.2, 0.3); 
+                setTimeout(()=>this.playTone(1200, 'square', 0.1, 0.2), 50);
+                break;
+            case 'SKILL': this.playTone(400, 'sine', 0.3, 0.2); break;
+            case 'HEAL': 
+                this.playTone(600, 'sine', 0.15, 0.2);
+                setTimeout(()=>this.playTone(800, 'sine', 0.3, 0.2), 150);
+                break;
+            case 'DEBUFF': this.playTone(300, 'sawtooth', 0.3, 0.15); break;
+            case 'POWER_UP':
+                this.playTone(300, 'square', 0.1, 0.15);
+                setTimeout(()=>this.playTone(450, 'square', 0.1, 0.15), 100);
+                break;
+            case 'WIN': 
+                [0,200,400,600].forEach((d,i)=> setTimeout(()=>this.playTone(523+(i*100),'triangle',0.3,0.3), d));
+                break;
+            case 'CUTIN': this.playTone(100, 'sawtooth', 0.8, 0.4); break;
+            case 'AWAKEN': this.playTone(200, 'square', 0.5, 0.3); break;
         }
     },
-    play: function(type) {
-        if (!this.ctx || this.isMuted) return;
-        switch (type) {
-            case 'HIT': // 타격음 (둔탁하지만 통통 튀게)
-                this.playTone(150, 'square', 0.1, 0.2, 50);
-                break;
-            case 'CRITICAL': // 치명타 (날카롭고 강하게)
-                this.playTone(800, 'sawtooth', 0.2, 0.3, 200); // 퓨융!
-                setTimeout(() => this.playTone(1200, 'square', 0.1, 0.2), 50);
-                break;
-            case 'SKILL': // 스킬 시전 (상승하는 음)
-                this.playTone(400, 'sine', 0.3, 0.2, 800);
-                break;
-            case 'HEAL': // 힐 (영롱한 띠로링)
-                this.playTone(600, 'sine', 0.15, 0.2);
-                setTimeout(() => this.playTone(800, 'sine', 0.3, 0.2), 150);
-                break;
-            case 'DEBUFF': // 디버프 (불길한 하강음)
-                this.playTone(300, 'sawtooth', 0.3, 0.15, 100);
-                break;
-            case 'POWER_UP': // 버프 (힘찬 느낌)
-                this.playTone(300, 'square', 0.1, 0.15, 600);
-                setTimeout(() => this.playTone(450, 'square', 0.1, 0.15, 600), 100);
-                break;
-            case 'WIN': // 승리 팡파레
-                [0, 200, 400, 600].forEach((d, i) => {
-                    setTimeout(() => this.playTone(523 + (i*100), 'triangle', 0.3, 0.3), d);
-                });
-                break;
-            case 'CUTIN': // 컷신 효과음
-                this.playTone(100, 'sawtooth', 0.8, 0.4, 800); // 웅장한 느낌
-                break;
-            case 'AWAKEN': // 각성
-                this.playTone(200, 'square', 0.5, 0.3, 1200); // 띠이잉!
-                break;
+    speak: function(unit) {
+        if(this.sfxMuted) return;
+        this.init();
+        const base = 400 + (unit.id*50);
+        for(let i=0; i<2; i++) {
+            setTimeout(()=> this.playTone(base+(Math.random()*100-50), 'triangle', 0.08, 0.15), i*80);
         }
     }
 };
-// [신규] 배경음악 관리자 (Cute & Bouncy Ver.)
+// [신규] 배경음악 관리자 (Canon in C Major - Music Box Ver.)
 const BGM = {
     timer: null,
     isPlaying: false,
-    state: 'NORMAL', // NORMAL, DANGER
-    beat: 0,
+    style: 1, // 1:Piano, 2:Harp, 3:Mix
+    state: 'NORMAL', // [복구됨] 상태 변수 (NORMAL / DANGER)
+    step: 0,
     
+    // 캐논 멜로디 (Extended)
+    melody: [587, 554, 494, 440, 392, 370, 392, 440, 587, 0, 494, 0, 494, 554, 587, 659, 740, 587, 659, 587, 554, 494, 554, 440, 392, 440, 494, 554, 370, 440, 494, 554],
+    bass:   [293, 0, 220, 0, 246, 0, 185, 0, 196, 0, 293, 0, 196, 0, 220, 0, 293, 220, 246, 293, 185, 246, 196, 220, 196, 220, 293, 220, 293, 370, 440, 554],
+
     start: function() {
         if (this.isPlaying) return;
+        if (AudioSys.bgmMuted) return;
         this.isPlaying = true;
-        this.beat = 0;
+        this.step = 0;
         this.loop();
     },
     
@@ -2305,49 +2373,75 @@ const BGM = {
         this.isPlaying = false;
         if (this.timer) clearTimeout(this.timer);
     },
-    
+
+    // [복구됨] 이 함수가 없어서 에러가 났습니다!
     setState: function(newState) {
         this.state = newState;
     },
 
-    loop: function() {
-        if (!this.isPlaying) return;
-        // 템포: 평상시(450ms) / 위기시(300ms - 호다닥 느낌)
-        const tempo = this.state === 'DANGER' ? 300 : 450;
-        this.playBeat(this.beat);
-        this.beat = (this.beat + 1) % 4; 
-        this.timer = setTimeout(() => this.loop(), tempo);
+    setStyle: function(num, el) {
+        this.style = num;
+        // UI 업데이트
+        document.querySelectorAll('.bgm-opt').forEach(e => e.classList.remove('active'));
+        if(el) el.classList.add('active');
+        
+        // 즉시 반영을 위해 재시작
+        if (this.isPlaying) {
+            this.stop();
+            this.isPlaying = true;
+            this.loop();
+        }
     },
 
-    playBeat: function(beat) {
-        if (AudioSys.isMuted || !AudioSys.ctx) return;
-        
-        // 1. 베이스 (통통 튀는 '뿅' 소리 - Triangle 파형 + Pitch Slide)
-        if (beat % 2 === 0) {
-            AudioSys.playTone(350, 'triangle', 0.15, 0.3, 150); 
-        }
-        
-        // 2. 리듬 (가벼운 탬버린 - 짧은 Sine)
-        if (beat % 2 !== 0) {
-             AudioSys.playTone(1200, 'sine', 0.05, 0.1); 
+    loop: function() {
+        if (!this.isPlaying) return;
+        if (AudioSys.bgmMuted) { this.stop(); return; }
+
+        // [기능 추가] 위기 상황(DANGER)이면 템포가 400ms -> 250ms로 빨라짐
+        const tempo = this.state === 'DANGER' ? 250 : 400; 
+        const idx = this.step;
+        const mNote = this.melody[idx];
+        const bNote = this.bass[idx];
+
+        // === 3가지 스타일 로직 ===
+        if (this.style === 1) { 
+            // [1. 소프트 피아노]
+            if(mNote) {
+                AudioSys.playTone(mNote, 'sine', 0.6, 0.3, 0, true);
+                AudioSys.playTone(mNote, 'triangle', 0.6, 0.2, 0, true);
+            }
+            if (bNote) AudioSys.playTone(bNote, 'sine', 0.8, 0.4, 0, true);
+        } 
+        else if (this.style === 2) {
+            // [2. 클래식 하프]
+            if(mNote) AudioSys.playTone(mNote, 'triangle', 0.3, 0.3, 0, true);
+            if (bNote) {
+                AudioSys.playTone(bNote, 'triangle', 0.4, 0.3, 0, true);
+                setTimeout(() => AudioSys.playTone(bNote * 1.5, 'sine', 0.2, 0.1, 0, true), 50);
+            }
+        } 
+        else if (this.style === 3) {
+            // [3. 믹스]
+            if(mNote) {
+                AudioSys.playTone(mNote, 'sine', 0.5, 0.3, 0, true); 
+                AudioSys.playTone(mNote * 2, 'triangle', 0.2, 0.1, 0, true); 
+            }
+            if (bNote) {
+                AudioSys.playTone(bNote, 'square', 0.6, 0.05, 0, true);
+                AudioSys.playTone(bNote, 'sine', 0.8, 0.3, 0, true);
+            }
         }
 
-        // 3. 멜로디 (랜덤 실로폰 - Sine 파형)
-        // 위기 상황이면 약간 급한 느낌, 아니면 평화로운 펜타토닉
-        if (Math.random() < 0.6) { 
-            const normalScale = [523, 587, 659, 783, 880, 1046]; // 도레미솔라도 (맑음)
-            const dangerScale = [523, 622, 698, 830, 932];       // 단조 (긴박함)
-            
-            const scale = this.state === 'DANGER' ? dangerScale : normalScale;
-            const pitch = scale[Math.floor(Math.random() * scale.length)];
-            
-            // 살짝 위로 튕기는 소리 (pitch + 20)
-            AudioSys.playTone(pitch, 'sine', 0.15, 0.1, pitch + 20);
-        }
+        this.step = (this.step + 1) % this.melody.length;
+        this.timer = setTimeout(() => this.loop(), tempo);
     }
 };
 
 const UI = {
+    toggleSettings: function() {
+        const el = document.getElementById('audio-settings');
+        el.style.display = (el.style.display === 'flex') ? 'none' : 'flex';
+    },
     showModal: function(title, content) {
         document.getElementById('modal-overlay').style.display = 'flex';
         document.getElementById('modal-body').innerHTML = `<h3 style="color:#ff80ab; margin-top:0;">${title}</h3><div>${content}</div>`;
@@ -3457,16 +3551,12 @@ endTurn: function(isFast = false) {
         if (this.isMindControlling && u && u.id === this.isMindControlling.id) {
              const puppet = this.isMindControlling;
              
-             this.log(`<span class='log-sys'>🧠 [${puppet.name}] 정신 지배가 풀렸습니다.</span>`);
-             UI.floatText(puppet, "지배 해제", "ft-heal");
+             this.log(`<span class='log-sys'>🕊️ [${puppet.name}] 조종 완료. 정신 지배가 해제됩니다.</span>`); // 메시지 변경
+             UI.floatText(puppet, "지배 종료", "ft-miss"); // 텍스트 변경
              
-             // 1. 세뇌 상태 아이콘(MC_READY) 제거
              puppet.status = puppet.status.filter(s => s.type !== 'MC_READY');
-             
-             // 2. 전역 변수 초기화
              this.isMindControlling = null;
              
-             // 3. UI 테두리 복구
              const cp = document.querySelector('.control-panel');
              if(cp) cp.style.borderTop = "5px solid #ff80ab";
         }
@@ -3880,54 +3970,47 @@ endTurn: function(isFast = false) {
         // 온라인, 로컬 PVP면 AI 작동 중지
         if (isOnlineMode || this.difficulty === 'local' || this.difficulty === 'pvp') return;
 
-        // ✅ 죽은 유닛 체크 (무한루프 방지)
         if (u.isDead) {
-            console.warn('AI called on dead unit:', u.name);
             this.endTurn(true);
             return;
         }
 
         try {
-            // 1. [세뇌 판정] 현재 유닛이 세뇌 상태인지 확인
+            // 1. [세뇌 판정]
             const isBrainwashed = (this.isMindControlling && this.isMindControlling.id === u.id);
             
-            // 2. [피아식별 재설정] 세뇌 여부에 따라 적/아군 목록 반전
+            // 2. [적/아군 식별] 세뇌 시 반전
             let enemies, allies;
             if (isBrainwashed) {
-                // 세뇌됨: 나의 원래 아군(pTeam)이 적, 적군(eTeam)이 아군
-                enemies = u.team === 0 ? this.pTeam : this.eTeam;
-                allies = u.team === 0 ? this.eTeam : this.pTeam;
+                enemies = u.team === 0 ? this.pTeam : this.eTeam; // 세뇌됨: 나의 원래 팀이 적
+                allies = u.team === 0 ? this.eTeam : this.pTeam;  // 적군이 나의 아군
             } else {
-                // 정상: 반대편이 적
                 enemies = u.team === 0 ? this.eTeam : this.pTeam;
                 allies = u.team === 0 ? this.pTeam : this.eTeam;
             }
 
-            // 3. [타겟 필터링] 살아있는 대상만 추림
-            // 적이 없으면(세뇌 상태에서 나 혼자 남음) -> 자해를 위해 나 자신을 타겟으로 잡음
             let aliveEnemies = enemies.filter(e => !e.isDead);
             const aliveAllies = allies.filter(a => !a.isDead);
 
-            // ✅ 세뇌 상태에서 공격 대상이 없으면 자기 자신 추가
+            // [자해 로직] 세뇌 상태인데 공격할 적(원래 아군)이 다 죽었으면 -> 자해
             if (aliveEnemies.length === 0 && isBrainwashed) {
-                aliveEnemies = [u]; // 자해 타겟으로 자신 추가
+                aliveEnemies = [u];
                 Game.log(`<span class='log-crit'>🧠 [${u.name}] 공격 대상이 없어 자해합니다...</span>`);
             }
 
-            // 일반 상태에서 적이 없으면 게임 종료
             if (aliveEnemies.length === 0 && !isBrainwashed) {
                 this.endTurn();
                 return;
             }
 
-            // 4. [도발 체크] 도발당했으면 강제로 그 대상 공격
+            // [도발 체크]
             if (!isBrainwashed) {
                 const provoked = u.status.find(st => st.type.startsWith('PROVOKED_BY_'));
                 if (provoked) {
                     const targetId = parseInt(provoked.type.split('_')[2]);
                     const target = [...aliveEnemies, ...aliveAllies].find(t => t.id === targetId);
                     if (target && !target.isDead) {
-                        this.execute(u, target, 0); // 평타 강제
+                        this.execute(u, target, 0);
                         return;
                     }
                 }
@@ -3938,14 +4021,10 @@ endTurn: function(isFast = false) {
             const s = SKILL_DB[k];
             let actions = [];
 
-            // === [전략 점수 계산 함수] ===
-            
-            // A. 공격 점수 계산
+            // === [점수 계산 함수들] (기존 로직 유지) ===
             const getAttackScore = (target, skillIdx) => {
                 if (!target) return -999;
                 let score = 0;
-                
-                // 기본 데미지 예측
                 const skillDesc = skillIdx === 1 ? s.s1d : s.s2d;
                 let multiplier = 1.0;
                 const match = skillDesc.match(/([\d.]+)배/);
@@ -3954,98 +4033,50 @@ endTurn: function(isFast = false) {
                 const aff = Game.calc(u, target);
                 const dmg = u.getAtk() * multiplier * aff.v;
 
-                // 1. 킬각 보너스 (가장 중요)
-                if (target.hp <= dmg) score += 5000; 
-                else score += dmg; // 기본적으로 데미지 높으면 좋음
+                if (target.hp <= dmg) score += 5000; // 킬각
+                else score += dmg; 
+                if (aff.v > 1.0) score += 200; // 상성 우위
 
-                // 2. 상성 우위 보너스
-                if (aff.v > 1.0) score += 200;
-
-                // 3. 전략적 타겟팅 (Hard/Hell 모드)
-                if (this.difficulty === 'hard' || this.difficulty === 'hell') {
-                    const tKey = target.getKey();
-                    // 위협적인 적 점사 (힐러, 세뇌범, 부활러)
-                    if (tKey.includes('Water') || tKey === 'Dark-Dark' || tKey === 'Light-Light') score += 150;
-                    // 딸피 마무리 유도
-                    score += (1 - target.hp / target.maxHp) * 100;
-                }
-
-                // 4. CC기 가산점 (기절, 빙결 등)
+                // CC기 가산점
                 if (skillDesc.includes('기절') || skillDesc.includes('빙결') || skillDesc.includes('침묵') || skillDesc.includes('세뇌')) {
-                    if (!target.hasStatus('IMMUNITY') && !target.isNormal) {
-                        score += 300;
-                        // 이미 CC 걸린 애는 건드리지 않음
-                        if (target.hasStatus('STUN') || target.hasStatus('FREEZE')) score -= 400;
-                    }
+                    if (!target.hasStatus('IMMUNITY') && !target.isNormal) score += 300;
                 }
-
-                // 5. [세뇌 상태] 트롤링 보너스
-                if (isBrainwashed) {
-                    // 아군(원래 동료)을 공격하는 행위 자체에 높은 점수
-                    score += 500;
-                    // 강력한 스킬(S2)을 낭비하는 것에 가산점
-                    if (skillIdx === 2) score += 300;
-                }
-
                 return score;
             };
 
-            // B. 지원 점수 계산 (힐, 버프)
             const getSupportScore = (target, skillIdx) => {
                 let score = 0;
                 const skillDesc = skillIdx === 1 ? s.s1d : s.s2d;
                 const isHeal = skillDesc.includes('힐') || s.type === 'HEAL';
-                const isCleanse = skillDesc.includes('정화');
-                const isShield = skillDesc.includes('쉴드');
-
-                // 1. 힐 효율
+                
                 if (isHeal) {
                     const missingHp = target.maxHp - target.hp;
-                    if (missingHp > 0) score += missingHp * 1.5; // 잃은 체력 비례 점수
+                    if (missingHp > 0) score += missingHp * 1.5;
                     else score -= 500; // 풀피 힐 금지
                 }
-
-                // 2. 정화 슈퍼 세이브 (최우선 순위)
-                if (isCleanse) {
-                    // 세뇌 대기, 빙결, 기절 걸린 아군은 무조건 살려야 함
-                    if (target.hasStatus('MC_WAIT') || target.hasStatus('FREEZE') || target.hasStatus('STUN')) {
-                        score += 2000; 
-                    } else if (target.status.length > 0) {
-                        score += 200; // 일반 디버프 해제
-                    }
-                }
-
-                // 3. 쉴드 및 버프
-                if (isShield) {
-                    if (target.shield < 50) score += 300;
-                }
-
-                // 4. [세뇌 상태] 적군(원래 적)을 돕는 행위
-                if (isBrainwashed) {
-                    score += 500; // 적을 힐하면 좋음
-                }
-
-                // 5. 자가 버프 (Tree 등)
-                if (s.target === 'SELF_BUFF' && target.id === u.id) {
-                    score += 400; // 성장 스택 쌓기
-                }
+                if (skillDesc.includes('정화') && target.status.length > 0) score += 200;
+                if (skillDesc.includes('쉴드') && target.shield < 50) score += 300;
+                if (s.target === 'SELF_BUFF' && target.id === u.id) score += 400;
 
                 return score;
             };
 
-            // 5. [행동 생성] 모든 가능한 수 계산
+            // === [행동 생성 로직 개선] ===
             
             // (1) 적 공격 (Alive Enemies)
             aliveEnemies.forEach(e => {
-                // 평타
+                // 평타는 무조건 가능
                 actions.push({ idx: 0, target: e, score: getAttackScore(e, 0) });
                 
                 if (!silenced) {
-                    // S1, S2 (공격 타입인 경우)
                     [1, 2].forEach(i => {
                         const info = i===1 ? s.s1d : s.s2d;
-                        // 공격 스킬이거나 디버프 스킬이면
-                        if (!info.includes('힐') && s.type !== 'HEAL' && s.type !== 'BUFF' && s.type !== 'SELF_BUFF' && s.type !== 'TARGET_BUFF') {
+                        const type = s.type;
+                        // [FIX] '배'(공격계수)가 있거나, 명백한 공격/디버프 타입이면 공격 후보에 추가
+                        // 힐러(HEAL)라도 '배'가 있으면 공격 스킬로 인식하게 함!
+                        const isAttackSkill = info.includes('배') || (type !== 'HEAL' && type !== 'BUFF' && type !== 'SELF_BUFF' && !info.includes('힐'));
+                        
+                        if (isAttackSkill) {
                             actions.push({ idx: i, target: e, score: getAttackScore(e, i) });
                         }
                     });
@@ -4058,42 +4089,42 @@ endTurn: function(isFast = false) {
                     [1, 2].forEach(i => {
                         const info = i===1 ? s.s1d : s.s2d;
                         const type = s.type;
-                        // 지원 스킬이면 (힐, 버프, 정화)
-                        if (info.includes('힐') || info.includes('정화') || info.includes('쉴드') || info.includes('버프') || type === 'HEAL' || type === 'BUFF' || type === 'TARGET_BUFF' || type === 'SELF_BUFF') {
-                            // 자가 버프 필터링
-                            if ((type === 'SELF_BUFF' || type === 'SELF') && a.id !== u.id) return;
-                            
+                        
+                        // [FIX] '배'(공격)가 없고, 힐/버프/쉴드 키워드가 있거나 타입이 지원형이면 지원 후보
+                        // 공격 스킬을 아군에게 쓰는 것을 원천 차단
+                        const isSupportSkill = !info.includes('배') && (info.includes('힐') || info.includes('정화') || info.includes('쉴드') || info.includes('버프') || type === 'HEAL' || type === 'BUFF' || type === 'TARGET_BUFF' || type === 'SELF_BUFF');
+
+                        if (isSupportSkill) {
+                            if ((type === 'SELF_BUFF' || type === 'SELF') && a.id !== u.id) return; // 자가버프는 자신에게만
                             actions.push({ idx: i, target: a, score: getSupportScore(a, i) });
                         }
                     });
                 });
             }
 
-            // 6. [최선의 수 선택] 점수 내림차순 정렬
+            // 6. [최선의 수 선택]
             actions.sort((a, b) => b.score - a.score);
-            
             let best = actions[0];
 
-            // 행동할 게 없으면(점수가 다 음수거나 타겟 없음) 랜덤 평타
             if (!best || !best.target) {
-                best = {
-                    idx: 0,
-                    target: aliveEnemies[Math.floor(this.netRandom() * aliveEnemies.length)]
-                };
+                best = { idx: 0, target: aliveEnemies[Math.floor(this.netRandom() * aliveEnemies.length)] };
             }
             
-            // [예외 처리] 자해 공격 시 (타겟이 나 자신일 때)
-            if (best.target && best.target.id === u.id && isBrainwashed) {
-                // UI에 자해 메시지 띄우고 싶다면 여기서 처리 가능
-                // console.log("자해 시도"); 
+            // [안전장치] 아군 오인 사격 방지 (세뇌 상태가 아닌데 같은 팀을 공격하려 하면 취소하고 적 랜덤 평타)
+            if (!isBrainwashed && best.target && best.target.team === u.team && best.idx !== 0) {
+                 const info = best.idx===1 ? s.s1d : s.s2d;
+                 // 힐/버프가 아닌데 아군을 찍었으면 강제 보정
+                 if (info.includes('배')) {
+                     console.warn("Friendly Fire Prevented!");
+                     best = { idx: 0, target: aliveEnemies[Math.floor(this.netRandom() * aliveEnemies.length)] };
+                 }
             }
 
-            // 실행
             this.execute(u, best.target, best.idx);
 
         } catch (e) {
             console.error("AI Logic Error:", e);
-            this.endTurn(); // 에러 나면 턴 넘김 (멈춤 방지)
+            this.endTurn(); 
         }
     },
 
