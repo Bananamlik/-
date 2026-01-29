@@ -2890,6 +2890,18 @@ const Game = {
         const tVal = this.queue[this.curr];
         const u = tVal % 2 === 0 ? this.pTeam[tVal / 2] : this.eTeam[(tVal - 1) / 2];
 
+        // [세뇌 수정 1] 턴 시작 시, MC_READY 상태면 조종 모드 발동
+        if (u.hasStatus('MC_READY') && !u.isDead) {
+            Game.isMindControlling = u; // 제어권 탈취
+            // 시전자(주인) 확인
+            const mcStatus = u.status.find(s => s.type === 'MC_READY');
+            if (mcStatus && mcStatus.sourceId !== undefined) {
+                 // 시전자가 내 팀(0)이라면 내가 조종
+                 // (주의: 온라인 모드 고려, 로컬에서는 무조건 내가 조종)
+                 // 여기서는 간단히 isMindControlling이 켜지면 아래 로직에서 처리됨
+            }
+        }am[(tVal - 1) / 2];
+
         // [PVP 수정] 조작 권한 판정 로직 강화
         // 기본적으로 내 팀(0)이면 내 턴.
         // 하지만! 적 팀(1)이라도 '내가 세뇌한 상태(isMindControlling)'라면 내 턴으로 간주.
@@ -2950,30 +2962,18 @@ if (mcWaitStatus) {
         Game.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 준비 완료!</span>`);
         
         let caster = null;
+        // ... (시전자 찾는 로직 그대로 유지) ...
         if (mcWaitStatus.sourceId !== undefined && mcWaitStatus.sourceId !== -1) {
             const allUnits = [...Game.pTeam, ...Game.eTeam];
             caster = allUnits.find(unit => unit.id === mcWaitStatus.sourceId);
         }
-        if (!caster) {
-            const enemyTeam = u.team === 0 ? Game.eTeam : Game.pTeam;
-            const darkDarks = enemyTeam.filter(e => e.getKey() === 'Dark-Dark' && !e.isDead);
-    
-            if (darkDarks.length === 1) {
-                caster = darkDarks[0];
-            } else if (darkDarks.length > 1) {
-                console.warn('⚠️ Multiple Dark-Dark found, using first one');
-                caster = darkDarks[0];
-            }
-        }
+        // ... (중략) ...
 
-        u.status = u.status.filter(s => s.type !== 'MC_WAIT');
-        
         if (caster && !caster.isDead) {
             u.addStatus('MC_READY', 99, 0, caster);
-            Game.isMindControlling = u;
-            const cp = document.querySelector('.control-panel');
-            if(cp) cp.style.borderTop = "5px solid #d500f9";
-            Game.log(`<span class='log-sys'>🧠 다음 [${caster.name}] 턴에 [${u.name}] 조종 가능!</span>`);
+            // 💡 [수정] 여기서 Game.isMindControlling을 켜지 않습니다!
+            // 다음 턴 시작(turn 함수 도입부)에서 켜도록 변경했습니다.
+            Game.log(`<span class='log-sys'>🧠 [${u.name}] 세뇌 완료! 다음 행동을 조종할 수 있습니다.</span>`);
         } else {
             Game.log("<span class='log-sys'>(시전자가 사망하여 세뇌가 풀렸습니다)</span>");
         }
@@ -3190,20 +3190,18 @@ endTurn: function(isFast = false) {
         // 현재 턴 주인 유닛 찾기
         const u = this.queue[this.curr] % 2 === 0 ? this.pTeam[this.queue[this.curr] / 2] : this.eTeam[(this.queue[this.curr] - 1) / 2];
 
-        // [밸런스 수정] 세뇌 해제 로직 (스턴 삭제, 무조건 해제)
-        if (Game.isMindControlling) {
+        // [밸런스 수정] 세뇌 해제 로직
+        // "현재 턴을 마친 유닛(u)"이 "조종 중인 유닛(isMindControlling)"일 때만 해제
+        if (Game.isMindControlling && u && u.id === Game.isMindControlling.id) {
              const puppet = Game.isMindControlling;
              
-             Game.log(`<span class='log-sys'>🧠 [${puppet.name}] 정신 지배가 풀렸습니다. (행동 가능)</span>`);
+             Game.log(`<span class='log-sys'>🧠 [${puppet.name}] 정신 지배가 풀렸습니다.</span>`);
              UI.floatText(puppet, "지배 해제", "ft-heal");
              
              // 1. 세뇌 상태 아이콘(MC_READY) 제거
              puppet.status = puppet.status.filter(s => s.type !== 'MC_READY');
              
-             // [삭제됨] 스턴 부여 로직 삭제 (유저 요청: 세뇌 후 즉시 행동 가능)
-             // puppet.addStatus('STUN', 1, 0, null, true); <--- 삭제됨
-             
-             // 2. 전역 변수 초기화 (필수: 자아 분열 방지)
+             // 2. 전역 변수 초기화
              Game.isMindControlling = null;
              
              // 3. UI 테두리 복구
@@ -3807,6 +3805,20 @@ endTurn: function(isFast = false) {
         if (u.isDead) return;
         u.isDead = true;
         u.hp = 0;
+		// [버그 수정] 시전자 사망 시 걸어둔 세뇌 해제
+        if (Game.isMindControlling && Game.isMindControlling.status) {
+             const puppet = Game.isMindControlling;
+             const mcStatus = puppet.status.find(s => s.type === 'MC_READY');
+             // 죽은 유닛(u)이 세뇌를 건 시전자(sourceId)라면 해제
+             if (mcStatus && mcStatus.sourceId === u.id) {
+                 puppet.status = puppet.status.filter(s => s.type !== 'MC_READY');
+                 Game.isMindControlling = null;
+                 Game.log(`<span class='log-sys'>🕊️ 시전자 사망으로 [${puppet.name}]의 세뇌가 풀렸습니다.</span>`);
+                 const cp = document.querySelector('.control-panel');
+                 if(cp) cp.style.borderTop = "5px solid #ff80ab"; // UI 색상 복구
+             }
+        }
+		
         u.status = [];
         Game.log(`${u.name} 탈락`);
         if (u.base === 'Tree' && u.extra === 'Dark') {
@@ -3990,7 +4002,10 @@ endTurn: function(isFast = false) {
         if (this.selectedSkillIdx === 0) mult = 1.0;
         else {
             const desc = this.selectedSkillIdx === 1 ? s.s1d : s.s2d;
-            if (s.type === 'HEAL' || s.type === 'BUFF' || desc.includes('힐')) return 0; // 힐/버프는 데미지 0
+            // [수정] 타겟팅 버프, 자가 버프 등 비공격 스킬 타입 추가 필터링
+            const nonAtkTypes = ['HEAL', 'BUFF', 'ALLY', 'ALL_ALLY', 'SELF_BUFF', 'TARGET_BUFF'];
+            if (nonAtkTypes.includes(s.type) || desc.includes('힐') || desc.includes('쉴드') || desc.includes('정화')) return 0;
+            
             const match = desc.match(/([\d.]+)배/);
             if (match) mult = parseFloat(match[1]);
         }
