@@ -1230,7 +1230,7 @@ const ATTR = { 'Fire':{i:'🔥', n:'불', c:'#e74c3c'}, 'Water':{i:'💧', n:'�
 const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light':'숲', 'Metal-Light':'독가스', 'Earth-Light':'모래', 'Water-Dark':'얼음', 'Fire-Dark':'검은불', 'Tree-Dark':'가시', 'Metal-Dark':'전기', 'Earth-Dark':'바위', 'Light-Light':'빛(강화)', 'Dark-Dark':'어둠(강화)', 'Normal':'노말' };
 
 const SKILL_DB = {
-    'Metal': { s1:'강철베기', s1d:'1.3배+30%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15/데미지X', type:'DEBUFF', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>받는 피해 MaxHP 30% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 30%를 넘지 않습니다.' },
+    'Metal': { s1:'강철베기', s1d:'1.3배+30%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15/데미지X', type:'CC', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>받는 피해 MaxHP 30% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 30%를 넘지 않습니다.' },
     'Tree': { s1:'광합성', s1d:'공+18/쉴드+30(영구중첩)', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'ALLY', role:'tank', icon:'🌳', desc:'성장형 탱커<br>자가성장 + 힐', passive:'🌿 성장: 광합성 사용 시 영구적으로 공격력과 쉴드가 증가합니다.' },
     'Fire-Light': { s1:'흡혈부여', s1d:'아군전체 흡혈(2턴)', s2:'폭주', s2d:'자신공+20(영구)/전체공+10', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🔷', desc:'공격형 탱커<br>흡혈 + 폭주', passive:'🩸 흡혈: 매 턴 공격 시 피해량의 25%를 회복합니다. (최대 50)' },
     'Water-Light': { s1:'스팀젯', s1d:'0.9배+실명(30%)', s2:'안개', s2d:'잃은체력15%힐+회피', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'☁️', desc:'서폿형 탱커<br>회피 + 어그로', passive:'☁️ 기화: 체력 20% 이하 시 1회 자동 회복 및 회피 상태가 됩니다.' },
@@ -3985,55 +3985,60 @@ endTurn: function(isFast = false) {
 }, // 콤마 필수 (뒤에 ai 함수가 있음)
 
 
-    ai: function(u) {
+    // ========== 3997번째 줄부터 교체 ==========
+ai: function(u) {
         // 온라인, 로컬 PVP면 AI 작동 중지
         if (isOnlineMode || this.difficulty === 'local' || this.difficulty === 'pvp') return;
-        if (u.isDead) {
+        
+        // 0. 기본 검증
+        if (!u || u.isDead) {
             this.endTurn(true);
             return;
         }
 
         try {
-            // 1. [세뇌 판정]
-            const isBrainwashed = (this.isMindControlling && this.isMindControlling.id === u.id);
+            this.log(`<span class='log-sys'>🤖 AI 행동 중: ${u.name}</span>`);
 
-            // 2. [적/아군 식별] 세뇌 여부에 따라 타겟 그룹 설정
+            // 1. 세뇌 판정
+            const isBrainwashed = (this.isMindControlling && this.isMindControlling.id === u.id);
+            if (isBrainwashed) {
+                this.log(`<span class='log-crit'>🧠 [${u.name}] 세뇌 상태로 행동!</span>`);
+            }
+
+            // 2. 적/아군 식별 (세뇌 시 반전)
             let enemies, allies;
             if (isBrainwashed) {
-                // 세뇌됨: 나의 원래 팀이 공격 대상(enemies)
-                enemies = u.team === 0 ? this.pTeam : this.eTeam;
+                enemies = u.team === 0 ? this.pTeam : this.eTeam; // 원래 팀이 적
                 allies = u.team === 0 ? this.eTeam : this.pTeam;
             } else {
-                // 정상: 상대 팀이 공격 대상
-                enemies = u.team === 0 ? this.eTeam : this.pTeam;
+                enemies = u.team === 0 ? this.eTeam : this.pTeam; // 상대 팀이 적
                 allies = u.team === 0 ? this.pTeam : this.eTeam;
             }
 
-            // 3. [생존자 필터링] - 중요: 자기 자신(u.id)은 적 목록에서 반드시 제외 (자해/자폭 방지)
+            // 3. 생존자 필터링 (자기 자신 제외 - 자해 방지 핵심)
             let aliveEnemies = enemies.filter(e => !e.isDead && e.id !== u.id);
             const aliveAllies = allies.filter(a => !a.isDead);
 
-            // [예외: 세뇌 상태 자해] 공격할 대상(원래 아군)이 다 죽었으면 -> 자해 허용
+            // [예외] 세뇌 상태인데 공격 대상(원래 아군)이 전멸한 경우만 자해 허용
             if (aliveEnemies.length === 0 && isBrainwashed) {
                 aliveEnemies = [u];
-                Game.log(`<span class='log-crit'>🧠 [${u.name}] 공격 대상이 없어 자해를 시도합니다.</span>`);
+                this.log(`<span class='log-crit'>🧠 [${u.name}] 공격 대상 전멸로 자해 시도</span>`);
             }
 
-            // [종료 조건] 적이 없으면 턴 종료
+            // [종료 조건] 공격 대상 없으면 턴 종료
             if (aliveEnemies.length === 0) {
                 this.endTurn();
                 return;
             }
 
-            // 4. [도발(Taunt) 체크] - 세뇌 상태가 아닐 때만 적용
+            // 4. 도발(Taunt) 처리
             if (!isBrainwashed) {
                 const provoked = u.status.find(st => st.type.startsWith('PROVOKED_BY_'));
                 if (provoked) {
                     const targetId = parseInt(provoked.type.split('_')[2]);
-                    // 도발 시전자가 살아있는 적 목록에 있는지 확인
-                    const target = aliveEnemies.find(t => t.id === targetId);
-                    if (target) {
-                        this.execute(u, target, 0); // 평타 강제
+                    const taunter = aliveEnemies.find(t => t.id === targetId);
+                    if (taunter) {
+                        this.execute(u, taunter, 0); // 평타 강제
                         return;
                     }
                 }
@@ -4041,141 +4046,145 @@ endTurn: function(isFast = false) {
 
             const silenced = u.hasStatus('SILENCE');
             const k = u.getKey();
-            const s = SKILL_DB[k];
-            let actions = [];
+            const sk = SKILL_DB[k];
 
-            // === [점수 계산 함수] ===
+            // 5. 점수 계산 및 행동 목록 생성
+            
+            // [헬퍼] 공격 점수 계산
             const getAttackScore = (target, skillIdx) => {
-                if (!target) return -9999;
+                if (!target || target.isDead) return -9999;
                 let score = 0;
-                const skillDesc = skillIdx === 1 ? s.s1d : s.s2d;
+                const skillDesc = skillIdx === 0 ? "기본공격" : (skillIdx === 1 ? (sk.s1d || "") : (sk.s2d || ""));
                 
                 // 데미지 배율 파싱
-                let multiplier = 0;
-                const match = skillDesc.match(/([\d.]+)배/);
-                if (match) multiplier = parseFloat(match[1]);
-                
-                // 예상 데미지 계산
+                let multiplier = 1.0;
+                if (skillIdx > 0 && skillDesc) {
+                    const match = skillDesc.match(/([\d.]+)배/);
+                    if (match) multiplier = parseFloat(match[1]);
+                }
+
+                // 예상 데미지
                 const aff = Game.calc(u, target);
-                const dmg = u.getAtk() * multiplier * aff.v;
+                const baseDmg = u.getAtk() * multiplier * aff.v;
 
-                // 1. 킬각(Kill Shot) 최우선
-                if (dmg > 0 && target.hp <= dmg) score += 5000;
-                else score += dmg; 
+                // 점수 산정
+                if (baseDmg > 0 && target.hp <= baseDmg) score += 5000; // 킬각
+                else score += baseDmg;
                 
-                // 2. 상성 우위 가산점
-                if (aff.v > 1.0) score += 200;
+                if (aff.v > 1.0) score += 200; // 상성 우위
 
-                // 3. [탱커/CC 로직 강화] 데미지가 없어도 도발/기절 등은 매우 높은 점수 부여
+                // 도발/CC 가산점
                 if (skillDesc.includes('도발') || skillDesc.includes('결투')) {
-                    // 이미 도발된 적에게는 쓰지 않음
-                    if (!target.status.some(st => st.type.startsWith('PROVOKED'))) {
-                        score += 2000; // 킬각 다음으로 높은 우선순위
-                    }
+                    if (!target.status.some(st => st.type.startsWith('PROVOKED'))) score += 2000;
                 }
-                
-                // 4. CC기 가산점 (기절, 빙결, 세뇌 등)
-                if (skillDesc.includes('기절') || skillDesc.includes('빙결') || skillDesc.includes('침묵') || skillDesc.includes('세뇌') || skillDesc.includes('속박')) {
+                const ccKeywords = ['기절', '빙결', '침묵', '세뇌', '속박', 'STUN', 'FREEZE', 'SILENCE'];
+                if (ccKeywords.some(kw => skillDesc.includes(kw))) {
                     if (!target.hasStatus('IMMUNITY') && !target.isNormal) {
-                        // 이미 걸린 상태면 점수 깎음 (중복 방지)
-                        if (target.hasStatus('STUN') || target.hasStatus('FREEZE') || target.hasStatus('SILENCE')) {
-                            score -= 500;
-                        } else {
-                            score += 300;
-                        }
+                        const hasCC = target.hasStatus('STUN') || target.hasStatus('FREEZE') || target.hasStatus('SILENCE');
+                        if (hasCC) score -= 500; // 중복 CC 방지
+                        else score += 300;
                     }
                 }
-
-                // [세뇌 AI] 트롤링 보너스 (아군을 아프게 때릴수록 좋음)
-                if (isBrainwashed) score += 500;
-
                 return score;
             };
 
+            // [헬퍼] 지원 점수 계산
             const getSupportScore = (target, skillIdx) => {
+                if (!target || target.isDead) return -9999;
                 let score = 0;
-                const skillDesc = skillIdx === 1 ? s.s1d : s.s2d;
+                const skillDesc = skillIdx === 1 ? (sk.s1d || "") : (sk.s2d || "");
 
-                // 힐 로직
-                if (skillDesc.includes('힐') || s.type === 'HEAL') {
+                if (skillDesc.includes('힐') || skillDesc.includes('HP') || sk.type === 'HEAL') {
                     const missing = target.maxHp - target.hp;
-                    if (missing > 0) score += missing * 2.0; // 힐 가중치 증가
-                    else score -= 1000; // 풀피 힐 절대 금지
+                    if (missing > 0) score += missing * 2.0;
+                    else score -= 1000;
                 }
-                
-                // 정화/쉴드/버프 로직
                 if (skillDesc.includes('정화') && target.status.length > 0) score += 300;
                 if (skillDesc.includes('쉴드') && target.shield < 50) score += 300;
-                
-                // 자가 버프 (성장 등)
-                if ((s.target === 'SELF' || s.target === 'SELF_BUFF') && target.id === u.id) score += 400;
+                if (target.id === u.id && (skillDesc.includes('성장') || sk.type === 'SELF_BUFF')) score += 400;
 
                 return score;
             };
 
-            // === [행동 목록 생성] ===
-            
-            // A. 공격 행동 (살아있는 적만 대상)
+            // [헬퍼] 스킬 타입 판별
+            const isAttackSkill = (desc, type) => {
+               if (!desc) return false;
+               
+               // 1단계: 절대 공격 아님 (도발 포함!)
+               const nonAttackKeywords = ['힐', '쉴드', '정화', '버프', '회피', '도발', '결속'];
+               const nonAttackTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
+               
+               if (nonAttackKeywords.some(kw => desc.includes(kw)) || nonAttackTypes.includes(type)) {
+                   return false;
+               }
+               
+               // 2단계: 데미지X 명시된 경우 공격 아님
+               if (desc.includes('데미지X')) return false;
+               
+               // 3단계: 공격 키워드 확인
+               const attackKeywords = ['배', '데미지', '공격'];
+               return attackKeywords.some(kw => desc.includes(kw));
+           };
+
+            const isSupportSkill = (desc, type) => {
+                if (!desc) return false;
+                const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피', '성장'];
+                const supportTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
+                return supportKeywords.some(kw => desc.includes(kw)) || supportTypes.includes(type);
+            };
+
+            let actions = [];
+
+            // A. 공격 행동
             aliveEnemies.forEach(e => {
-                actions.push({ idx: 0, target: e, score: getAttackScore(e, 0) });
+                actions.push({ idx: 0, target: e, score: getAttackScore(e, 0), type: 'attack' });
                 if (!silenced) {
                     [1, 2].forEach(i => {
-                        const info = i===1 ? s.s1d : s.s2d;
-                        const type = s.type;
-                        // 공격 스킬 판별 (힐/버프 아님) - 도발(DEBUFF)도 공격 쪽 로직 태움
-                        const isSupport = info.includes('힐') || info.includes('버프') || type === 'HEAL' || type === 'BUFF' || type === 'TARGET_BUFF' || type === 'SELF_BUFF';
-                        
-                        // 도발(DEBUFF) 등은 공격 로직에서 점수 계산 (getAttackScore에서 처리)
-                        if (!isSupport) {
-                             actions.push({ idx: i, target: e, score: getAttackScore(e, i) });
+                        const desc = i===1 ? sk.s1d : sk.s2d;
+                        if (isAttackSkill(desc, sk.type)) {
+                             actions.push({ idx: i, target: e, score: getAttackScore(e, i), type: 'attack' });
                         }
                     });
                 }
             });
 
-            // B. 지원 행동 (살아있는 아군만 대상)
+            // B. 지원 행동
             if (!silenced) {
                 aliveAllies.forEach(a => {
                     [1, 2].forEach(i => {
-                        const info = i===1 ? s.s1d : s.s2d;
-                        const type = s.type;
-                        // 지원 스킬 판별
-                        const isSupport = info.includes('힐') || info.includes('정화') || info.includes('쉴드') || info.includes('버프') || ['HEAL','BUFF','TARGET_BUFF','SELF_BUFF'].includes(type);
-                        
-                        if (isSupport) {
-                            if ((type === 'SELF_BUFF' || type === 'SELF') && a.id !== u.id) return; // 자가버프는 남에게 못씀
-                            actions.push({ idx: i, target: a, score: getSupportScore(a, i) });
+                        const desc = i===1 ? sk.s1d : sk.s2d;
+                        if (isSupportSkill(desc, sk.type)) {
+                            if ((sk.type === 'SELF_BUFF' || sk.type === 'SELF') && a.id !== u.id) return;
+                            actions.push({ idx: i, target: a, score: getSupportScore(a, i), type: 'support' });
                         }
                     });
                 });
             }
 
-            // 5. [최적 행동 선택]
-            // 점수가 높은 순으로 정렬하되, 약간의 랜덤성(0.5)을 주어 덜 기계적이게 만듦
+            // 6. 최적 행동 선택
             actions.sort((a, b) => (b.score + Math.random()) - (a.score + Math.random()));
             let best = actions[0];
 
-            // 행동할 게 없으면(또는 점수가 너무 낮으면) 적 랜덤 평타
+            // 행동 없으면 랜덤 평타
             if (!best || !best.target || best.score < -500) {
                 best = { 
                     idx: 0, 
-                    target: aliveEnemies[Math.floor(this.netRandom() * aliveEnemies.length)] 
+                    target: aliveEnemies[Math.floor(this.netRandom() * aliveEnemies.length)],
+                    type: 'attack'
                 };
             }
 
-            // [최종 안전장치] Friendly Fire 방지 (세뇌 상태가 아닌데 아군 타겟팅 시 강제 보정)
+            // 7. [최종 안전장치] Friendly Fire 방지
             if (!isBrainwashed && best.target && best.target.team === u.team) {
-                const info = best.idx===0 ? "평타" : (best.idx===1?s.s1d:s.s2d);
-                const isHealOrBuff = info.includes('힐') || info.includes('버프') || s.type === 'HEAL';
-                
-                if (!isHealOrBuff) {
-                    console.warn(`⚠️ Friendly Fire prevented! AI [${u.name}] redirected to random enemy.`);
-                    best.target = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
-                    best.idx = 0; 
+                if (best.type === 'attack') {
+                    console.warn(`🚨 Friendly Fire Prevented! [${u.name}] redirected.`);
+                    best.target = aliveEnemies[Math.floor(this.netRandom() * aliveEnemies.length)];
+                    best.idx = 0;
                 }
             }
 
             this.execute(u, best.target, best.idx);
+
         } catch (e) {
             console.error("AI Logic Critical Error:", e);
             this.endTurn(); 
