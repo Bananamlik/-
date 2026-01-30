@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v12.1 Fixed</title>
+    <title>Elemental Tactics: v12.2 Debugged</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -982,7 +982,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v12.1 Fixed (AI Crash & Save/Load)</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v12.2 Debugged (AI Crash & Save/Load)</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -3605,7 +3605,15 @@ endTurn: function(isFast = false) {
         
         this.render();
         const delay = isFast ? 100 : 1500;
-        this.timer = setTimeout(() => this.turn(), delay);
+
+        // [수정] 타이머 실행 직전에도 게임 종료 여부(Kill Switch) 확인
+        if (this.isOver) return;
+
+        this.timer = setTimeout(() => {
+            // [안전장치] 대기 시간 동안 게임이 리셋되었는지 한 번 더 확인
+            if (this.isOver) return;
+            this.turn();
+        }, delay);
     }, 
 
     // [수정] async 키워드 추가 (투사체 대기용)
@@ -3691,16 +3699,35 @@ endTurn: function(isFast = false) {
     },
 
     reset: function() {
-        if (this.timer) clearTimeout(this.timer);
-        if (this.watchdog) clearTimeout(this.watchdog);
+        // [수정] 강제 종료 킬 스위치 가동
+        this.isOver = true; // 진행 중인 로직이 즉시 멈추도록 플래그 설정
+        this.isProcessing = false;
+
+        // 타이머 제거
+        if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+        if (this.watchdog) { clearTimeout(this.watchdog); this.watchdog = null; }
+
+        // 오디오 정리
+        BGM.stop();
+
+        // UI 정리
         UI.closeModal();
         document.getElementById('battle-screen').style.display = 'none';
         document.getElementById('selection-screen').style.display = 'flex';
         document.querySelectorAll('.hero-card.selected').forEach(el => el.classList.remove('selected'));
+
+        // 데이터 초기화
         this.selected = [];
+        this.pTeam = []; // 팀 정보도 날려서 유령 참조 방지
+        this.eTeam = [];
+
         document.getElementById('btn-start').innerText = "⚔️ 전투 시작 (0/3)";
         document.getElementById('btn-start').disabled = true;
-        this.init();
+
+        // 주의: init()은 여기서 호출하지 않고, 영웅 선택 화면만 보여줍니다.
+        // init()은 페이지 로드 시 한 번, 혹은 필요 시에만 호출하도록 변경
+        this.pool = []; 
+        window.onload(); // 다시 초기화 (Game.init 포함)
     },
     // [각성 체크] 스탯 기록 시 각성 확인
     recordStat: function(unit, type, amount) {
@@ -4313,7 +4340,10 @@ ai: function(u) {
             turnCount: this.turnCount,
             difficulty: this.difficulty,
             mode: this.mode,
-            selected: this.selected
+            selected: this.selected,
+            mcCasterId: this.currentMCCasterId,
+            mcTargetId: this.isMindControlling ? this.isMindControlling.id : null,
+            challengeStage: this.challengeStage
         };
         localStorage.setItem('et_save_v6', JSON.stringify(saveData));
         UI.floatText(this.pTeam[0], "게임 저장됨!", "ft-heal");
@@ -4335,6 +4365,9 @@ ai: function(u) {
             this.curr = data.curr;
             this.queue = data.queue;
             this.selected = data.selected;
+            if (data.challengeStage !== undefined) {
+                this.challengeStage = data.challengeStage;
+            }
             this.pTeam = data.pTeam.map(d => this.deserializeUnit(d));
             this.eTeam = data.eTeam.map(d => this.deserializeUnit(d));
             
@@ -4359,7 +4392,9 @@ ai: function(u) {
             const tVal = this.queue[this.curr];
             const u = tVal % 2 === 0 ? this.pTeam[Math.floor(tVal / 2)] : this.eTeam[Math.floor((tVal - 1) / 2)];
             if (!u) {
-                alert("세이브 파일이 손상되었습니다.");
+                console.error('Invalid unit in save file, tVal:', tVal);
+                alert("세이브 파일이 손상되었습니다.\n새 게임을 시작하세요.");
+                localStorage.removeItem('et_save_v6');
                 return;
             }
             let turnName = u.name.split(' ')[0];
@@ -4372,8 +4407,9 @@ ai: function(u) {
                 this.input(u);
             }
         } catch (e) {
-            console.error(e);
-            alert("세이브 파일이 손상되었습니다.");
+            console.error('Load game error:', e);
+            alert(`세이브 파일 로드 실패: ${e.message}\n새 게임을 시작하거나 저장 파일을 삭제하세요.`);
+            localStorage.removeItem('et_save_v6');
         }
     },
     serializeUnit: function(u) {
