@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v12.2 Debugged</title>
+    <title>Elemental Tactics: v12.1 Fixed</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -982,7 +982,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v12.2 Debugged (AI Crash & Save/Load)</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v12.1 Fixed (AI Crash & Save/Load)</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -2124,10 +2124,14 @@ if (awakened) {
 
         if (source && source.id !== this.id && !force) {
             const karma = source.status.find(s => s.type === `KARMA_VICTIM_${this.id}`);
-            if (karma) {
+            const isDarkVsDark = (this.base === 'Dark' && source.base === 'Dark');
+            const isPuppet = (this.hasStatus('MC_READY') || (Game.isMindControlling && Game.isMindControlling.id === this.id));
+            
+            if (karma && !isDarkVsDark && !isPuppet) {
                 if (Game.netRandom() < 0.5) {
                     UI.floatText(this, "반사!", "ft-crit");
-                    source.addStatus(type, turn, val, null);
+                    Game.log(`<span class='log-crit'>👁️ [${this.name}]의 업보 발동! [${source.name}]에게 ${type} 반사</span>`);
+                    source.addStatus(type, turn, val, null, true);
                     return;
                 }
             }
@@ -2137,6 +2141,37 @@ if (awakened) {
         if (this.isNormal && !force && NORMAL_IMMUNE.includes(type)) {
             UI.floatText(this, "Immune", "ft-miss");
             return;
+        }
+
+        const existing = this.status.find(s => s.type === type);
+        if (existing && !force) {
+            if (turn > existing.turn) {
+                existing.turn = turn;
+                existing.val = val;
+                existing.sourceId = source?.id;
+            }
+            return;
+        }
+        
+        const MUTUALLY_EXCLUSIVE = {
+            'STUN': ['FREEZE', 'BANISH', 'SLEEP'],
+            'FREEZE': ['STUN', 'BANISH', 'SLEEP'],
+            'BANISH': ['STUN', 'FREEZE', 'SLEEP'],
+            'SLEEP': ['STUN', 'FREEZE', 'BANISH']
+        };
+        
+        if (MUTUALLY_EXCLUSIVE[type]) {
+            const removed = [];
+            MUTUALLY_EXCLUSIVE[type].forEach(conflictType => {
+                const conflict = this.status.find(s => s.type === conflictType);
+                if (conflict) {
+                    removed.push(conflictType);
+                    this.status = this.status.filter(s => s.type !== conflictType);
+                }
+            });
+            if (removed.length > 0) {
+                Game.log(`<span class='log-sys'>[${this.name}] ${removed.join(', ')} 상태가 ${type}으로 대체됨</span>`);
+            }
         }
         
         // 2. 회피 체크 (노말도 가능)
@@ -2256,6 +2291,30 @@ const AudioSys = {
     masterVol: 0.5,
     bgmMuted: false,
     sfxMuted: false,
+
+    cleanup: function() {
+        console.log("🧹 Game cleanup started");
+        
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+        if (this.watchdog) {
+            clearTimeout(this.watchdog);
+            this.watchdog = null;
+        }
+        
+        this.isOver = true;
+        this.isProcessing = false;
+        this.isMindControlling = null;
+        this.currentMCCasterId = null;
+        
+        if (typeof BGM !== 'undefined' && BGM.stop) {
+            BGM.stop();
+        }
+        
+        console.log("✅ Game cleanup completed");
+    },
 
     init: function() {
         if (!this.ctx) {
@@ -2818,8 +2877,7 @@ const Game = {
     },
 
     init: function() {
-        if (this.timer) clearTimeout(this.timer);
-        if (this.watchdog) clearTimeout(this.watchdog);
+        this.cleanup();
         this.isOver = false;
         this.isMindControlling = null; // 초기화
         this.pool = [];
@@ -3225,6 +3283,13 @@ const Game = {
     },
 
 turn: function() {
+        const battleScreen = document.getElementById('battle-screen');
+        if (this.isOver || !battleScreen || battleScreen.style.display === 'none') {
+            console.warn("⚠️ Turn called but game is over or not visible");
+            this.cleanup();
+            return;
+        }
+        
         this.isProcessing = false;
         if (this.isOver) return;
         const round = Math.ceil(this.turnCount / 6);
@@ -4340,10 +4405,7 @@ ai: function(u) {
             turnCount: this.turnCount,
             difficulty: this.difficulty,
             mode: this.mode,
-            selected: this.selected,
-            mcCasterId: this.currentMCCasterId,
-            mcTargetId: this.isMindControlling ? this.isMindControlling.id : null,
-            challengeStage: this.challengeStage
+            selected: this.selected
         };
         localStorage.setItem('et_save_v6', JSON.stringify(saveData));
         UI.floatText(this.pTeam[0], "게임 저장됨!", "ft-heal");
@@ -4365,9 +4427,6 @@ ai: function(u) {
             this.curr = data.curr;
             this.queue = data.queue;
             this.selected = data.selected;
-            if (data.challengeStage !== undefined) {
-                this.challengeStage = data.challengeStage;
-            }
             this.pTeam = data.pTeam.map(d => this.deserializeUnit(d));
             this.eTeam = data.eTeam.map(d => this.deserializeUnit(d));
             
@@ -4392,9 +4451,7 @@ ai: function(u) {
             const tVal = this.queue[this.curr];
             const u = tVal % 2 === 0 ? this.pTeam[Math.floor(tVal / 2)] : this.eTeam[Math.floor((tVal - 1) / 2)];
             if (!u) {
-                console.error('Invalid unit in save file, tVal:', tVal);
-                alert("세이브 파일이 손상되었습니다.\n새 게임을 시작하세요.");
-                localStorage.removeItem('et_save_v6');
+                alert("세이브 파일이 손상되었습니다.");
                 return;
             }
             let turnName = u.name.split(' ')[0];
@@ -4407,9 +4464,8 @@ ai: function(u) {
                 this.input(u);
             }
         } catch (e) {
-            console.error('Load game error:', e);
-            alert(`세이브 파일 로드 실패: ${e.message}\n새 게임을 시작하거나 저장 파일을 삭제하세요.`);
-            localStorage.removeItem('et_save_v6');
+            console.error(e);
+            alert("세이브 파일이 손상되었습니다.");
         }
     },
     serializeUnit: function(u) {
