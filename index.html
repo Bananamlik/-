@@ -4312,7 +4312,45 @@ ai: function(u) {
                 }
                 
                 // B. 상성 우위
-                if (aff.v > 1.0) score += 300;
+                if (aff.v > 1.0) score += 300; // 상성 우위 (가중치 증가)
+
+                // ----------------------------------------------------
+                // 🔥 [AI 심화] 악랄한 타겟팅 로직 추가
+                // ----------------------------------------------------
+
+                // 1. "약자 멸시" (Low HP Focus)
+                // 체력이 낮은 적을 집중 공격하여 머릿수를 줄임
+                const hpPct = target.hp / target.maxHp;
+                if (hpPct < 0.4) score += 1500; // 체력 40% 미만 시 점사
+                if (hpPct < 0.2) score += 2000; // 체력 20% 미만 시 극딜
+
+                // 2. "전략적 제거" (Focus Supports)
+                // 힐러나 서포터(Light-Light, Water 등)를 우선 제거
+                const tKey = target.getKey();
+                if (SKILL_DB[tKey].role === 'supp') score += 1000;
+
+                // 3. "낭비 방지" (Avoid Metal Shield)
+                // 상대가 쇠(Metal)이고 쉴드가 있는데, 내 딜이 캡(30%)에 막혀 손해라면 타겟 변경
+                if (target.base === 'Metal' && !target.extra && target.shield > 0) {
+                    const dmgCap = target.maxHp * 0.3;
+                    // 내 데미지가 캡보다 1.5배 이상 세다면(=딜 낭비), 점수를 대폭 깎아 다른 애를 때림
+                    if (baseDmg > dmgCap * 1.5) score -= 3000; 
+                }
+
+                // 4. "광역기 계산" (AoE Smart Math)
+                // 광역기라면 타겟 하나만 보지 말고, 전체 적에게 들어가는 총 데미지를 합산
+                if (['AOE', 'ALL_ENEMY', 'NUKE_PER'].includes(sk.type) && skillIdx > 0) {
+                    let aoeBonus = 0;
+                    aliveEnemies.forEach(en => {
+                        if (en.id === target.id) return; // 주 타겟은 이미 계산됨
+                        const subAff = Game.calc(u, en);
+                        const subDmg = u.getAtk() * multiplier * subAff.v;
+                        aoeBonus += subDmg; // 총 데미지 합산
+                        if (subDmg >= en.hp) aoeBonus += 2000; // 덤으로 누구 죽으면 가산점
+                    });
+                    score += aoeBonus;
+                }
+               
 
                 // C. CC 중복 방지 및 활용
                 const ccKeywords = ['기절', '빙결', '침묵', '세뇌', '속박', 'STUN', 'FREEZE', 'SILENCE'];
