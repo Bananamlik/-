@@ -1254,11 +1254,11 @@ const SKILL_DB = {
     'Tree': { s1:'광합성', s1d:'공+18/쉴드+30(영구중첩)', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'ALLY', role:'tank', icon:'🌳', desc:'성장형 탱커<br>자가성장 + 힐', passive:'🌿 성장: 광합성 사용 시 영구적으로 공격력과 쉴드가 증가합니다.' },
     'Fire-Light': { s1:'흡혈부여', s1d:'아군전체 흡혈(3턴)', s2:'폭주', s2d:'자신공+20(영구)/전체공+10', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🔷', desc:'공격형 탱커<br>흡혈 + 폭주', passive:'🩸 흡혈: 매 턴 공격 시 피해량의 25%를 회복합니다. (최대 50)' },
     'Water-Light': { s1:'스팀젯', s1d:'0.9배+실명(30%)', s2:'안개', s2d:'잃은체력15%힐+회피', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'☁️', desc:'서폿형 탱커<br>회피 + 어그로', passive:'☁️ 기화: 체력 20% 이하 시 1회 자동 회복 및 회피 상태가 됩니다.' },
-    'Fire': { s1:'화염방사', s1d:'1.6배 +화상(60%)', s2:'메테오', s2d:'광역 0.8배+화상(30%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', desc:'메인 딜러<br>초반 강력 (유통기한)', passive:'🔥 불의 기세: 1~2턴 공+20, 3~6턴 공+10, 7턴 이후 0' },
-    'Normal': { s1:'균형타', s1d:'1.5배/내HP-30/쉴드60', s2:'주사위', s2d:'0.8~2.3배 랜덤/노코스트', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'⚖️', desc:'메인 딜러<br>랜덤 한방 (약점:단일기초5속성) + 서브탱킹', passive:'🎲 면역: 행동 제어기(기절,빙결,침묵,세뇌)에 걸리지 않습니다.'},
+    'Fire': { s1:'화염방사', s1d:'1.6배 +화상(60%)', s2:'메테오', s2d:'광역 0.8배+화상(30%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', desc:'메인 딜러<br>초반 강력 (유통기한)', passive:'🔥 불의 기세: 1~2라운드(12턴) 공+20, 3~6라운드 공+10, 7라운드 이후 0' },
+    'Normal': { s1:'균형타', s1d:'1.0배/내HP-30/쉴드60', s2:'주사위', s2d:'0.8~2.3배 랜덤/노코스트', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'⚖️', desc:'메인 딜러<br>랜덤 한방 (약점:단일기초5속성) + 서브탱킹', passive:'🎲 면역: 행동 제어기(기절,빙결,침묵,세뇌)에 걸리지 않습니다.'},
     'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상(100%)', s2:'소각', s2d:'1.0배+적 공격력만큼 추가타', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', desc:'메인 딜러<br>역이용 카운터', passive:'🔥 소각: 적의 공격력이 높을수록 더 큰 피해를 입힙니다.' },
     'Metal-Dark': { s1:'전기충격', s1d:'1.5배+공격력10↑', s2:'방전', s2d:'광역 0.8배+기절(15%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'⚡', desc:'메인 딜러<br>성장형 광역', passive:'⚡ 과부하: S1 사용 시 공격력이 10 증가합니다 (최대 3회).' },
-    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+자가기절(2턴)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 후 기절 상태에서는 받는 피해가 10 증가합니다.' },
+    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+자가기절(1턴 휴식)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 후 휴식 상태에서는 받는 피해가 10 증가합니다.' },
     'Earth': { s1:'암석투척', s1d:'1.3배+기절/침묵(30%)', s2:'지진', s2d:'광역 0.8배 (1:1강화)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🏜️', desc:'CC형 딜러<br>기절 / 침묵', passive:null },
     'Water-Dark': { s1:'고드름', s1d:'1.5배', s2:'절대영도', s2d:'1.0배+빙결(35%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'❄️', desc:'CC형 딜러<br>빙결', passive:null },
     'Metal-Light': { s1:'가스탄', s1d:'0.3배/CC걸린적 1.5배', s2:'맹독살포', s2d:'전체 중독(3턴)', type:'DEBUFF', target:'ALL_ENEMY', role:'nuker', icon:'☣️', desc:'특수 딜러<br>버프 제거 + 조건부폭딜', passive:null },
@@ -1269,7 +1269,7 @@ const SKILL_DB = {
     'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+15', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', desc:'메인 버퍼<br>광역 쉴드', passive:null },
     'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'👼', desc:'메인 버퍼<br>정화 + 쉴드', passive:null },
     'Dark': { s1:'다크볼', s1d:'1.5배+업보(반사50%)', s2:'공포', s2d:'광역 0.3배/공35%↓/쉴드30%파괴', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'👻', desc:'광역 디버퍼<br>공포 + 쉴드파괴', passive:'👁️ 업보: 다크볼 피격자가 상태이상을 걸면 50% 확률로 반사.' },
-    'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵(1턴)', s2:'정신지배', s2d:'HP15%소모/세뇌(30~55%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🧠', desc:'심연의 지배자<br>적 제어권 탈취', passive:'🌑 심연의 힘: 세뇌 성공률은 기본 30%이며, 대상의 체력이 낮을수록 최대 55%까지 증가합니다. 성공 시 다음 턴 적을 1회 조종합니다.' }
+    'Dark-Dark': { s1:'심연일격', s1d:'0.5배+침묵(1턴)', s2:'정신지배', s2d:'HP15%소모/세뇌(30~55%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🧠', desc:'심연의 지배자<br>적 제어권 탈취', passive:'🌑 심연의 힘: 세뇌 성공률은 기본 30%이며, 대상의 체력이 낮을수록 최대 55%까지 증가합니다. 성공 시 다음 턴 적을 1회 조종합니다.' }
 };
 
 // [신규] Emotion Alias Database (English)
@@ -1311,16 +1311,18 @@ const TitleManager = {
 };
 
 const ChallengeDB = [
-    { name: "뉴비 절단기", desc: "단단한 쇠(Metal)와 힐러 조합. 딜이 부족하면 뚫다가 지칩니다.", team: ['Metal', 'Water', 'Fire'] },
-    { name: "빙결 지옥", desc: "얼리고(Water-Dark) 기절(Earth)시키는 무한 CC 조합.", team: ['Water-Dark', 'Earth', 'Water'] },
-    { name: "회피 & 유지력", desc: "안개(Water-Light)와 숲(Tree)의 무한 유지력 좀비 덱.", team: ['Water-Light', 'Tree', 'Light-Light'] },
-    { name: "CC 면역 & 깡딜", desc: "CC를 무시하는 노말(Normal)과 강력한 한방.", team: ['Normal', 'Earth-Dark', 'Fire-Light'] },
-    { name: "턴 삭제 (혐오)", desc: "어둠 강화(Dark-Dark)의 턴 스킵 억까 조합. 기도하세요.", team: ['Dark-Dark', 'Earth', 'Metal-Dark'] },
-    { name: "절대 방어", desc: "쉴드, 정화, 힐로 무장하여 죽지 않는 통곡의 벽.", team: ['Light-Light', 'Tree-Light', 'Metal'] },
-    { name: "디버프 군단", desc: "화상, 독, 공포, 반사로 말려 죽입니다.", team: ['Fire-Dark', 'Metal-Light', 'Dark'] },
-    { name: "지진 설계자", desc: "바위(Earth-Dark)의 기절을 정화하고 공버프를 주는 연계 플레이.", team: ['Earth-Dark', 'Light-Light', 'Light'] },
-    { name: "최종 보스 (Ver.1)", desc: "개발자 공인 0티어. 정화+CC+턴스킵의 완벽한 조화.", team: ['Dark-Dark', 'Light-Light', 'Water-Dark'] },
-    { name: "밸런스 파괴자", desc: "현존 최강의 사기캐만 모았습니다. 이기면 고수 인정.", team: ['Dark-Dark', 'Light-Light', 'Metal'] }
+    { name: "부동의 철옹성", desc: "쇠(Metal)가 막고 물(Water)이 채우며 불(Fire)이 때립니다.", team: ['Metal', 'Water', 'Fire'] },
+    { name: "무한 통제", desc: "빙결, 기절, 기절... 숨 쉴 틈을 주지 않습니다.", team: ['Water-Dark', 'Earth', 'Metal-Dark'] },
+    { name: "흡혈 귀족단", desc: "푸른불(Fire-Light)의 흡혈 부여와 나무(Tree)의 유지력.", team: ['Fire-Light', 'Tree', 'Fire'] },
+    { name: "심리전의 대가", desc: "반사(업보)와 복수(가시)로 딜레마를 유발합니다.", team: ['Dark', 'Tree-Dark', 'Normal'] },
+    { name: "쉴드 파괴자", desc: "쉴드를 관통하고 도트 데미지로 말려 죽입니다.", team: ['Earth-Light', 'Fire-Dark', 'Metal-Light'] },
+    { name: "세뇌 공작", desc: "내 유닛이 적이 되는 공포를 느껴보세요.", team: ['Dark-Dark', 'Metal', 'Water-Light'] },
+    { name: "초반 스노우볼", desc: "초반 깡패 불(Fire)과 강력한 한방 바위(Earth-Dark).", team: ['Fire', 'Earth-Dark', 'Metal'] },
+    // [순서 고정] 빛강화가 먼저 쉴드/정화를 쓰고 바위가 딜을 넣음
+    { name: "대지의 분노", desc: "정화 받은 바위(Earth-Dark)의 2.5배 핵펀치 연계.", team: ['Light-Light', 'Earth-Dark', 'Water'], fixedOrder: true },
+    { name: "운빨 존망겜", desc: "세뇌, 정화, 그리고 노말의 랜덤 주사위.", team: ['Dark-Dark', 'Light-Light', 'Normal'] },
+    // [최종 보스]
+    { name: "심연의 맹독", desc: "세뇌(Dark-Dark), 맹독/해제(Metal-Light), 힐(Water)의 최악 조합.", team: ['Dark-Dark', 'Metal-Light', 'Water'] }
 ];
 
 const Common = {
@@ -1359,7 +1361,7 @@ const Common = {
                 game.shake(def);
             }
             if ((atk.getKey() === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
-                const healAmt = Math.min(50, Math.floor(act * 0.20));
+                const healAmt = Math.min(50, Math.floor(act * 0.25));
                 if(healAmt > 0) { atk.heal(healAmt); Common.logAction(game, 'heal', atk, atk, healAmt, "(흡혈)"); }
             }
         } else {
@@ -1381,7 +1383,7 @@ const Common = {
             UI.floatText(def, act, type); 
             game.shake(def); 
             if ((atk.getKey() === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
-                const healAmt = Math.min(50, Math.floor(act * 0.20));
+                const healAmt = Math.min(50, Math.floor(act * 0.25));
                 if(healAmt > 0) { atk.heal(healAmt); Common.logAction(game, 'heal', atk, atk, healAmt, "(흡혈)"); }
             }
         } else { 
@@ -1436,7 +1438,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 물대포! 💧`);
-                const act = Common.applyDamage(atk, def, 1.5, game);
+                const act = Common.applyDamage(atk, def, 1.0, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
             } else {
                 game.log(`<b>[${atk.name}]</b> 치유의 비 🌧️`);
@@ -1614,7 +1616,8 @@ const SKILL_LOGIC = {
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 흡혈 부여 🩸`);
                 Common.forEachAlly(atk, game, (a) => {
-                    a.addStatus('VAMP', 3, 0, atk);
+                    // [Fix] 버프 이름 통일 (VAMP -> LIFESTEAL_BUFF)
+                    a.addStatus('LIFESTEAL_BUFF', 3, 0, atk);
                 });
             } else {
                 game.log(`<b>[${atk.name}]</b> 폭주! 🔥`);
@@ -1636,7 +1639,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 스팀젯 ☁️`);
-                const act = Common.applyDamage(atk, def, 0.9, game);
+                const act = Common.applyDamage(atk, def, 0.5, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
                     if (game.netRandom() < 0.3) {
@@ -2006,6 +2009,9 @@ class Unit {
     }
 
     checkAwakening() {
+        // [Balance] 쉴드 최대량 400으로 제한
+        if (this.shield > 400) this.shield = 400;
+
         if (this.isSuper) return;
         const key = this.getKey();
         const role = SKILL_DB[key].role;
@@ -2584,7 +2590,19 @@ const UI = {
             let bg = `bg-${base}`;
             if (k.includes('-') && k.split('-')[0] === k.split('-')[1]) bg = `bg-${base}-Enhanced`;
             if (k === 'Normal') bg = 'bg-Normal';
-            heroList += `<div class="guide-item"> <div class="guide-icon ${bg}" style="color:#fff;">${icon}</div> <div class="guide-info"> <div class="guide-name">${name}</div> <div class="guide-desc">${s.desc}</div> <div style="font-size:10px; color:#555; margin-top:2px;"> <div>S1: ${s.s1} (${s.s1d})</div> <div>S2: ${s.s2} (${s.s2d})</div> </div> </div> </div>`;
+            // [패시브 표시 추가]
+            heroList += `<div class="guide-item"> 
+                <div class="guide-icon ${bg}" style="color:#fff;">${icon}</div> 
+                <div class="guide-info"> 
+                    <div class="guide-name">${name}</div> 
+                    <div class="guide-desc">${s.desc}</div> 
+                    <div style="font-size:10px; color:#555; margin-top:2px;"> 
+                        <div>S1: ${s.s1} (${s.s1d})</div> 
+                        <div>S2: ${s.s2} (${s.s2d})</div> 
+                        ${s.passive ? `<div style="color:#00695c; font-weight:bold; margin-top:2px; border-top:1px dashed #ddd; padding-top:2px;">PASSIVE: ${s.passive}</div>` : ''}
+                    </div> 
+                </div> 
+            </div>`;
         });
         const content = `<div class="tab-header"> <button class="tab-btn active" onclick="UI.switchTab(0)">📊 상성표</button> <button class="tab-btn" onclick="UI.switchTab(1)">📖 도감</button> </div> <div id="tab-0" class="tab-content active"> <table class="chart-table"> <tr><th>공격자</th><th>유리한 대상 (1.2배)</th></tr> <tr><td>🔥 불</td><td>⚔️ 쇠, 🌿 나무</td></tr> <tr><td>💧 물</td><td>🔥 불, ⚔️ 쇠</td></tr> <tr><td>🌿 나무</td><td>💧 물, ⛰️ 흙</td></tr> <tr><td>⚔️ 쇠</td><td>🌿 나무, ⛰️ 흙</td></tr> <tr><td>⛰️ 흙</td><td>🔥 불, 💧 물</td></tr> <tr><td>☀️/🌙</td><td>서로에게 1.2배</td></tr> <tr><td>🎲 노말</td><td>노말(자신), 강화된 빛/어둠</td></tr> </table> <div class="dual-chart"> <div style="font-weight:bold; color:#00cec9; margin-bottom:5px;">⚡ 이중 상성 (1.3배 치명타)</div> <div class="dual-row" style='font-size:12px; color:#666;'>기초 속성 우위 + 빛/어둠이 상대와 반대일 때</div> </div> </div> <div id="tab-1" class="tab-content" style="max-height: 50vh; overflow-y:auto;"> ${heroList} </div>`;
         this.showModal("📘 가이드북", content);
@@ -3229,10 +3247,14 @@ const Game = {
             if (this.challengeStage >= ChallengeDB.length) this.challengeStage = ChallengeDB.length - 1;
             const stageData = ChallengeDB[this.challengeStage];
 
-            // [AI 강화] 챌린지 모드 덱 순서 랜덤 섞기 (배치 카운터 방지)
-            const shuffledTeam = [...stageData.team].sort(() => Math.random() - 0.5);
+            // [AI 강화] 덱 순서 섞기 (fixedOrder가 true면 섞지 않음)
+            // 이를 통해 '대지의 분노' 같은 콤보 덱의 순서를 보장함
+            let currentTeamList = [...stageData.team];
+            if (!stageData.fixedOrder) {
+                currentTeamList.sort(() => Math.random() - 0.5);
+            }
 
-            this.eTeam = shuffledTeam.map((key, i) => {
+            this.eTeam = currentTeamList.map((key, i) => {
                 let b, e;
                 if (key === 'Normal') {
                     b = 'Normal';
@@ -4174,7 +4196,7 @@ endTurn: function(isFast = false) {
 
     // ========== 3997번째 줄부터 교체 ==========
 ai: function(u) {
-        // 온라인, 로컬 PVP면 AI 작동 중지
+        // [검증] 온라인, 로컬 PVP면 AI 작동 중지
         if (isOnlineMode || this.difficulty === 'local' || this.difficulty === 'pvp') return;
         
         // 0. 기본 검증
@@ -4192,7 +4214,7 @@ ai: function(u) {
                 this.log(`<span class='log-crit'>🧠 [${u.name}] 세뇌 상태로 행동!</span>`);
             }
 
-            // 2. 적/아군 식별 (세뇌 시 반전)
+            // 2. 적/아군 식별
             let enemies, allies;
             if (isBrainwashed) {
                 enemies = u.team === 0 ? this.pTeam : this.eTeam; // 원래 팀이 적
@@ -4202,17 +4224,15 @@ ai: function(u) {
                 allies = u.team === 0 ? this.pTeam : this.eTeam;
             }
 
-            // 3. 생존자 필터링 (자기 자신 제외 - 자해 방지)
+            // 3. 생존자 필터링
             let aliveEnemies = enemies.filter(e => !e.isDead && e.id !== u.id);
             const aliveAllies = allies.filter(a => !a.isDead);
 
-            // [예외] 세뇌 상태인데 공격 대상(원래 아군)이 전멸한 경우만 자해 허용
+            // [예외] 세뇌 상태인데 공격 대상 전멸 시 자해 허용
             if (aliveEnemies.length === 0 && isBrainwashed) {
                 aliveEnemies = [u];
-                this.log(`<span class='log-crit'>🧠 [${u.name}] 공격 대상 전멸로 자해 시도</span>`);
             }
 
-            // [종료 조건] 공격 대상 없으면 턴 종료
             if (aliveEnemies.length === 0) {
                 this.endTurn();
                 return;
@@ -4235,150 +4255,205 @@ ai: function(u) {
             const k = u.getKey();
             const sk = SKILL_DB[k];
 
-            // 5. 점수 계산 및 행동 목록 생성
-            
-            // [헬퍼] 공격 점수 계산
-            const getAttackScore = (target, skillIdx) => {
-                if (!target || target.isDead) return -9999;
-                let score = 0;
-                const skillDesc = skillIdx === 0 ? "기본공격" : (skillIdx === 1 ? (sk.s1d || "") : (sk.s2d || ""));
-                
-                // 데미지 배율 파싱
-                let multiplier = 1.0;
-                if (skillIdx > 0 && skillDesc) {
-                    // [Fix] % 단위 처리 및 매칭 실패 시 안전장치 추가
-                    const match = skillDesc.match(/([\d.]+)배/) || skillDesc.match(/([\d.]+)%/);
-                    if (match) {
-                        multiplier = parseFloat(match[1]);
-                        if (skillDesc.includes('%')) multiplier /= 100; // %는 소수로 변환
-                    }
-                }
+            // ---------------------------------------------------------
+            // 🧠 [AI Core] 헬퍼 함수 정의
+            // ---------------------------------------------------------
 
-                // 예상 데미지
-                const aff = Game.calc(u, target);
-                const baseDmg = u.getAtk() * multiplier * aff.v;
-
-                // 점수 산정
-                if (baseDmg > 0 && target.hp <= baseDmg) score += 5000; // 킬각
-                else score += baseDmg;
-                
-                if (aff.v > 1.0) score += 200; // 상성 우위
-
-                // 도발/CC 가산점
-                if (skillDesc.includes('도발') || skillDesc.includes('결투')) {
-                    if (!target.status.some(st => st.type.startsWith('PROVOKED'))) score += 2000;
-                }
-                const ccKeywords = ['기절', '빙결', '침묵', '세뇌', '속박', 'STUN', 'FREEZE', 'SILENCE'];
-                if (ccKeywords.some(kw => skillDesc.includes(kw))) {
-                    if (!target.hasStatus('IMMUNITY') && !target.isNormal) {
-                        const hasCC = target.hasStatus('STUN') || target.hasStatus('FREEZE') || target.hasStatus('SILENCE');
-                        if (hasCC) score -= 500; // 중복 CC 방지
-                        else score += 300;
-                    }
-                }
-                return score;
-            };
-
-            // [헬퍼] 지원 점수 계산
-            const getSupportScore = (target, skillIdx) => {
-                if (!target || target.isDead) return -9999;
-                let score = 0;
-                const skillDesc = skillIdx === 1 ? (sk.s1d || "") : (sk.s2d || "");
-
-                if (skillDesc.includes('힐') || skillDesc.includes('HP') || sk.type === 'HEAL') {
-                    const missing = target.maxHp - target.hp;
-                    if (missing > 0) score += missing * 2.0;
-                    else score -= 1000;
-                }
-                if (skillDesc.includes('정화') && target.status.length > 0) score += 300;
-                if (skillDesc.includes('쉴드') && target.shield < 50) score += 300;
-                if (target.id === u.id && (skillDesc.includes('성장') || sk.type === 'SELF_BUFF')) score += 400;
-
-                return score;
-            };
-
-            // [헬퍼] 스킬 타입 판별 (AI 로직 개선)
             const isAttackSkill = (desc, type) => {
                 if (!desc) return false;
-                // 1. 공격 계수('배') 혹은 공격적 키워드(도발, 속박 등)가 있으면 공격 스킬
+                // 공격 계수나 공격적 키워드
                 if (desc.includes('배') || desc.includes('도발') || desc.includes('속박')) return true;
-                // 2. 타입이 명백한 공격/방해 계열이면 True
                 if (['CC', 'DEBUFF', 'AOE', 'NUKE_PER', 'ATK'].includes(type)) return true;
 
-                const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피'];
+                const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피', '성장', '결속'];
                 const supportTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
                 
-                // 지원 키워드가 있으면 공격 아님
                 if (supportKeywords.some(kw => desc.includes(kw)) || supportTypes.includes(type)) return false;
                 return true;
             };
 
-                    const isSupportSkill = (desc, type) => {
-            if (!desc) return false;
+            const isSupportSkill = (desc, type) => {
+                if (!desc) return false;
+                // 힐러라도 공격 계수가 있고 힐/회복이 없으면 공격기 (예: 물대포)
+                if (desc.includes('배') && !desc.includes('힐') && !desc.includes('회복')) return false;
+                if (desc.includes('도발') || desc.includes('속박')) return false;
+                if (['CC', 'DEBUFF', 'AOE'].includes(type)) return false;
 
-            // 🚨 [필수 수정] 데미지가 없더라도 '도발', '속박' 등은 적에게 쓰는 스킬임!
-
-            // [수정] 힐러(HEAL) 타입이라도 스킬 설명에 '배'(공격계수)가 있고 '힐/회복'이 없다면 공격기임 (예: 물대포)
-            // 이렇게 해야 힐러가 평타나 공격스킬을 아군에게 쏘는(자해) 현상을 막을 수 있음
-            if (desc.includes('배') && !desc.includes('힐') && !desc.includes('회복')) return false;
-
-            if (desc.includes('도발') || desc.includes('속박')) return false;
-            if (['CC', 'DEBUFF', 'AOE'].includes(type)) return false;
-
-
-                const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피', '성장'];
+                const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피', '성장', '결속'];
                 const supportTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
                 
                 return supportKeywords.some(kw => desc.includes(kw)) || supportTypes.includes(type);
             };
 
+            // ⚔️ 공격 점수 계산
+            const getAttackScore = (target, skillIdx) => {
+                if (!target || target.isDead) return -9999;
+                let score = 0;
+                const skillDesc = skillIdx === 0 ? "기본공격" : (skillIdx === 1 ? (sk.s1d || "") : (sk.s2d || ""));
+                
+                // 계수 파싱
+                let multiplier = 1.0;
+                if (skillIdx > 0 && skillDesc) {
+                    const match = skillDesc.match(/([\d.]+)배/) || skillDesc.match(/([\d.]+)%/);
+                    if (match) {
+                        multiplier = parseFloat(match[1]);
+                        if (skillDesc.includes('%')) multiplier /= 100;
+                    }
+                }
+
+                const aff = Game.calc(u, target);
+                const baseDmg = u.getAtk() * multiplier * aff.v;
+
+                // A. 킬 캐치 (Kill Catch) - 최우선 순위
+                if (baseDmg > 0 && target.hp <= baseDmg && !target.hasStatus('IMMORTAL')) {
+                    score += 50000; 
+                } else {
+                    score += baseDmg;
+                }
+                
+                // B. 상성 우위
+                if (aff.v > 1.0) score += 300;
+
+                // C. CC 중복 방지 및 활용
+                const ccKeywords = ['기절', '빙결', '침묵', '세뇌', '속박', 'STUN', 'FREEZE', 'SILENCE'];
+                if (ccKeywords.some(kw => skillDesc.includes(kw))) {
+                    if (!target.hasStatus('IMMUNITY') && !target.isNormal) {
+                        const hasHardCC = target.hasStatus('STUN') || target.hasStatus('FREEZE') || target.hasStatus('SLEEP');
+                        if (hasHardCC) score -= 3000; // 이미 기절인데 또 기절? 낭비.
+                        else score += 500;
+                    }
+                }
+
+                // D. [Logic Fix] 바위(Earth-Dark) S2 과잉 사용 방지
+                // 산사태(S2)는 자가 기절(Turn Skip) 패널티가 있음.
+                if (u.getKey() === 'Earth-Dark' && skillIdx === 2) {
+                    score -= 3000; // 기본적으로 리스크 때문에 점수를 깎음
+                    if (!target.hasStatus('STUN') && !target.hasStatus('FREEZE')) {
+                         // 하지만 데미지가 2.5배라 딜 점수(baseDmg)가 높아 상쇄됨.
+                         // 킬각(50000점)일 경우: S1도 50000점 vs S2는 50000-3000점 -> S1 선택 (성공!)
+                         // 킬각 아닐 경우: S2의 딜이 워낙 강력해(2.5배) -3000점을 뚫고 선택될 가능성 높음.
+                         score += 3500; // 공격적인 성향 추가 보정
+                    }
+                }
+
+                // E. [난이도] 고난이도에서 평타 억제
+                if (this.difficulty !== 'easy' && skillIdx === 0) {
+                     // 쿨타임 시스템이 없으므로, 침묵이 아니고 다른 스킬이 있다면 평타 비선호
+                     if (!silenced) score -= 2000;
+                }
+
+                return score;
+            };
+
+            // 🛡️ 지원 점수 계산
+            const getSupportScore = (target, skillIdx) => {
+                if (!target || target.isDead) return -9999;
+                let score = 0;
+                const skillDesc = skillIdx === 1 ? (sk.s1d || "") : (sk.s2d || "");
+
+                // A. 힐 효율
+                if (skillDesc.includes('힐') || skillDesc.includes('HP') || sk.type === 'HEAL') {
+                    const pct = target.hp / target.maxHp;
+                    if (pct < 0.35) score += 5000; // 위기 상황 구출
+                    else if (pct > 0.9) score -= 2000; // 낭비
+                    else score += (target.maxHp - target.hp) * 2.0;
+                }
+
+                // B. [Combo] 정화 우선순위 (바위 아군 구출)
+                if (skillDesc.includes('정화')) {
+                    if (target.status.length > 0) score += 500;
+                    // 기절한 바위(Earth-Dark) 아군은 즉시 정화
+                    if (target.getKey() === 'Earth-Dark' && target.hasStatus('STUN')) {
+                        score += 8000; 
+                    }
+                    // 일반 하드 CC 해제
+                    if (target.hasStatus('STUN') || target.hasStatus('FREEZE')) score += 2000;
+                }
+
+                // C. 쉴드 낭비 방지
+                if (skillDesc.includes('쉴드')) {
+                    if (target.shield >= 300) score -= 5000; // 이미 많으면 절대 안씀
+                    else if (target.shield < 50) score += 500;
+                }
+
+                // D. 자가 버프 (성장 등)
+                if (target.id === u.id && (skillDesc.includes('성장') || sk.type === 'SELF_BUFF')) score += 400;
+
+                // E. [AI 수정] 푸른불(Fire-Light) 행동 최적화
+                if (u.getKey() === 'Fire-Light') {
+                    if (skillIdx === 1) { // S1: 흡혈부여
+                        // [중요] 이미 흡혈 버프(LIFESTEAL_BUFF)가 있다면 절대 다시 쓰지 않음 (중복 방지)
+                        if (target.hasStatus('LIFESTEAL_BUFF')) {
+                            score -= 5000;
+                        } else {
+                            // 버프가 없을 때만 체력 체크
+                            const lowestHpAlly = aliveAllies.reduce((min, a) => Math.min(min, a.hp / a.maxHp), 1);
+                            if (lowestHpAlly > 0.85) score -= 3000; // 다들 건강하면 공격(S2) 유도
+                            else score += 3000; // 아프면 흡혈 부여
+                        }
+                    } else if (skillIdx === 2) { // S2: 폭주 (공버프)
+                        score += 500; // 기본적으로 선호
+                    }
+                }
+
+                return score;
+            };
+
+
+            // ---------------------------------------------------------
+            // 🚀 행동 목록 생성 및 선택
+            // ---------------------------------------------------------
             let actions = [];
 
-            // A. 공격 행동
+            // A. 공격 행동 수집
             aliveEnemies.forEach(e => {
                 actions.push({ idx: 0, target: e, score: getAttackScore(e, 0), type: 'attack' });
                 if (!silenced) {
                     [1, 2].forEach(i => {
                         const desc = i===1 ? sk.s1d : sk.s2d;
                         if (isAttackSkill(desc, sk.type)) {
-                             actions.push({ idx: i, target: e, score: getAttackScore(e, i), type: 'attack' });
+                            // 특수 예외: 가시(Tree-Dark) S2는 공격기가 아님
+                            if (k === 'Tree-Dark' && i === 2) return; 
+                            actions.push({ idx: i, target: e, score: getAttackScore(e, i), type: 'attack' });
                         }
                     });
                 }
             });
 
-            // B. 지원 행동
+            // B. 지원 행동 수집
             if (!silenced) {
                 aliveAllies.forEach(a => {
                     [1, 2].forEach(i => {
                         const desc = i===1 ? sk.s1d : sk.s2d;
                         if (isSupportSkill(desc, sk.type)) {
                             if ((sk.type === 'SELF_BUFF' || sk.type === 'SELF') && a.id !== u.id) return;
+                            if (k === 'Tree-Dark' && i === 2 && a.id === u.id) return; // 결속은 타인에게
+                            
                             actions.push({ idx: i, target: a, score: getSupportScore(a, i), type: 'support' });
                         }
                     });
                 });
             }
-            // 🟢 [추가] AI 디버그: 생각 로그 출력
+
+            // [AI 디버그] 생각 로그 출력
             if (typeof DEBUG !== 'undefined' && DEBUG.enabled) {
                 console.groupCollapsed(`🤖 [${u.name}]의 행동 선택 (후보 ${actions.length}개)`);
-                // 점수가 높은 순으로 정렬해서 보여줌
                 const debugActions = [...actions].sort((a, b) => b.score - a.score);
                 debugActions.slice(0, 5).forEach((a, i) => {
                     const skillName = a.idx === 0 ? "평타" : (a.idx === 1 ? "스킬1" : "스킬2");
-                    const icon = i === 0 ? "🥇" : "🥈"; 
+                    const icon = i === 0 ? "🥇" : (i===1 ? "🥈" : "🥉"); 
                     console.log(`${icon} [${skillName}] ➔ ${a.target.name} (점수: ${a.score.toFixed(1)})`);
                 });
                 console.groupEnd();
             }
 
-
-            // 6. 최적 행동 선택
-            actions.sort((a, b) => (b.score + Math.random()) - (a.score + Math.random()));
+            // C. 최적 행동 선택 (약간의 랜덤성 부여로 기계적 패턴 완화)
+            // 상위 3개 행동 중 점수 차이가 크지 않으면 랜덤 선택할 수도 있음 (여기선 단순화)
+            actions.sort((a, b) => (b.score + Math.random()*10) - (a.score + Math.random()*10));
             let best = actions[0];
 
-            // 행동 없으면 랜덤 평타
-            if (!best || !best.target || best.score < -500) {
+            // 행동 불가능하거나 점수가 너무 낮으면 랜덤 평타 (멍때리기 방지)
+            if (!best || !best.target || best.score < -5000) {
                 best = { 
                     idx: 0, 
                     target: aliveEnemies[Math.floor(this.netRandom() * aliveEnemies.length)],
@@ -4386,9 +4461,8 @@ ai: function(u) {
                 };
             }
 
-            // 7. [최종 안전장치] Friendly Fire 방지
+            // [안전장치] Friendly Fire 방지 (세뇌 아닐 때)
             if (!isBrainwashed && best.target && best.target.team === u.team) {
-                // 공격 타입이거나, 설명에 '배'가 들어가는 경우 강제 리다이렉트
                 const info = best.idx === 0 ? "평타" : (best.idx === 1 ? sk.s1d : sk.s2d);
                 if (best.type === 'attack' || (info && info.includes('배') && sk.type !== 'HEAL')) {
                     console.warn(`🚨 Friendly Fire Prevented! [${u.name}] redirected.`);
