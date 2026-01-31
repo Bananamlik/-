@@ -1084,6 +1084,26 @@ let netRndBuffer = [];
 let netRndIdx = 0;
 let isReplaying = false;
 
+// [New] 디버그 및 성능 모니터링 도구
+const DEBUG = {
+    enabled: false, // 콘솔에서 DEBUG.toggle()로 켤 수 있음
+    log: function(...args) { if (this.enabled) console.log('%c[DEBUG]', 'color:cyan; font-weight:bold;', ...args); },
+    error: function(...args) { if (this.enabled) console.error('%c[DEBUG ERR]', 'color:red; font-weight:bold;', ...args); },
+    toggle: function() { this.enabled = !this.enabled; console.log(`🕵️ Debug Mode: ${this.enabled ? 'ON' : 'OFF'}`); }
+};
+
+const PERF = {
+    timers: {},
+    start: function(label) { if(DEBUG.enabled) this.timers[label] = performance.now(); },
+    end: function(label) {
+        if (DEBUG.enabled && this.timers[label]) {
+            const t = performance.now() - this.timers[label];
+            console.log(`%c⏱️ [PERF] ${label}: ${t.toFixed(2)}ms`, 'color:orange');
+            delete this.timers[label];
+        }
+    }
+};
+
 // [추가] 글로벌 에러 핸들러 (게임 멈춤 방지)
 window.onerror = function(msg, url, lineNo, columnNo, error) {
     console.error('⚠️ Global Error:', {
@@ -1593,20 +1613,21 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 흡혈 부여 🩸`);
-                // [Balance] 지속시간 2턴 -> 3턴 상향
                 Common.forEachAlly(atk, game, (a) => {
-                    a.addStatus('VAMP', 3, 0, atk); // 3턴
+                    a.addStatus('VAMP', 3, 0, atk);
                 });
             } else {
-                // ... (S2 폭주는 기존 유지)
-                game.log(`<b>[${atk.name}]</b> 폭주! 😡`);
-                atk.atk += 20;
-                game.log(`<span class='log-ally'>[효과]</span> 본인 공+20 (영구)`);
-                Common.forEachAlly(atk, game, (a) => {
-                    a.atk += 10;
-                    UI.floatText(a, "공+10", "ft-buff");
-                });
-                def.s2Count = (def.s2Count || 0) + 1;
+                game.log(`<b>[${atk.name}]</b> 폭주! 🔥`);
+                AudioSys.play('HEAL');
+                if ((atk.s2Count || 0) < 5) {
+                    atk.s2Count = (atk.s2Count || 0) + 1;
+                    atk.atk += 20;
+                    UI.floatText(atk, "폭주!(공+20)", "ft-crit");
+                } else {
+                    UI.floatText(atk, "MAX!", "ft-crit");
+                }
+                Common.forEachAlly(atk, game, (a) => a.addStatus('ATK_BUFF_SMALL', 1));
+                return false;
             }
         }
     },
@@ -2132,6 +2153,14 @@ if (awakened) {
         }
 
         this.checkAwakening();
+
+        // [Fix] HP가 0 이하면 즉시 사망 처리 (반사 데미지 좀비화 방지)
+        if (this.hp <= 0 && !this.isDead) {
+            if (typeof Game !== 'undefined' && Game.die) {
+                Game.die(this);
+            }
+        }
+
         return hpDmg + shieldDmg;
     }
 
@@ -3333,6 +3362,16 @@ turn: function() {
         
         this.isProcessing = false;
         if (this.isOver) return;
+
+        // [Fix] 세뇌 대상 사망 시 안전하게 해제
+        if (this.isMindControlling && this.isMindControlling.isDead) {
+            this.log("<span class='log-sys'>🧠 세뇌 대상이 사망하여 제어권이 초기화됩니다.</span>");
+            this.isMindControlling = null;
+            this.currentMCCasterId = null;
+            const cp = document.querySelector('.control-panel');
+            if(cp) cp.style.borderTop = "5px solid #ccc";
+        }
+
         const round = Math.ceil(this.turnCount / 6);
         const tVal = this.queue[this.curr];
         
@@ -3513,6 +3552,8 @@ turn: function() {
         } else {
             this.noInput();
             if (this.mode !== 'pvp') {
+                // [Fix] 기존 타이머 제거 후 실행 (메모리 누수 방지)
+                if (this.timer) clearTimeout(this.timer);
                 this.timer = setTimeout(() => this.ai(u), 800);
             }
         }
@@ -4205,8 +4246,12 @@ ai: function(u) {
                 // 데미지 배율 파싱
                 let multiplier = 1.0;
                 if (skillIdx > 0 && skillDesc) {
-                    const match = skillDesc.match(/([\d.]+)배/);
-                    if (match) multiplier = parseFloat(match[1]);
+                    // [Fix] % 단위 처리 및 매칭 실패 시 안전장치 추가
+                    const match = skillDesc.match(/([\d.]+)배/) || skillDesc.match(/([\d.]+)%/);
+                    if (match) {
+                        multiplier = parseFloat(match[1]);
+                        if (skillDesc.includes('%')) multiplier /= 100; // %는 소수로 변환
+                    }
                 }
 
                 // 예상 데미지
@@ -4314,6 +4359,19 @@ ai: function(u) {
                     });
                 });
             }
+            // 🟢 [추가] AI 디버그: 생각 로그 출력
+            if (typeof DEBUG !== 'undefined' && DEBUG.enabled) {
+                console.groupCollapsed(`🤖 [${u.name}]의 행동 선택 (후보 ${actions.length}개)`);
+                // 점수가 높은 순으로 정렬해서 보여줌
+                const debugActions = [...actions].sort((a, b) => b.score - a.score);
+                debugActions.slice(0, 5).forEach((a, i) => {
+                    const skillName = a.idx === 0 ? "평타" : (a.idx === 1 ? "스킬1" : "스킬2");
+                    const icon = i === 0 ? "🥇" : "🥈"; 
+                    console.log(`${icon} [${skillName}] ➔ ${a.target.name} (점수: ${a.score.toFixed(1)})`);
+                });
+                console.groupEnd();
+            }
+
 
             // 6. 최적 행동 선택
             actions.sort((a, b) => (b.score + Math.random()) - (a.score + Math.random()));
@@ -4455,7 +4513,10 @@ ai: function(u) {
             turnCount: this.turnCount,
             difficulty: this.difficulty,
             mode: this.mode,
-            selected: this.selected
+            selected: this.selected,
+            // [Fix] 세뇌 데이터 저장 추가
+            mcCasterId: this.currentMCCasterId || null,
+            mcTargetId: this.isMindControlling ? this.isMindControlling.id : null
         };
         localStorage.setItem('et_save_v6', JSON.stringify(saveData));
         UI.floatText(this.pTeam[0], "게임 저장됨!", "ft-heal");
@@ -4514,8 +4575,10 @@ ai: function(u) {
                 this.input(u);
             }
         } catch (e) {
-            console.error(e);
-            alert("세이브 파일이 손상되었습니다.");
+            console.error('Save Load Error:', e);
+            alert(`⚠️ 세이브 파일을 불러올 수 없습니다.\n데이터가 손상되었거나 버전이 다릅니다.\n(오류 내용: ${e.message})`);
+            // 오류 발생 시 초기화하여 꼬임 방지
+            localStorage.removeItem('et_save_v6'); 
         }
     },
     serializeUnit: function(u) {
