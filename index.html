@@ -1265,11 +1265,11 @@ const SKILL_DB = {
     'Earth-Light': { s1:'모래폭풍', s1d:'1.3배(관통)+쉴드타격0.6배', s2:'모래지옥', s2d:'속박+치유감소(60%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'🦂', desc:'특수 딜러<br>쉴드 파괴자', passive:null },
     'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+반사강화', s2:'영혼결속', s2d:'아군결속/저항↑', type:'TARGET_BUFF', target:'ALLY', role:'nuker', icon:'🥀', desc:'특수 딜러<br>복수 + 결속', passive:'🥀 복수: 결속된 아군 사망 시 공격력+20, S1계수+0.3 영구 증가.' },
     'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'전체120+(20%확률50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'메인 힐러<br>광역 회복', passive:null },
-    'Tree-Light': { s1:'숲의분노', s1d:'1.2배+아군랜덤힐20', s2:'축복', s2d:'아군 정화/HP+70', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚', desc:'메인 힐러<br>공격 + 회복', passive:null },
+    'Tree-Light': { s1:'숲의분노', s1d:'1.3배+아군랜덤힐20', s2:'축복', s2d:'아군 정화/HP+70', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚', desc:'메인 힐러<br>공격 + 회복', passive:null },
     'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+15', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', desc:'메인 버퍼<br>광역 쉴드', passive:null },
     'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'👼', desc:'메인 버퍼<br>정화 + 쉴드', passive:null },
     'Dark': { s1:'다크볼', s1d:'1.5배+업보(반사50%)', s2:'공포', s2d:'광역 0.3배/공35%↓/쉴드30%파괴', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'👻', desc:'광역 디버퍼<br>공포 + 쉴드파괴', passive:'👁️ 업보: 다크볼 피격자가 상태이상을 걸면 50% 확률로 반사.' },
-    'Dark-Dark': { s1:'심연일격', s1d:'0.9배+침묵(1턴)', s2:'정신지배', s2d:'HP15%소모/세뇌(30~55%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🧠', desc:'심연의 지배자<br>적 제어권 탈취', passive:'🌑 심연의 힘: 세뇌 성공률은 기본 30%이며, 대상의 체력이 낮을수록 최대 55%까지 증가합니다. 성공 시 다음 턴 적을 1회 조종합니다.' }
+    'Dark-Dark': { s1:'심연일격', s1d:'0.8배+침묵(1턴)', s2:'정신지배', s2d:'HP15%소모/세뇌(30~55%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🧠', desc:'심연의 지배자<br>적 제어권 탈취', passive:'🌑 심연의 힘: 세뇌 성공률은 기본 30%이며, 대상의 체력이 낮을수록 최대 55%까지 증가합니다. 성공 시 다음 턴 적을 1회 조종합니다.' }
 };
 
 // [신규] Emotion Alias Database (English)
@@ -1438,7 +1438,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 물대포! 💧`);
-                const act = Common.applyDamage(atk, def, 1.0, game);
+                const act = Common.applyDamage(atk, def, 1.5, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
             } else {
                 game.log(`<b>[${atk.name}]</b> 치유의 비 🌧️`);
@@ -1667,7 +1667,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 숲의분노 🌳`);
-                const act = Common.applyDamage(atk, def, 1.2, game);
+                const act = Common.applyDamage(atk, def, 1.3, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
                     const allies = atk.team === 0 ? game.pTeam : game.eTeam;
@@ -1899,7 +1899,7 @@ const SKILL_LOGIC = {
         if (sIdx === 0) Common.basicAttack(atk, def, game);
         else if (sIdx === 1) {
             game.log(`<b>[${atk.name}]</b> 심연일격 🗡️`); // ✅ 괄호 () 필요
-            const act = Common.applyDamage(atk, def, 0.9, game);
+            const act = Common.applyDamage(atk, def, 0.8, game);
             if (act !== -1) {
                 Common.logAction(game, 'dmg', atk, def, act, "");
                 def.addStatus('SILENCE', 1, 0, atk);
