@@ -1639,7 +1639,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 스팀젯 ☁️`);
-                const act = Common.applyDamage(atk, def, 0.5, game);
+                const act = Common.applyDamage(atk, def, 0.9, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
                     if (game.netRandom() < 0.3) {
