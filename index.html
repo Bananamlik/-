@@ -959,13 +959,21 @@
         <span>배경음악 (BGM)</span>
         <div class="toggle-btn on" id="tog-bgm" onclick="AudioSys.toggleChannel('bgm')"></div>
     </div>
+    <div style="font-size:11px; color:#888; margin-top:5px;">🎹 New Piano Collection</div>
     <div class="bgm-select">
-        <div class="bgm-opt active" onclick="BGM.setStyle(1, this)">🎹 피아노</div>
-        <div class="bgm-opt" onclick="BGM.setStyle(2, this)">🎻 하프</div>
-        <div class="bgm-opt" onclick="BGM.setStyle(3, this)">✨ 믹스</div>
+    <div class="bgm-opt" onclick="UI.selectBGM('Battle_Piano', this)">⚔️ 전투</div>
+    <div class="bgm-opt" onclick="UI.selectBGM('Thinking', this)">🤔 전략</div>
+    <div class="bgm-opt" onclick="UI.selectBGM('Aftermath', this)">🌅 평화</div>
+    </div>
+
+    <div style="font-size:11px; color:#888; margin-top:5px;">🎼 Canon Variations (Original)</div>
+    <div class="bgm-select">
+        <div class="bgm-opt active" onclick="UI.selectBGM('Canon_Piano', this)">🎹 피아노</div>
+        <div class="bgm-opt" onclick="UI.selectBGM('Canon_Harp', this)">🎻 하프</div>
+        <div class="bgm-opt" onclick="UI.selectBGM('Canon_Mix', this)">✨ 믹스</div>
     </div>
     <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
-    <div class="set-row">
+        <div class="set-row">
         <span>효과음 (SFX)</span>
         <div class="toggle-btn on" id="tog-sfx" onclick="AudioSys.toggleChannel('sfx')"></div>
     </div>
@@ -2374,7 +2382,9 @@ const AudioSys = {
         if (type === 'bgm') {
             this.bgmMuted = !this.bgmMuted;
             document.getElementById('tog-bgm').classList.toggle('on');
-            if(this.bgmMuted) BGM.stop(); else BGM.start();
+            // [Fix] MusicEngine으로 변경
+            if(this.bgmMuted) MusicEngine.stop(); 
+            else MusicEngine.play('Battle_Piano'); // 켜질 때 기본 재생
         } else {
             this.sfxMuted = !this.sfxMuted;
             document.getElementById('tog-sfx').classList.toggle('on');
@@ -2446,99 +2456,176 @@ const AudioSys = {
         }
     }
 };
-// [신규] 배경음악 관리자 (Canon in C Major - Music Box Ver.)
-const BGM = {
-    timer: null,
-    isPlaying: false,
-    style: 1, // 1:Piano, 2:Harp, 3:Mix
-    state: 'NORMAL', // [복구됨] 상태 변수 (NORMAL / DANGER)
-    step: 0,
+// ==========================================
+// 🎹 Music Engine (Hybrid: Canon + New Tracks)
+// ==========================================
+const MusicEngine = {
+    ctx: null, isPlaying: false, currentTrack: null, tempo: 100, timeoutId: null, bgmOscillators: [],
     
-    // 캐논 멜로디 (Extended)
-    melody: [587, 554, 494, 440, 392, 370, 392, 440, 587, 0, 494, 0, 494, 554, 587, 659, 740, 587, 659, 587, 554, 494, 554, 440, 392, 440, 494, 554, 370, 440, 494, 554],
-    bass:   [293, 0, 220, 0, 246, 0, 185, 0, 196, 0, 293, 0, 196, 0, 220, 0, 293, 220, 246, 293, 185, 246, 196, 220, 196, 220, 293, 220, 293, 370, 440, 554],
-
-    start: function() {
-        if (this.isPlaying) return;
-        if (AudioSys.bgmMuted) return;
-        this.isPlaying = true;
-        this.step = 0;
-        this.loop();
-    },
-    
-    stop: function() {
-        this.isPlaying = false;
-        if (this.timer) clearTimeout(this.timer);
+    // [캐논 원본 데이터] 사용자 요청 원본 유지
+    canon: {
+        melody: [587, 554, 494, 440, 392, 370, 392, 440, 587, 0, 494, 0, 494, 554, 587, 659, 740, 587, 659, 587, 554, 494, 554, 440, 392, 440, 494, 554, 370, 440, 494, 554],
+        bass:   [293, 0, 220, 0, 246, 0, 185, 0, 196, 0, 293, 0, 196, 0, 220, 0, 293, 220, 246, 293, 185, 246, 196, 220, 196, 220, 293, 220, 293, 370, 440, 554],
+        step: 0,
+        style: 1 // 1:Piano, 2:Harp, 3:Mix
     },
 
-    // [복구됨] 이 함수가 없어서 에러가 났습니다!
-    setState: function(newState) {
-        this.state = newState;
+    init: () => {
+        if (!MusicEngine.ctx) { MusicEngine.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+        if (MusicEngine.ctx.state === 'suspended') MusicEngine.ctx.resume();
     },
 
-    setStyle: function(num, el) {
-        this.style = num;
-        // UI 업데이트
-        document.querySelectorAll('.bgm-opt').forEach(e => e.classList.remove('active'));
-        if(el) el.classList.add('active');
+    // [소리 발생기] (캐논 원본 로직 호환용)
+    playTone: (freq, type, duration, vol, detune=0) => {
+        const t = MusicEngine.ctx.currentTime;
+        const osc = MusicEngine.ctx.createOscillator();
+        const gain = MusicEngine.ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        if(detune) osc.detune.value = detune;
         
-        // 즉시 반영을 위해 재시작
-        if (this.isPlaying) {
-            this.stop();
-            this.isPlaying = true;
-            this.loop();
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(vol * 0.5, t + 0.02); // 볼륨 조절
+        gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+        osc.connect(gain); gain.connect(MusicEngine.ctx.destination);
+        osc.start(t); osc.stop(t + duration + 0.1);
+        MusicEngine.bgmOscillators.push(osc);
+    },
+
+    // [음계 변환기] (신규 곡용)
+    getFreq: (note) => {
+        if (!note) return 0;
+        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const octave = parseInt(note.slice(-1));
+        const idx = notes.indexOf(note.slice(0, -1));
+        return idx === -1 ? 0 : 440 * Math.pow(2, (idx - 9 + (octave - 4) * 12) / 12);
+    },
+
+    // [재생 메인 함수]
+    play: (trackName) => {
+        MusicEngine.init(); MusicEngine.stop();
+        MusicEngine.isPlaying = true;
+
+        // A. 캐논 모드 (기존 로직)
+        if (trackName.startsWith('Canon')) {
+            if (trackName === 'Canon_Piano') MusicEngine.canon.style = 1;
+            else if (trackName === 'Canon_Harp') MusicEngine.canon.style = 2;
+            else if (trackName === 'Canon_Mix') MusicEngine.canon.style = 3;
+            
+            MusicEngine.canon.step = 0;
+            MusicEngine.loopCanon();
+        } 
+        // B. 신규 트랙 모드
+        else {
+            MusicEngine.currentTrack = MusicEngine.Tracks[trackName];
+            if (!MusicEngine.currentTrack) return;
+            MusicEngine.tempo = MusicEngine.currentTrack.bpm;
+            
+            let noteIndex = 0;
+            const playNext = () => {
+                if (!MusicEngine.isPlaying) return;
+                const noteData = MusicEngine.currentTrack.notes[noteIndex];
+                // 노트 재생
+                if (noteData[0]) {
+                    const notes = Array.isArray(noteData[0]) ? noteData[0] : [noteData[0]];
+                    notes.forEach(n => {
+                        // 신규 곡은 부드러운 Triangle 파형 사용
+                        const f = MusicEngine.getFreq(n);
+                        MusicEngine.playTone(f, 'triangle', noteData[1] * (60/MusicEngine.tempo), 0.3);
+                    });
+                }
+                const timeToNext = noteData[1] * (60000 / MusicEngine.tempo);
+                noteIndex = (noteIndex + 1) % MusicEngine.currentTrack.notes.length;
+                MusicEngine.timeoutId = setTimeout(playNext, timeToNext);
+            };
+            playNext();
         }
     },
 
-    loop: function() {
+    // [캐논 루프] (사용자 원본 로직 복원)
+    loopCanon: function() {
         if (!this.isPlaying) return;
-        if (AudioSys.bgmMuted) { this.stop(); return; }
+        
+        // 템포 로직 (위기 시 빨라짐)
+        // const isDanger = Game.pTeam && Game.pTeam.some(u => !u.isDead && u.hp < u.maxHp * 0.3);
+        const tempo = 400; // 기본 400ms
 
-        // [기능 추가] 위기 상황(DANGER)이면 템포가 400ms -> 250ms로 빨라짐
-        const tempo = this.state === 'DANGER' ? 250 : 400; 
-        const idx = this.step;
-        const mNote = this.melody[idx];
-        const bNote = this.bass[idx];
+        const idx = this.canon.step;
+        const mNote = this.canon.melody[idx];
+        const bNote = this.canon.bass[idx];
+        const style = this.canon.style;
 
-        // === 3가지 스타일 로직 ===
-        if (this.style === 1) { 
-            // [1. 소프트 피아노]
+        // === 원본 스타일 로직 ===
+        if (style === 1) { // Soft Piano
             if(mNote) {
-                AudioSys.playTone(mNote, 'sine', 0.6, 0.3, 0, true);
-                AudioSys.playTone(mNote, 'triangle', 0.6, 0.2, 0, true);
+                this.playTone(mNote, 'sine', 0.6, 0.3);
+                this.playTone(mNote, 'triangle', 0.6, 0.2);
             }
-            if (bNote) AudioSys.playTone(bNote, 'sine', 0.8, 0.4, 0, true);
+            if(bNote) this.playTone(bNote, 'sine', 0.8, 0.4);
         } 
-        else if (this.style === 2) {
-            // [2. 클래식 하프]
-            if(mNote) AudioSys.playTone(mNote, 'triangle', 0.3, 0.3, 0, true);
-            if (bNote) {
-                AudioSys.playTone(bNote, 'triangle', 0.4, 0.3, 0, true);
-                setTimeout(() => AudioSys.playTone(bNote * 1.5, 'sine', 0.2, 0.1, 0, true), 50);
+        else if (style === 2) { // Harp
+            if(mNote) this.playTone(mNote, 'triangle', 0.3, 0.3);
+            if(bNote) {
+                this.playTone(bNote, 'triangle', 0.4, 0.3);
+                setTimeout(() => this.playTone(bNote * 1.5, 'sine', 0.2, 0.1), 50);
             }
         } 
-        else if (this.style === 3) {
-            // [3. 믹스]
+        else if (style === 3) { // Mix
             if(mNote) {
-                AudioSys.playTone(mNote, 'sine', 0.5, 0.3, 0, true); 
-                AudioSys.playTone(mNote * 2, 'triangle', 0.2, 0.1, 0, true); 
+                this.playTone(mNote, 'sine', 0.5, 0.3);
+                this.playTone(mNote * 2, 'triangle', 0.2, 0.1);
             }
-            if (bNote) {
-                AudioSys.playTone(bNote, 'square', 0.6, 0.05, 0, true);
-                AudioSys.playTone(bNote, 'sine', 0.8, 0.3, 0, true);
+            if(bNote) {
+                this.playTone(bNote, 'square', 0.1, 0.05);
+                this.playTone(bNote, 'sine', 0.8, 0.3);
             }
         }
 
-        this.step = (this.step + 1) % this.melody.length;
-        this.timer = setTimeout(() => this.loop(), tempo);
+        this.canon.step = (this.canon.step + 1) % this.canon.melody.length;
+        this.timeoutId = setTimeout(() => this.loopCanon(), tempo);
+    },
+
+    stop: () => {
+        MusicEngine.isPlaying = false;
+        clearTimeout(MusicEngine.timeoutId);
+        MusicEngine.bgmOscillators.forEach(o => { try{o.stop();}catch(e){} });
+        MusicEngine.bgmOscillators = [];
+    },
+
+    // 신규 곡 악보
+    Tracks: {
+        'Battle_Piano': { bpm: 90, notes: [['A3',0.5],['E4',0.5],['A4',0.5],['E4',0.5],['F3',0.5],['C4',0.5],['F4',0.5],['C4',0.5],['G3',0.5],['D4',0.5],['G4',0.5],['D4',0.5],['E3',0.5],['B3',0.5],['E4',1.0],[['A3','C4'],1.0],['B3',0.5],['A3',0.5],[['F3','A3'],1.5],['G3',0.5],[['C4','E4'],1.0],['D4',0.5],['C4',0.5],[['G3','B3'],2.0],[['F3','A3'],1.0],['G3',0.5],['A3',0.5],[['D3','F3'],1.5],['E3',0.5],[['E3','G#3'],2.0],[null,0.5],['E4',0.5],['D4',0.5],['C4',0.5],[['A3','C4','E4'],2.0],[['F3','A3','C4'],2.0],[['G3','B3','D4'],2.0],[['E3','G#3','B3'],2.0],['A3',0.5],['B3',0.5],['C4',1.0],[null,1.0]] },
+        'Thinking': { bpm: 100, notes: [['D4',0.5],['A3',0.5],['D4',0.5],['E4',0.5],['F4',1.5],['E4',0.5],['D4',0.5],['A3',0.5],['F4',0.5],['E4',0.5],['D4',1.5],[null,0.5],[['D3','D4'],0.5],['A3',0.5],['D4',0.5],['E4',0.5],[['F3','F4'],1.5],['E4',0.5],[['G3','D4'],0.5],['A3',0.5],['F4',0.5],['E4',0.5],[['A2','D4'],1.5],[null,0.5],[['Bb3','D5'],1.0],['C5',0.5],['A4',0.5],[['C4','G4'],1.5],['F4',0.5],[['D3','D4'],1.0],['F4',0.5],['E4',0.5],[['A2','D4'],2.0],['D4',0.25],['F4',0.25],['A4',0.25],['D5',0.25],['C5',1.0],[null,1.0]] },
+        'Aftermath': { bpm: 80, notes: [[['C4','E4'],2.0],[['D4','F4'],2.0],[['E4','G4'],3.0],[null,1.0],['G4',0.5],['A4',0.5],[['C4','G4'],2.0],['F4',0.5],['E4',0.5],[['A3','D4'],2.0],['C4',1.0],[['F3','A3','C4'],2.0],[['G3','B3','D4'],2.0],[['E3','G3','C4'],3.0],[null,1.0],['C5',0.5],['B4',0.5],['A4',0.5],['G4',0.5],[['F4','A4'],1.5],['E4',0.5],[['D4','G4'],1.5],['C4',0.5],[['C4','E4','C5'],4.0]] }
     }
 };
+
+ 
 
 const UI = {
     toggleSettings: function() {
         const el = document.getElementById('audio-settings');
         el.style.display = (el.style.display === 'flex') ? 'none' : 'flex';
     },
+	// [UI] BGM 선택 및 하이라이트 처리
+    selectBGM: function(trackName, el) {
+        // 1. 모든 옵션에서 active 제거
+        document.querySelectorAll('.bgm-opt').forEach(opt => opt.classList.remove('active'));
+        
+        // 2. 클릭한 옵션에 active 추가
+        if(el) el.classList.add('active');
+        
+        // 3. 음악 재생
+        MusicEngine.play(trackName);
+        
+        // 4. 토글 버튼이 꺼져있다면 켜기
+        const tog = document.getElementById('tog-bgm');
+        if (tog && !tog.classList.contains('on')) {
+            AudioSys.toggleChannel('bgm');
+        }
+    },
+
     showModal: function(title, content) {
         document.getElementById('modal-overlay').style.display = 'flex';
         document.getElementById('modal-body').innerHTML = `<h3 style="color:#ff80ab; margin-top:0;">${title}</h3><div>${content}</div>`;
@@ -2940,9 +3027,7 @@ const Game = {
         this.isMindControlling = null;
         this.currentMCCasterId = null;
         
-        if (typeof BGM !== 'undefined' && BGM.stop) {
-            BGM.stop();
-        }
+        MusicEngine.stop();
         
         console.log("✅ Game cleanup completed");
     },
@@ -2963,9 +3048,7 @@ const Game = {
         this.currentMCCasterId = null;
         
         // BGM 정지
-        if (typeof BGM !== 'undefined' && BGM.stop) {
-            BGM.stop();
-        }
+        MusicEngine.stop();
         
         // 데이터 초기화
         this.pool = [];
@@ -3225,7 +3308,8 @@ const Game = {
     start: function() {
         AudioSys.init();
         AudioSys.resume();
-        BGM.start(); // 음악 큐!
+        // [수정] 기본 BGM을 캐논(소프트 피아노)으로 설정
+        MusicEngine.play('Canon_Piano'); 
         const diffVal = document.getElementById('diff-select').value;
         this.difficulty = diffVal;
         this.mode = (diffVal === 'pvp' || diffVal === 'local') ? 'pvp' : 'pve';
@@ -3556,9 +3640,9 @@ turn: function() {
         }
         
         document.getElementById('turn-indicator').innerText = indicatorText;
-        // [신규] BGM 상태 업데이트 (아군 체력 30% 미만 유닛 있으면 위기)
-        const danger = this.pTeam.some(u => !u.isDead && u.hp < u.maxHp * 0.3);
-        BGM.setState(danger ? 'DANGER' : 'NORMAL');
+        // [삭제] 새 엔진은 곡 변경 방식이므로 템포 조절 불필요
+        // const danger = ... 
+        // MusicEngine.play('Crisis_Track'); // 필요하다면 여기서 위기 전용 곡 재생 가능
         this.turnCount++;
 
         // 8. [입력 활성화 여부 결정]
@@ -3887,7 +3971,7 @@ endTurn: function(isFast = false) {
         if (this.watchdog) { clearTimeout(this.watchdog); this.watchdog = null; }
 
         // 오디오 정리
-        BGM.stop();
+        MusicEngine.stop();
 
         // UI 정리
         UI.closeModal();
@@ -4540,7 +4624,7 @@ ai: function(u) {
             this.isOver = true;
             if (this.timer) clearTimeout(this.timer);
             AudioSys.play('WIN');
-            BGM.stop(); // 전투 종료 시 음악 끔
+            MusicEngine.stop(); // [Fix] 신형 엔진 정지
 
             if (pd && ed) {
                 UI.showResult("무승부 (Draw)");
