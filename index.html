@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v15.4 Fixed</title>
+    <title>Elemental Tactics: v16.1 Fixed</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -165,53 +165,49 @@
             flex: 1;
         }
 
+        /* [선택 화면용 카드 스타일] 전투 유닛(.unit) 스타일을 베이스로 함 */
         .hero-card {
-            background: #fff;
-            border-radius: 20px;
-            padding: 6px;
+            /* .unit 클래스와 함께 사용될 것이므로, 레이아웃 관련만 재정의 */
+            position: relative;
             cursor: pointer;
             transition: 0.2s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05), inset 0 0 0 3px #fce4ec;
-            position: relative;
-            min-height: 100px;
-            justify-content: center;
+            /* 그리드 안에서 꽉 차게 */
+            width: 100% !important; 
+            max-width: none !important;
+            height: 200px !important; /* 높이 통일 */
+            margin: 0;
+            opacity: 0.9;
         }
 
-        .hero-card:active {
-            transform: scale(0.95);
-        }
+        .hero-card:hover { transform: translateY(-3px); z-index: 10; opacity: 1; }
+        .hero-card:active { transform: scale(0.98); }
 
+        /* [선택됨 효과] */
         .hero-card.selected {
-            background: #e1bee7;
-            box-shadow: 0 0 0 3px var(--accent), 0 8px 20px rgba(255, 128, 171, 0.4);
+            border: 3px solid #d500f9 !important; /* 보라색 테두리 */
+            box-shadow: 0 0 15px #d500f9, inset 0 0 10px rgba(213, 0, 249, 0.2) !important;
             transform: translateY(-5px);
+            z-index: 20;
+            opacity: 1;
         }
 
+        /* 선택 체크 표시 (우측 상단) */
         .hero-card.selected::after {
-            content: '🐾';
+            content: '✅';
             position: absolute;
-            top: -10px;
-            right: -5px;
-            background: var(--accent);
-            color: #fff;
-            width: 28px;
-            height: 28px;
+            top: -10px; right: -10px;
+            font-size: 24px;
+            background: #fff;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-            z-index: 5;
-            border: 2px solid #fff;
+            width: 30px; height: 30px;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            z-index: 30;
         }
 
         /* 전투 유닛 (Battle Unit) */
         .field-row {
-            flex: 1;
+            flex: 2; /* 1에서 2로 변경하여 상/하단 카드 영역을 더 넓게 확보 */
             display: flex;
             justify-content: space-evenly;
             align-items: center;
@@ -221,27 +217,124 @@
             min-height: 0;
         }
 
-        .unit {
-            width: 30vw;
-            max-width: 130px;
-            background: #fff;
-            border-radius: 20px;
-            padding: 8px 4px;
-            position: relative;
-            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            cursor: default;
-            box-shadow: inset 0 4px 10px rgba(255, 255, 255, 1), 0 8px 0 #e0e0e0, 0 15px 20px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 110px;
-            justify-content: flex-end;
-            border: 2px solid #f8bbd0;
-            flex-shrink: 1;
-            user-select: none;
-            -webkit-user-select: none;
-        }
+        /* === [신규] 유닛 카드 디자인 === */
+    .unit {
+        width: 30vw;          /* 모바일: 화면 너비의 30% */
+        max-width: 160px;     /* PC/태블릿: 최대 160px까지 확대 (기존 110px) */
+        height: 220px;        /* 높이 대폭 확대 (기존 150px) */
+        background: #fff;
+        border-radius: 12px;
+        position: relative;
+        transition: 0.2s;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        border: 2px solid #fff;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        user-select: none;
+        cursor: pointer;
+    }
+
+    /* [폰트/UI 크기 보정] 카드가 커진 만큼 글자와 아이콘도 키움 */
+    .unit .card-name { font-size: 14px; margin-bottom: 4px; }
+    .unit .card-atk { font-size: 13px; padding: 3px 6px; }
+    .unit .tiny-icon { width: 30px; height: 30px; font-size: 18px; }
+    .unit .card-badge { top: 8px; left: 8px; gap: 4px; }
+    .unit .status-bar { height: 8px; }
+
+    /* 배경 이미지 영역 */
+    .unit-img-bg {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-size: cover;
+        background-position: center;
+        z-index: 0;
+        transition: 0.3s;
+    }
+
+    /* 죽었을 때 흑백 처리 */
+    .unit.dead .unit-img-bg {
+        filter: grayscale(1) brightness(0.7);
+    }
+
+    /* 정보 오버레이 (하단 검은 그라데이션) */
+    .unit-info-overlay {
+        position: relative;
+        z-index: 2;
+        background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);
+        padding: 6px 4px;
+        width: 100%;
+        box-sizing: border-box;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    /* 상단 속성 아이콘 */
+    .card-badge {
+        position: absolute;
+        top: 4px; left: 4px;
+        width: 24px; height: 24px;
+        background: rgba(255,255,255,0.9);
+        border-radius: 50%;
+        display: flex; justify-content: center; align-items: center;
+        font-size: 16px;
+        z-index: 2;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        border: 1px solid #eee;
+    }
+
+    /* 우측 상단 공격력 */
+    .card-atk {
+        position: absolute;
+        top: 5px; right: 5px;
+        background: rgba(0,0,0,0.6);
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 10px;
+        color: #fff;
+        font-weight: bold;
+        z-index: 2;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* 이름 텍스트 */
+    .card-name {
+        font-size: 11px;
+        font-weight: bold;
+        text-align: center;
+        text-shadow: 0 1px 2px #000;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 2px;
+    }
+
+    /* 상태 태그 컨테이너 (위치 조정) */
+    .tag-container {
+        position: absolute;
+        bottom: 40px;
+        left: 0; right: 0;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 2px;
+        z-index: 5;
+        pointer-events: none;
+    }
+
+    /* 선택/타겟 이펙트 */
+    .unit.active-turn { border-color: var(--accent); transform: translateY(-5px); box-shadow: 0 0 15px var(--accent); }
+    .unit.target-enemy { border-color: #ff5252; background: #ffebee; }
+    /* content에서 이모지 삭제 */
+    .unit.target-enemy::after { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:40px; z-index:10; text-shadow:0 0 10px red; opacity:0.8; }
+
+    /* 기존 체력바 스타일 재정의 (강제 적용) */
+
+    /* 기존 체력바 스타일 재정의 (강제 적용) */
+    .unit-info-overlay .status-bar { height: 6px; background: rgba(255,255,255,0.3); border: none; margin-top:2px; width: 100%; }
 
         /* 각성 스타일 (Super Hero) */
         .unit.super-hero {
@@ -293,9 +386,32 @@
             box-shadow: none;
         }
 
-        .unit.role-tank { border-radius: 20px; }
-        .unit.role-nuker { border-radius: 35px 15px; }
-        .unit.role-supp { border-radius: 50px; }
+        /* [모양 통일] 모든 역할군 둥근 사각형으로 고정 */
+        .unit.role-tank, .unit.role-nuker, .unit.role-supp { border-radius: 12px !important; }
+
+        /* [신규] 왼쪽 상단 속성 아이콘 컨테이너 */
+        .card-badge {
+            position: absolute;
+            top: 5px; left: 5px;
+            width: auto !important; height: auto !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            display: flex;
+            flex-direction: row; /* 옆으로 나란히 */
+            gap: 2px;
+            z-index: 5;
+        }
+        /* 개별 아이콘 스타일 */
+        .tiny-icon {
+            width: 24px; height: 24px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 1px solid #ddd;
+        }
 
         .attr-icon {
             width: 44px;
@@ -405,27 +521,58 @@
             z-index: 20;
         }
 
+        /* [레이아웃 압축] 헤더에 타임라인 통합 */
         .cp-header {
-            padding: 8px 15px;
+            padding: 5px 10px;
             background: #fff8e1;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px dashed #ffe082;
-            font-size: 14px;
-        }
-
-        .timeline-container {
-            height: 40px;
-            background: #fff;
-            border-bottom: 2px dashed #ffcdd2;
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            overflow: hidden;
-            gap: 5px;
+            font-size: 13px;
+            height: 40px; /* 높이 고정 */
             flex-shrink: 0;
         }
+        
+        /* 기존 타임라인 컨테이너 삭제 (헤더로 이동됨) */
+        .timeline-container { display: none; } 
+
+        /* [신규] 왼쪽 사이드 플로팅 컨트롤 */
+        .side-controls {
+            position: absolute;
+            top: 15px; left: 15px;
+            display: flex; flex-direction: column; gap: 10px;
+            z-index: 100;
+        }
+        
+        .side-btn {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: #fff; border: 2px solid #eee;
+            font-size: 20px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            cursor: pointer; transition: 0.2s;
+        }
+        .side-btn:active { transform: scale(0.9); }
+        
+        /* 저장/로드 팝업 메뉴 */
+        .save-menu {
+            display: none;
+            position: absolute; left: 50px; top: 0;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px; padding: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 2px solid #ffcc80;
+            flex-direction: column; gap: 5px;
+            width: 120px;
+            backdrop-filter: blur(5px);
+        }
+        .save-opt {
+            padding: 8px; border: 1px solid #ddd; border-radius: 10px;
+            background: #fff; font-size: 12px; cursor: pointer; text-align: center; color: #555; font-weight: bold;
+        }
+        .save-opt:hover { background: #fff3e0; color: #f57c00; }
 
         .timeline-label {
             font-size: 12px;
@@ -469,16 +616,16 @@
 
         .log-container {
             flex: 1;
-            padding: 10px;
+            padding: 5px 10px; /* 패딩 축소 */
             overflow-y: auto;
             font-size: 12px;
             border-bottom: 2px solid #f0f0f0;
             background: #fff;
-            line-height: 1.5;
+            line-height: 1.4;
             display: flex;
             flex-direction: column;
-            min-height: 50px;
-            max-height: 120px;
+            min-height: 30px;  /* 최소 높이 축소 */
+            max-height: 60px;  /* 최대 높이 대폭 축소 (120 -> 60) */
         }
 
         .log-entry {
@@ -501,11 +648,11 @@
         /* [UI 개선] 높이 유동적 변경 (잘림 방지) */
         .btn-group {
             display: flex;
-            min-height: 80px;
+            min-height: 60px; /* 80px -> 60px로 축소 */
             height: auto;
             flex-shrink: 0;
-            padding: 5px;
-            gap: 5px;
+            padding: 4px;     /* 패딩 약간 축소 */
+            gap: 4px;
             background: #fff5f8;
         }
 
@@ -549,15 +696,16 @@
 
         .passive-panel {
             background: #e0f2f1;
-            padding: 5px 10px;
+            padding: 2px 8px;  /* 패딩 축소 */
             font-size: 11px;
             color: #00695c;
             display: flex;
             align-items: center;
-            border-radius: 10px;
-            margin: 4px 10px;
+            border-radius: 8px;
+            margin: 2px 5px;   /* 여백 대폭 축소 */
             border: 1px solid #b2dfdb;
             flex-shrink: 0;
+            height: 24px;      /* 높이 강제 고정 */
         }
 
         .passive-icon { margin-right: 5px; font-size: 14px; }
@@ -602,18 +750,17 @@
 
         .tag-container {
             position: absolute;
-            top: 2px;
-            left: 2px;
-            right: 2px;
+            top: auto;          /* 상단 고정 해제 */
+            bottom: 55px;       /* 하단 이름표 바로 위로 위치 변경 */
+            left: 5px;
+            right: 5px;
             display: flex;
             justify-content: center;
-            gap: 2px;
-            flex-wrap: wrap;
+            gap: 3px;
+            flex-wrap: wrap-reverse; /* 태그가 쌓일 때 위쪽으로 쌓이도록 설정 */
             z-index: 10;
             pointer-events: none;
-            max-height: 36px;
-            overflow: hidden;
-            align-content: flex-start;
+            /* max-height 제한을 풀어 여러 개가 걸려도 보이게 함 */
         }
 
         .tag {
@@ -840,7 +987,7 @@
         .hp-preview {
             position: absolute;
             top: 0; bottom: 0;
-            background: rgba(255, 255, 255, 0.7); /* 흰색 점멸로 변경 */
+            background: rgba(255, 23, 68, 0.8); /* 붉은색 데미지 경고 */
             z-index: 5; pointer-events: none;
             transition: all 0.1s;
             box-shadow: 0 0 5px rgba(255,255,255,0.8);
@@ -950,7 +1097,17 @@
 </div>
 <!-- [툴팁] 뷰 -->
 <div id="tooltip-view"></div>
-
+<div class="side-controls">
+    <div style="position:relative;">
+        <div class="side-btn" onclick="UI.toggleSaveMenu()">💾</div>
+        <div id="save-menu-popup" class="save-menu">
+            <div class="save-opt" onclick="Game.saveGame(); UI.toggleSaveMenu()">💾 저장하기</div>
+            <div class="save-opt" onclick="Game.loadGame(); UI.toggleSaveMenu()">📂 불러오기</div>
+        </div>
+    </div>
+    <div class="side-btn" onclick="UI.showGuide()">📖</div>
+    <div class="side-btn" onclick="Game.reset()">🏠</div>
+</div>
 <div class="settings-btn" onclick="UI.toggleSettings()">🎵</div>
 <div id="audio-settings" class="settings-modal">
     <div class="set-row">
@@ -993,7 +1150,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v15.4 Fixed (AI Crash & Save/Load)</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v16.1 Fixed (ILLUST)</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -1042,18 +1199,9 @@
         <div class="field-row" id="enemy-row"></div>
         <div class="control-panel">
             <div class="cp-header">
-                <span id="turn-indicator" style="font-weight:bold; color:var(--accent);">Ready... 🐱</span>
-                <div style="display:flex; gap:5px;">
-                    <button class="btn-restart" onclick="Game.saveGame()">💾</button>
-                    <button class="btn-restart" onclick="Game.loadGame()">📂</button>
-                    <button class="btn-restart" onclick="UI.showGuide()">📖</button>
-                    <button class="btn-restart" onclick="Game.reset()">🏠</button>
-                </div>
-            </div>
-            
-            <div class="timeline-container" id="timeline">
-                <span class="timeline-label">NEXT:</span>
-                <div id="tl-track" style="display:flex; gap:8px;"></div>
+                <span id="turn-indicator" style="font-weight:bold; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 50%;">Ready... 🐱</span>
+                
+                <div id="tl-track" style="display:flex; gap:5px; align-items:center;"></div>
             </div>
 
             <div class="log-container" id="logs"></div>
@@ -1298,7 +1446,38 @@ function startOnlineGame(code) {
 // ================= [데이터 정의] =================
 const ATTR = { 'Fire':{i:'🔥', n:'불', c:'#e74c3c'}, 'Water':{i:'💧', n:'물', c:'#3498db'}, 'Tree':{i:'🌿', n:'나무', c:'#2ecc71'}, 'Metal':{i:'⚔️', n:'쇠', c:'#95a5a6'}, 'Earth':{i:'⛰️', n:'흙', c:'#e67e22'}, 'Light':{i:'☀️', n:'빛', c:'#f1c40f'}, 'Dark':{i:'🌙', n:'어둠', c:'#9b59b6'}, 'Normal':{i:'☀️🌙', n:'노말', c:'#ecf0f1'} };
 const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light':'숲', 'Metal-Light':'독가스', 'Earth-Light':'모래', 'Water-Dark':'얼음', 'Fire-Dark':'검은불', 'Tree-Dark':'가시', 'Metal-Dark':'전기', 'Earth-Dark':'바위', 'Light-Light':'빛(강화)', 'Dark-Dark':'어둠(강화)', 'Normal':'노말' };
+const IMAGE_DB = {
+    // [기초 속성]
+    'Fire': './fire.png',
+    'Water': './water.png',
+    'Tree': './tree.png',
+    'Metal': './metal.png',
+    'Earth': './earth.png',
+    'Light': './light.png',
+    'Dark': './dark.png',
+    'Normal': './normal.png',
 
+    // [빛 조합]
+    'Fire-Light': './fire_light.png',    // (완료) 푸른불
+    'Water-Light': './water_light.png', // 증기
+    'Tree-Light': './tree_light.png',   // 숲
+    'Metal-Light': './metal_light.png', // 독가스
+    'Earth-Light': './earth_light.png', // 모래
+
+    // [어둠 조합]
+    'Fire-Dark': './fire_dark.png',     // 검은불
+    'Water-Dark': './water_dark.png',   // 얼음
+    'Tree-Dark': './tree_dark.png',     // 가시
+    'Metal-Dark': './metal_dark.png',   // 전기
+    'Earth-Dark': './earth_dark.png',   // 바위
+
+    // [강화 속성]
+    'Light-Light': './light_enhanced.png', // 천사/성기사
+    'Dark-Dark': './dark_enhanced.png',    // 악마/심연
+
+    // [기본값] (이미지가 없거나 이름이 틀렸을 때 나오는 이미지)
+    'Default': 'https://via.placeholder.com/150/cccccc/ffffff?text=No+Image'
+};
 const SKILL_DB = {
     'Metal': { s1:'강철베기', s1d:'1.3배+30%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15/데미지X', type:'CC', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>받는 피해 MaxHP 30% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 30%를 넘지 않습니다.' },
     'Tree': { s1:'뿌리묶기', s1d:'3턴간 아군피해 50% 대신받음', s2:'치유의 잎', s2d:'HP+140/정화(CC해제시 뎀감↑)', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', desc:'수호형 탱커<br>피해 분산 + 뎀감 패시브', passive:'🌳 거목: 받는 피해가 15% 감소합니다. S2로 행동불가를 해제하면 뎀감율이 5%씩 증가합니다 (최대 25%).'},
@@ -2809,6 +2988,11 @@ const UI = {
         const el = document.getElementById('audio-settings');
         el.style.display = (el.style.display === 'flex') ? 'none' : 'flex';
     },
+    // [신규] 저장/불러오기 메뉴 토글
+    toggleSaveMenu: function() {
+        const el = document.getElementById('save-menu-popup');
+        el.style.display = (el.style.display === 'flex') ? 'none' : 'flex';
+    },
 	// [UI] BGM 선택 및 하이라이트 처리
     selectBGM: function(trackName, el) {
         // 1. 모든 옵션에서 active 제거
@@ -3355,38 +3539,70 @@ const Game = {
         grid.innerHTML = '';
         grid.style.display = 'block';
         grid.style.overflowY = 'auto';
-        const categories = [{
-            name: "🛡️ 탱커 (Tank)",
-            range: [0, 3],
-            color: "#e3f2fd",
-            border: "#90caf9"
-        }, {
-            name: "⚔️ 딜러 (Dealer)",
-            range: [4, 13],
-            color: "#ffebee",
-            border: "#ef9a9a"
-        }, {
-            name: "🧩 지원 (Support)",
-            range: [14, 19],
-            color: "#f1f8e9",
-            border: "#a5d6a7"
-        }];
+
+        const categories = [
+            { name: "🛡️ 탱커 (Tank)", range: [0, 3], color: "#e3f2fd", border: "#90caf9" },
+            { name: "⚔️ 딜러 (Dealer)", range: [4, 13], color: "#ffebee", border: "#ef9a9a" },
+            { name: "🧩 지원 (Support)", range: [14, 19], color: "#f1f8e9", border: "#a5d6a7" }
+        ];
+
         categories.forEach(cat => {
+            // 카테고리 헤더
             const header = document.createElement('div');
-            header.style.cssText = `width:100%; padding:8px; background:${cat.color}; border-left:5px solid ${cat.border}; font-weight:bold; margin-top:10px; border-radius:5px; color:#455a64; text-align:left; box-sizing:border-box;`;
+            header.style.cssText = `width:100%; padding:8px 15px; background:${cat.color}; border-left:5px solid ${cat.border}; font-weight:bold; margin-top:15px; border-radius:8px; color:#455a64; text-align:left; box-sizing:border-box; font-size:15px;`;
             header.innerText = cat.name;
             grid.appendChild(header);
+
+            // 카드 그리드 컨테이너
             const container = document.createElement('div');
-            container.style.cssText = "display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; padding:10px 0;";
+            container.style.cssText = "display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:10px; padding:10px 0;";
+
             for (let i = cat.range[0]; i <= cat.range[1]; i++) {
                 const u = this.pool[i];
+                const key = u.getKey();
+                const info = SKILL_DB[key];
+                
+                // [1] 아이콘 생성 (전투 화면과 동일 로직)
+                let iconsHtml = '';
+                if (ATTR[u.base]) iconsHtml += `<div class="tiny-icon">${ATTR[u.base].i}</div>`;
+                if (u.extra && ATTR[u.extra]) iconsHtml += `<div class="tiny-icon">${ATTR[u.extra].i}</div>`;
+                if (iconsHtml === '' && info) iconsHtml = `<div class="tiny-icon">${info.icon}</div>`;
+
+                // [2] 이름 및 설명 간소화
+                // 이름에서 불필요한 괄호 제거 (예: "푸른불 (불+빛)" -> "푸른불")
+                const cleanName = u.name.split(' ')[0]; 
+                // 설명은 스킬DB의 짧은 설명 사용 (예: "광역 딜러")
+                // HTML 태그(<br>)가 있다면 첫 줄만 가져옴
+                let shortDesc = info.desc.split('<br>')[0];
+
+                const imgUrl = IMAGE_DB[key] || IMAGE_DB['Default'];
+                
+                // 배경 틴트
+                let tintColor = 'transparent';
+                if(u.base === 'Fire') tintColor = 'rgba(255, 0, 0, 0.1)';
+                else if(u.base === 'Water') tintColor = 'rgba(0, 0, 255, 0.1)';
+                else if(u.base === 'Tree') tintColor = 'rgba(0, 255, 0, 0.1)';
+
                 const el = document.createElement('div');
-                el.className = 'hero-card';
+                // .unit 클래스를 추가하여 전투 카드 스타일을 가져오고, .hero-card로 선택 화면 전용 스타일 덮어쓰기
+                el.className = 'unit hero-card'; 
                 el.id = `card-${i}`;
-                el.innerHTML = this.renderCard(u);
-                el.onclick = () => {
-                    this.toggle(i, el);
-                };
+                
+                // [3] HTML 조립
+                el.innerHTML = `
+                    <div class="unit-img-bg" style="background-image: url('${imgUrl}');">
+                        <div style="position:absolute; inset:0; background:${tintColor};"></div>
+                    </div>
+                    
+                    <div class="card-badge" style="top:5px; left:5px;">${iconsHtml}</div>
+
+                    <div class="unit-info-overlay" style="padding-bottom:8px;">
+                        <div class="card-name" style="font-size:15px; margin-bottom:2px;">${cleanName}</div>
+                        <div style="font-size:10px; color:#ddd; font-weight:normal;">${shortDesc}</div>
+                    </div>
+                `;
+
+                el.onclick = () => { this.toggle(i, el); };
                 container.appendChild(el);
             }
             grid.appendChild(container);
@@ -3908,17 +4124,18 @@ turn: function() {
                 else isActive = this.queue[this.curr] === (u.id - 3) * 2 + 1;
                 const role = SKILL_DB[u.getKey()].role || 'nuker';
                 
+                // 카드 클래스 설정
                 d.className = `unit role-${role} ${u.isSuper ? 'super-hero' : ''} ${u.isDead?'dead':''} ${isActive?'active-turn':''} ${tid===1?'target-enemy':''} ${tid===0?'target-ally':''}`;
 
-                // [툴팁 & 감정표현 로직 통합]
+                // 이벤트 리스너 연결
                 d.onmousedown = (e) => {
                     if (d.classList.contains('target-enemy') || d.classList.contains('target-ally')) return;
                     d.pressTimer = setTimeout(() => UI.showTooltip(u, d), 500);
                 };
                 d.onmouseup = () => { clearTimeout(d.pressTimer); UI.hideTooltip(); };
                 d.onmouseleave = () => { 
-                    clearTimeout(d.pressTimer); UI.hideTooltip();
-                    // 미리보기 제거
+                    clearTimeout(d.pressTimer);
+                    UI.hideTooltip();
                     const p = d.querySelector('.hp-preview');
                     if(p) p.remove();
                 };
@@ -3927,44 +4144,33 @@ turn: function() {
                     d.pressTimer = setTimeout(() => UI.showTooltip(u, d), 500);
                 };
                 d.ontouchend = () => { clearTimeout(d.pressTimer); UI.hideTooltip(); };
-
-                // [신규] 클릭 시 감정표현 메뉴 (스킬 선택 중이 아닐 때만)
                 d.onclick = (e) => {
-                    if (Game.selectedSkillIdx !== -1) return; // 타겟팅 중이면 무시
-                    if (u.team === 0) { // 내 유닛만
+                    if (Game.selectedSkillIdx !== -1) return;
+                    if (u.team === 0) {
                         UI.showEmoteMenu(u, d);
                         e.stopPropagation();
                     }
                 };
-
-                // [신규] 마우스 오버 시 데미지 미리보기 (위치 보정 적용)
                 d.onmouseenter = () => {
-                    // 스킬 선택 중이고 + 적군이며 + 내가 조작 중일 때
-                    if (Game.selectedSkillIdx !== -1 && tid !== 0 && !Game.isProcessing) {
-                        const pred = Game.predictDmg(u);
-                        if (pred > 0) {
+                     if (Game.selectedSkillIdx !== -1 && tid !== 0 && !Game.isProcessing) {
+                         const pred = Game.predictDmg(u);
+                         if (pred > 0) {
                             const bar = d.querySelector('.status-bar');
                             if (bar) {
                                 const preview = document.createElement('div');
                                 preview.className = 'hp-preview';
-                                
-                                // 현재 체력 %
                                 const currentHpPct = (u.hp / u.maxHp) * 100;
-                                // 깎일 데미지 %
                                 const dmgPct = Math.min(currentHpPct, (pred / u.maxHp) * 100);
-                                
-                                // 게이지가 깎일 위치 계산 (왼쪽 기준)
-                                // 예: 체력 80%에서 20%가 깎인다면, left는 60%, width는 20%여야 함
                                 const leftPos = Math.max(0, currentHpPct - dmgPct);
-                                
                                 preview.style.left = leftPos + '%';
                                 preview.style.width = dmgPct + '%';
                                 bar.appendChild(preview);
                             }
                         }
-                    }
+                     }
                 };
 
+                // 상태이상 태그 생성 로직
                 let tags = u.status.map(s => {
                     let c = 'tag';
                     const map = {
@@ -3974,13 +4180,13 @@ turn: function() {
                         'ATK_DOWN': 'atkdown', 'BLIND': 'blind', 'IMMUNITY': 'immunity',
                         'HEAL_DOWN': 'healdown', 'LIGHT_MIGHT': 'atkup', 'LIFESTEAL_BUFF': 'lifesteal',
                         'ATK_BUFF_SMALL': 'atkup_s', 'START_IMMUNITY': 'start-immunity',
-                        'ROOT_GUARD': 'bind',
-                        'MC_WAIT': 'mc-wait', 'MC_READY': 'mc-ready',
-                        'EARTH_RECOIL': 'atkdown' // 보라색(atkdown) 스타일 재활용
+                        'ROOT_GUARD': 'bind', 'MC_WAIT': 'mc-wait', 'MC_READY': 'mc-ready',
+                        'EARTH_RECOIL': 'atkdown'
                     };
                     if (s.type.includes('PROVOKED')) c += ' taunt';
                     else if (s.type.startsWith('KARMA_VICTIM')) c += ' karma';
                     else if (map[s.type]) c += ` ${map[s.type]}`;
+                    
                     let txt = s.type;
                     const tMap = {
                         'POISON': '독', 'FREEZE': '빙결', 'SILENCE': '침묵', 'DMG_RED': '방어↑',
@@ -3988,63 +4194,72 @@ turn: function() {
                         'BIND': '결속', 'GROWTH': '성장', 'ATK_DOWN': '공격↓', 'BLIND': '실명',
                         'IMMUNITY': '면역', 'HEAL_DOWN': '치유↓', 'LIGHT_MIGHT': '공격↑',
                         'LIFESTEAL_BUFF': '🩸흡혈', 'ATK_BUFF_SMALL': '🔥공격↑', 'START_IMMUNITY': '🛡️선공방어',
-                        'ROOT_GUARD': '🪵수호',
-                        'MC_WAIT': '🌀세뇌중...', 'MC_READY': '🧠조종가능',
+                        'ROOT_GUARD': '🪵수호', 'MC_WAIT': '🌀세뇌중...', 'MC_READY': '🧠조종가능',
                         'EARTH_RECOIL': '💔반동'
                     };
                     if (s.type.includes('PROVOKED')) txt = '도발';
                     else if (s.type.startsWith('KARMA_VICTIM')) txt = '👁️업보';
                     else if (tMap[s.type]) txt = tMap[s.type];
-                    return `<span class="${c}">${txt}(${s.turn})</span>`;
+                    return `<span class="${c}">${txt}</span>`;
                 }).join('');
                 if (u.linkedAllyId !== -1) tags += `<span class="tag bind" style="background:#27ae60; border:1px solid #fff;">🔗Link</span>`;
-                let bgClass = `bg-${u.base}`;
-                if (u.isEnhanced) bgClass = `bg-${u.base}-Enhanced`;
-                if (u.isNormal) bgClass = 'bg-Normal';
-                const icon = SKILL_DB[u.getKey()].icon || '';
-                let extraBadge = '';
-                if (u.elecStacks > 0) extraBadge = `<div class="elec-badge">⚡${u.elecStacks}</div>`;
-                // [Tree] 거목 스택 UI (초록색 방패)
-                if (u.treeStack > 0) extraBadge += `<div class="elec-badge" style="background:#66bb6a; color:#fff; top:20px; border-color:#81c784;">🛡️${u.treeStack}</div>`;
 
+                // [이미지 및 UI 렌더링]
+                const key = u.getKey();
+                const imgUrl = IMAGE_DB[key] || IMAGE_DB['Default'];
+                let tintColor = 'transparent';
+                if(u.base === 'Fire') tintColor = 'rgba(255, 0, 0, 0.1)';
+                if(u.base === 'Water') tintColor = 'rgba(0, 0, 255, 0.1)';
+                if(u.base === 'Tree') tintColor = 'rgba(0, 255, 0, 0.1)';
+                
+                const hpPct = (u.hp / u.maxHp) * 100;
+                let hpColor = '#66bb6a';
+                if (hpPct <= 25) hpColor = '#ef5350';
+                else if (hpPct <= 50) hpColor = '#ffb74d';
+                
                 let displayName = u.name.split(' ')[0];
                 if (u.isSuper) {
                     const emo = EMOTION_DB[u.getKey()];
-                    // 1. 감정 DB에 있고, 해금된 상태라면 타이틀 표시
-                    if (emo) {
-                        displayName = `[${emo.t}] ${displayName}`;
-                    } else {
-                        // 2. 예외 처리 (기존 로직)
-                        if (role === 'nuker') displayName = `👹God ${displayName}`;
-                        else if (role === 'tank') displayName = `🛡️Lord ${displayName}`;
-                        else if (role === 'supp') displayName = `😇Saint ${displayName}`;
-                    }
+                    if (emo) displayName = `[${emo.t}] ${displayName}`;
                 }
 
-                // [신규] 동적 체력바 색상 (Dynamic HP Color)
-                const hpPct = (u.hp / u.maxHp) * 100;
-                let hpColor = '#66bb6a'; // Green (Safe)
-                if (hpPct <= 25) hpColor = '#ef5350'; // Red (Danger)
-                else if (hpPct <= 50) hpColor = '#ffb74d'; // Orange (Warning)
-
-                // [UI] 상성 아이콘 계산 (수정됨: 현재 턴 유닛 기준)
-                let affInd = '';
-                // 현재 턴을 잡은 유닛(Active Unit) 찾기
-                const curTVal = this.queue[this.curr];
-                const activeUnit = (curTVal !== undefined) ? (curTVal % 2 === 0 ? this.pTeam[Math.floor(curTVal/2)] : this.eTeam[Math.floor((curTVal-1)/2)]) : null;
-
-                // 내가 조작 중이고(AI처리중 아님), 적군이며, 내가 살아있을 때 표시
-                if (activeUnit && !activeUnit.isDead && activeUnit.team !== u.team && !this.isProcessing) {
-                    // 세뇌 상태라면 기준이 달라질 수 있으나, 기본적으로 공격자 vs 타겟으로 계산
-                    const attacker = this.isMindControlling || activeUnit;
-                    const aff = Game.calc(attacker, u);
-                    
-                    if (aff.v > 1.1) affInd = ' <span style="color:#ff1744; font-weight:900; font-size:14px;">▲</span>'; // 강함(Red Up)
-                    else if (aff.v < 0.9) affInd = ' <span style="color:#2979ff; font-weight:900; font-size:14px;">▼</span>'; // 약함(Blue Down)
+                // [신규] 아이콘 생성 로직 (1개 또는 2개)
+                let iconsHtml = '';
+                // 1. 기본 속성 아이콘
+                if (ATTR[u.base]) {
+                    iconsHtml += `<div class="tiny-icon">${ATTR[u.base].i}</div>`;
+                }
+                // 2. 추가 속성 아이콘 (있으면 추가, Dark-Dark의 경우 Dark가 두 번 들어감)
+                if (u.extra && ATTR[u.extra]) {
+                    iconsHtml += `<div class="tiny-icon">${ATTR[u.extra].i}</div>`;
+                }
+                // 3. 노말 등 특수 케이스 처리 (아이콘이 없으면 스킬DB 아이콘 사용)
+                if (iconsHtml === '' && SKILL_DB[key]) {
+                    iconsHtml = `<div class="tiny-icon">${SKILL_DB[key].icon}</div>`;
                 }
 
-                // 템플릿 리터럴에 ${affInd} 추가
-                const innerHTML = ` ${extraBadge} <div class="tag-container">${tags}</div> <div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div> <div class="unit-name" style="font-size:15px; margin-bottom:3px; ${u.isSuper ? 'color:#fbc02d; text-shadow:0 0 5px rgba(255,235,59,0.5);' : ''}">${displayName}${affInd} <span class="atk-text">⚔️${u.getAtk()}</span></div> <div class="status-bar" style="height:14px;"><div class="hp-fill" style="width:${hpPct}%; background:${hpColor};"></div><div class="shield-fill" style="width:${(u.shield/u.maxHp)*100}%"></div></div> <div style="font-size:12px; margin-top:3px; color:#777; font-weight:bold;">${u.hp}${u.shield>0?` (+${u.shield})`:''}</div> `;
+                const innerHTML = `
+                    <div class="unit-img-bg" style="background-image: url('${imgUrl}');">
+                        <div style="position:absolute; inset:0; background:${tintColor};"></div>
+                    </div>
+                    <div class="card-badge">${iconsHtml}</div>
+                    <div class="card-atk">⚔️ ${u.getAtk()}</div>
+                    ${u.elecStacks > 0 ? `<div class="elec-badge" style="top:30px;">⚡${u.elecStacks}</div>` : ''}
+                    <div class="tag-container">${tags}</div>
+                    <div class="unit-info-overlay">
+                        <div class="card-name" style="${u.isSuper ? 'color:#ffd700;' : ''}">
+                            ${displayName}
+                        </div>
+                        <div class="status-bar">
+                            <div class="hp-fill" style="width:${hpPct}%; background:${hpColor};"></div>
+                            <div class="shield-fill" style="width:${(u.shield/u.maxHp)*100}%"></div>
+                        </div>
+                        <div style="font-size:9px; text-align:right; color:#ddd; margin-top:1px;">
+                            ${u.hp} / ${u.maxHp} ${u.shield>0?`(+${u.shield})`:''}
+                        </div>
+                    </div>
+                `;
+                
                 if (d.innerHTML !== innerHTML) d.innerHTML = innerHTML;
             });
         };
