@@ -1112,6 +1112,99 @@
             .control-panel { max-height: 35vh; }
             .btn-group { min-height: 50px; }
         }
+/* [신규] 통합 메뉴 스타일 */
+        .sys-menu-container {
+            position: absolute; top: 15px; right: 15px; z-index: 200;
+        }
+        .sys-btn-main {
+            width: 45px; height: 45px;
+            background: #fff; border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 24px; cursor: pointer; border: 2px solid #fff;
+            transition: 0.2s;
+        }
+        .sys-btn-main:active { transform: scale(0.9); }
+
+        .sys-menu-list {
+            display: none; /* 기본 숨김 */
+            position: absolute; top: 55px; right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 15px;
+            width: 160px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 2px solid #ffcc80;
+            flex-direction: column; overflow: hidden;
+            animation: fade-in-down 0.2s;
+        }
+        @keyframes fade-in-down { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+
+        .sys-item {
+            padding: 12px 15px;
+            font-size: 14px; font-weight: bold; color: #5d4037;
+            border-bottom: 1px solid #eee; cursor: pointer;
+            display: flex; align-items: center; justify-content: space-between;
+            position: relative;
+        }
+        .sys-item:last-child { border-bottom: none; }
+        .sys-item:active { background: #fff3e0; }
+        .sys-item.close-btn { background: #fafafa; color: #aaa; justify-content: center; }
+
+        /* 저장 서브 메뉴 스타일 */
+        .save-submenu {
+            display: none; /* JS로 토글 */
+            position: absolute; right: 100%; top: 0;
+            background: #fff; border: 2px solid #ffb74d;
+            border-radius: 10px; width: 100px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .save-submenu div { padding: 10px; border-bottom:1px solid #eee; font-size:12px; }
+        .save-submenu div:active { background:#ffe0b2; }
+
+        /* ========================================= */
+        /* [모바일 최적화 V2] 더 넓은 공간 확보 */
+        /* ========================================= */
+        @media (max-width: 768px) {
+            /* 1. 카드 크기 더 축소 (숨통 트이기) */
+            .unit {
+                width: 28vw;         /* 너비 약간 축소 */
+                height: 140px;       /* 높이 축소 (165px -> 140px) */
+                border-radius: 8px;  /* 둥근 모서리 약간 줄임 */
+            }
+            
+            /* 카드 내부 요소 크기 조정 */
+            .unit .card-name { font-size: 11px; margin-bottom: 1px; }
+            .unit .tiny-icon { width: 20px; height: 20px; font-size: 12px; }
+            .unit .card-atk { font-size: 9px; padding: 1px 4px; }
+            .unit .card-badge { top: 3px; left: 3px; }
+            .unit .status-bar { height: 6px; }
+
+            /* 2. 전체 레이아웃 여백 조정 */
+            #battle-screen {
+                padding: 10px 5px; /* 상하 여백 축소 */
+                padding-top: 60px; /* 상단 메뉴 버튼 공간 확보 */
+                justify-content: center; /* 중앙 정렬 */
+                gap: 5px; /* 요소 간 간격 최소화 */
+            }
+
+            /* 3. 중앙 패널 다이어트 */
+            .control-panel { 
+                max-height: 30vh; /* 높이 제한 강화 */
+                width: 96%; /* 좌우 여백 약간 줌 */
+                align-self: center;
+                border-radius: 20px; /* 모바일에서는 둥글게 */
+            }
+            
+            /* 버튼 그룹 높이 축소 */
+            .btn-group { min-height: 45px; gap: 3px; padding: 3px; }
+            .skill-btn { border-radius: 10px; }
+            .skill-name { font-size: 12px; }
+            .skill-desc { display: none; } /* 모바일에서는 스킬 설명 텍스트 숨김 (깔끔하게) */
+
+            /* 로그창 축소 */
+            .log-container { display: none; } /* 과감한 선택: 모바일에서는 로그창을 숨기거나 아주 작게 */
+        }
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -1126,45 +1219,21 @@
 </div>
 <!-- [툴팁] 뷰 -->
 <div id="tooltip-view"></div>
-<div class="side-controls">
-    <div style="position:relative;">
-        <div class="side-btn" onclick="UI.toggleSaveMenu()">💾</div>
-        <div id="save-menu-popup" class="save-menu">
-            <div class="save-opt" onclick="Game.saveGame(); UI.toggleSaveMenu()">💾 저장하기</div>
-            <div class="save-opt" onclick="Game.loadGame(); UI.toggleSaveMenu()">📂 불러오기</div>
+<div class="sys-menu-container">
+    <div class="sys-btn-main" onclick="UI.toggleSysMenu()">⚙️</div>
+    
+    <div id="sys-menu-list" class="sys-menu-list">
+        <div class="sys-item" onclick="UI.toggleSaveMenu()">
+            <span>💾 저장/로드</span>
+            <div id="save-menu-popup" class="save-submenu">
+                <div onclick="Game.saveGame();">💾 저장하기</div>
+                <div onclick="Game.loadGame();">📂 불러오기</div>
+            </div>
         </div>
-    </div>
-    <div class="side-btn" onclick="UI.showGuide()">📖</div>
-    <div class="side-btn" onclick="Game.reset()">🏠</div>
-</div>
-<div class="settings-btn" onclick="UI.toggleSettings()">🎵</div>
-<div id="audio-settings" class="settings-modal">
-    <div class="set-row">
-        <span>볼륨</span>
-        <input type="range" class="vol-slider" min="0" max="100" value="50" oninput="AudioSys.setMasterVolume(this.value)">
-    </div>
-    <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
-    <div class="set-row">
-        <span>배경음악 (BGM)</span>
-        <div class="toggle-btn on" id="tog-bgm" onclick="AudioSys.toggleChannel('bgm')"></div>
-    </div>
-    <div style="font-size:11px; color:#888; margin-top:5px;">🎹 New Piano Collection</div>
-    <div class="bgm-select">
-    <div class="bgm-opt" onclick="UI.selectBGM('Battle_Piano', this)">⚔️ 전투</div>
-    <div class="bgm-opt" onclick="UI.selectBGM('Thinking', this)">🤔 전략</div>
-    <div class="bgm-opt" onclick="UI.selectBGM('Aftermath', this)">🌅 평화</div>
-    </div>
-
-    <div style="font-size:11px; color:#888; margin-top:5px;">🎼 Canon Variations (Original)</div>
-    <div class="bgm-select">
-        <div class="bgm-opt active" onclick="UI.selectBGM('Canon_Piano', this)">🎹 피아노</div>
-        <div class="bgm-opt" onclick="UI.selectBGM('Canon_Harp', this)">🎻 하프</div>
-        <div class="bgm-opt" onclick="UI.selectBGM('Canon_Mix', this)">✨ 믹스</div>
-    </div>
-    <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
-        <div class="set-row">
-        <span>효과음 (SFX)</span>
-        <div class="toggle-btn on" id="tog-sfx" onclick="AudioSys.toggleChannel('sfx')"></div>
+        <div class="sys-item" onclick="UI.showGuide(); UI.toggleSysMenu()">📖 가이드북</div>
+        <div class="sys-item" onclick="UI.toggleSettings(); UI.toggleSysMenu()">🎵 오디오 설정</div>
+        <div class="sys-item" style="color:#e57373;" onclick="Game.reset(); UI.toggleSysMenu()">🏠 홈으로</div>
+        <div class="sys-item close-btn" onclick="UI.toggleSysMenu()">✖ 닫기</div>
     </div>
 </div>
 
@@ -3017,10 +3086,28 @@ const UI = {
         const el = document.getElementById('audio-settings');
         el.style.display = (el.style.display === 'flex') ? 'none' : 'flex';
     },
-    // [신규] 저장/불러오기 메뉴 토글
+
+    // [신규] 우측 상단 통합 메뉴(기어 아이콘) 토글
+    toggleSysMenu: function() {
+        const el = document.getElementById('sys-menu-list');
+        
+        // 메뉴를 열 때, 기존에 열려있던 저장 하위 메뉴는 닫아줍니다 (깔끔하게)
+        const saveMenu = document.getElementById('save-menu-popup');
+        if (saveMenu) saveMenu.style.display = 'none';
+
+        // 통합 메뉴 열기/닫기
+        el.style.display = (el.style.display === 'flex') ? 'none' : 'flex';
+    },
+
+    // [수정] 저장/불러오기 서브 메뉴 토글
     toggleSaveMenu: function() {
         const el = document.getElementById('save-menu-popup');
-        el.style.display = (el.style.display === 'flex') ? 'none' : 'flex';
+        // 서브 메뉴는 block 형태로 엽니다
+        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+        
+        // 중요: 메뉴 버튼을 눌렀을 때 부모(통합 메뉴) 클릭 이벤트로 전파되어 
+        // 메뉴가 바로 닫혀버리는 것을 방지합니다.
+        if(window.event) window.event.stopPropagation();
     },
 	// [UI] BGM 선택 및 하이라이트 처리
     selectBGM: function(trackName, el) {
