@@ -10,7 +10,7 @@
             --bg-main: #fff5f8;
             --panel-bg: #ffffff;
             --text-main: #5d4037;
-            --accent: #ff80ab;
+            --accent: #faf80ab;
             --hp-high: #80deea;
             --hp-low: #ffcc80;
             --shield: #ce93d8;
@@ -1083,35 +1083,6 @@
             transition: 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
         .toggle-btn.on::after { left: 22px; }
-/* [모바일 전용 최적화] 화면 너비 768px 이하일 때 적용 */
-        @media (max-width: 768px) {
-            /* 1. 카드 크기 축소 (가림 방지) */
-            .unit {
-                width: 29vw;        /* 너비 약간 축소 */
-                height: 165px;      /* 높이 대폭 축소 (220px -> 165px) */
-            }
-            /* 폰트 크기 미세 조정 */
-            .unit .card-name { font-size: 12px; margin-bottom: 2px; }
-            .unit .tiny-icon { width: 22px; height: 22px; font-size: 14px; }
-            
-            /* 2. 상단 여백 확보 (버튼 간섭 방지) */
-            #battle-screen {
-                padding-top: 50px; /* 상단 버튼이 있는 공간만큼 카드를 아래로 내림 */
-                align-items: center; /* 중앙 정렬 */
-            }
-            
-            /* 3. 사이드 버튼 크기 축소 및 위치 조정 */
-            .side-btn, .settings-btn {
-                width: 32px; height: 32px; /* 버튼 크기 축소 */
-                font-size: 16px;
-            }
-            .side-controls { top: 10px; left: 10px; gap: 5px; }
-            .settings-btn { top: 10px; right: 10px; }
-            
-            /* 컨트롤 패널 높이 최적화 */
-            .control-panel { max-height: 35vh; }
-            .btn-group { min-height: 50px; }
-        }
 /* [신규] 통합 메뉴 스타일 */
         .sys-menu-container {
             position: absolute; top: 15px; right: 15px; z-index: 200;
