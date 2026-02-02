@@ -4381,8 +4381,9 @@ endTurn: function(isFast = false) {
             else if (['Water-Light', 'Metal-Light'].includes(k)) targetType = 'ENEMY'; // 디버프 공격
             else targetType = 'ENEMY'; // 나머지는 대부분 공격
         } else if (idx === 2) {
-            // S2는 DB에 있는 target 속성 사용
-            targetType = s.target || 'ENEMY';
+            // [Fix] 나무(Tree) S2는 아군 회복 스킬이므로 강제 변경
+            if (k === 'Tree') targetType = 'ALLY';
+            else targetType = s.target || 'ENEMY';
         }
 
         // 타겟팅 함수 호출
