@@ -2156,9 +2156,12 @@ class Unit {
         this.team = team;
         this.base = base;
         this.extra = extra;
-        this.maxHp = 600;
-        if (base === 'Tree' && extra === 'Dark') this.maxHp = 700;
-        if (base === 'Fire' && extra === 'Light') this.maxHp = 650;
+        // [Balance] 기본 체력 +100 상향 (전투 호흡 조절)
+        this.maxHp = 700;
+        // 가시(Tree-Dark)는 탱커형 딜러라 더 높게 유지 (+100 차이)
+        if (base === 'Tree' && extra === 'Dark') this.maxHp = 800;
+        // 푸른불(Fire-Light)은 서브 탱커라 약간 높게 유지 (+50 차이)
+        if (base === 'Fire' && extra === 'Light') this.maxHp = 750;
         this.hp = this.maxHp;
         this.evadeTriggered = false;
         this.revengeAtk = 0;
@@ -4687,9 +4690,14 @@ ai: function(u) {
             // 🛡️ 지원 점수 계산
             const getSupportScore = (target, skillIdx) => {
                 if (!target || target.isDead) return -9999;
+
+                // [AI Fix] 나무(Tree)가 이미 수호태세(ROOT_GUARD)면 S1 사용 금지
+                if (u.base === 'Tree' && !u.extra && skillIdx === 1) {
+                    if (u.hasStatus('ROOT_GUARD')) return -9999;
+                }
+
                 let score = 0;
                 const skillDesc = skillIdx === 1 ? (sk.s1d || "") : (sk.s2d || "");
-
                 // A. 힐 효율
                 if (skillDesc.includes('힐') || skillDesc.includes('HP') || sk.type === 'HEAL') {
                     const pct = target.hp / target.maxHp;
