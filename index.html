@@ -1083,35 +1083,6 @@
             transition: 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
         .toggle-btn.on::after { left: 22px; }
-/* [모바일 전용 최적화] 화면 너비 768px 이하일 때 적용 */
-        @media (max-width: 768px) {
-            /* 1. 카드 크기 축소 (가림 방지) */
-            .unit {
-                width: 29vw;        /* 너비 약간 축소 */
-                height: 165px;      /* 높이 대폭 축소 (220px -> 165px) */
-            }
-            /* 폰트 크기 미세 조정 */
-            .unit .card-name { font-size: 12px; margin-bottom: 2px; }
-            .unit .tiny-icon { width: 22px; height: 22px; font-size: 14px; }
-            
-            /* 2. 상단 여백 확보 (버튼 간섭 방지) */
-            #battle-screen {
-                padding-top: 50px; /* 상단 버튼이 있는 공간만큼 카드를 아래로 내림 */
-                align-items: center; /* 중앙 정렬 */
-            }
-            
-            /* 3. 사이드 버튼 크기 축소 및 위치 조정 */
-            .side-btn, .settings-btn {
-                width: 32px; height: 32px; /* 버튼 크기 축소 */
-                font-size: 16px;
-            }
-            .side-controls { top: 10px; left: 10px; gap: 5px; }
-            .settings-btn { top: 10px; right: 10px; }
-            
-            /* 컨트롤 패널 높이 최적화 */
-            .control-panel { max-height: 35vh; }
-            .btn-group { min-height: 50px; }
-        }
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -4126,32 +4097,11 @@ turn: function() {
             const uIdx = isP ? Math.floor(qId / 2) : Math.floor((qId - 1) / 2);
             const team = isP ? this.pTeam : this.eTeam;
             const u = team[uIdx];
-            if (!u) continue;
-
+            if (!u) continue; // null 체크 추가
             const n = document.createElement('div');
-            // tl-node 클래스 유지하되, 내부 스타일을 위해 flex 설정 추가
             n.className = `tl-node ${isP?'ally':'enemy'} ${i===0?'curr':''}`;
-            n.style.display = 'flex';
-            n.style.justifyContent = 'center';
-            n.style.alignItems = 'center';
-            n.style.gap = '1px'; // 아이콘 간 간격
-            
             if (u.isDead) n.style.opacity = 0.3;
-
-            // [카드와 동일한 아이콘 생성 로직]
-            let iconsHtml = '';
-            // 1. 기본 아이콘 (약간 작게)
-            if (ATTR[u.base]) iconsHtml += `<div style="font-size:14px;">${ATTR[u.base].i}</div>`;
-            // 2. 추가 아이콘
-            if (u.extra && ATTR[u.extra]) iconsHtml += `<div style="font-size:14px;">${ATTR[u.extra].i}</div>`;
-            
-            // 예외 처리
-            if (iconsHtml === '') {
-                const key = u.getKey();
-                if(SKILL_DB[key]) iconsHtml = SKILL_DB[key].icon;
-            }
-
-            n.innerHTML = iconsHtml; // innerText 대신 innerHTML 사용
+            n.innerText = SKILL_DB[u.getKey()].icon || ATTR[u.base].i;
             tl.appendChild(n);
         }
         const draw = (rowId, team, tid) => {
