@@ -838,12 +838,15 @@
         }
 /* [신규] 데미지 미리보기 & 감정표현 */
         .hp-preview {
-            position: absolute; top: 0; right: 0; bottom: 0;
-            background: rgba(255, 23, 68, 0.6); /* 붉은색 빗금 */
-            z-index: 2; pointer-events: none;
-            transition: width 0.2s;
-            box-shadow: -2px 0 0 rgba(255,255,255,0.5);
+            position: absolute;
+            top: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.7); /* 흰색 점멸로 변경 */
+            z-index: 5; pointer-events: none;
+            transition: all 0.1s;
+            box-shadow: 0 0 5px rgba(255,255,255,0.8);
+            animation: blink-preview 0.5s infinite alternate;
         }
+        @keyframes blink-preview { from { opacity: 0.4; } to { opacity: 0.9; } }
         .emote-bubble {
             position: absolute; top: -45px; left: 50%; transform: translateX(-50%);
             background: #fff; border: 3px solid #333; border-radius: 20px;
@@ -1298,14 +1301,14 @@ const NAME_MAP = { 'Water-Light':'증기', 'Fire-Light':'푸른불', 'Tree-Light
 
 const SKILL_DB = {
     'Metal': { s1:'강철베기', s1d:'1.3배+30%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15/데미지X', type:'CC', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>받는 피해 MaxHP 30% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 30%를 넘지 않습니다.' },
-    'Tree': { s1:'광합성', s1d:'공+18/쉴드+30(영구중첩)', s2:'치유의 잎', s2d:'아군1명 HP+150/정화', type:'SELF_BUFF', target:'ALLY', role:'tank', icon:'🌳', desc:'성장형 탱커<br>자가성장 + 힐', passive:'🌿 성장: 광합성 사용 시 영구적으로 공격력과 쉴드가 증가합니다.' },
+    'Tree': { s1:'뿌리묶기', s1d:'3턴간 아군피해 50% 대신받음', s2:'치유의 잎', s2d:'HP+140/정화(CC해제시 뎀감↑)', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', desc:'수호형 탱커<br>피해 분산 + 뎀감 패시브', passive:'🌳 거목: 받는 피해가 15% 감소합니다. S2로 행동불가를 해제하면 뎀감율이 5%씩 증가합니다 (최대 25%).'},
     'Fire-Light': { s1:'흡혈부여', s1d:'아군전체 흡혈(3턴)', s2:'폭주', s2d:'자신공+20(영구)/전체공+10', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🔷', desc:'공격형 탱커<br>흡혈 + 폭주', passive:'🩸 흡혈: 매 턴 공격 시 피해량의 25%를 회복합니다. (최대 50)' },
     'Water-Light': { s1:'스팀젯', s1d:'0.9배+실명(30%)', s2:'안개', s2d:'잃은체력15%힐+회피', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'☁️', desc:'서폿형 탱커<br>회피 + 어그로', passive:'☁️ 기화: 체력 20% 이하 시 1회 자동 회복 및 회피 상태가 됩니다.' },
     'Fire': { s1:'화염방사', s1d:'1.6배 +화상(60%)', s2:'메테오', s2d:'광역 0.8배+화상(30%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', desc:'메인 딜러<br>초반 강력 (유통기한)', passive:'🔥 불의 기세: 1~2턴 공+20, 3~6턴 공+10, 7턴 이후 0' },
     'Normal': { s1:'균형타', s1d:'1.5배/내HP-30/쉴드60', s2:'주사위', s2d:'0.8~2.3배 랜덤/노코스트', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'⚖️', desc:'메인 딜러<br>랜덤 한방 (약점:단일기초5속성) + 서브탱킹', passive:'🎲 면역: 행동 제어기(기절,빙결,침묵,세뇌)에 걸리지 않습니다.'},
     'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상(100%)', s2:'소각', s2d:'1.0배+적 공격력만큼 추가타', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', desc:'메인 딜러<br>역이용 카운터', passive:'🔥 소각: 적의 공격력이 높을수록 더 큰 피해를 입힙니다.' },
     'Metal-Dark': { s1:'전기충격', s1d:'1.5배+공격력10↑', s2:'방전', s2d:'광역 0.8배+기절(15%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'⚡', desc:'메인 딜러<br>성장형 광역', passive:'⚡ 과부하: S1 사용 시 공격력이 10 증가합니다 (최대 3회).' },
-    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+자가기절(1턴 휴식)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 후 기절 상태에서는 받는 피해가 10 증가합니다.' },
+    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+자가기절(1턴 휴식)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 사용 후 1턴간 [반동] 상태가 됩니다. 반동 상태에서는 받는 피해가 15 증가하며, 이는 정화되지 않습니다.' },
     'Earth': { s1:'암석투척', s1d:'1.3배+기절/침묵(30%)', s2:'지진', s2d:'광역 0.8배 (1:1강화)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🏜️', desc:'CC형 딜러<br>기절 / 침묵', passive:null },
     'Water-Dark': { s1:'고드름', s1d:'1.5배', s2:'절대영도', s2d:'1.0배+빙결(35%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'❄️', desc:'CC형 딜러<br>빙결', passive:null },
     'Metal-Light': { s1:'가스탄', s1d:'0.3배/CC걸린적 1.5배', s2:'맹독살포', s2d:'전체 중독(3턴)', type:'DEBUFF', target:'ALL_ENEMY', role:'nuker', icon:'☣️', desc:'특수 딜러<br>버프 제거 + 조건부폭딜', passive:null },
@@ -1372,6 +1375,25 @@ const ChallengeDB = [
     { name: "심연의 맹독", desc: "세뇌(Dark-Dark), 맹독/해제(Metal-Light), 힐(Water)의 최악 조합.", team: ['Dark-Dark', 'Metal-Light', 'Water'] }
 ];
 
+// [Online] 시드 기반 난수 생성기 (동기화 필수)
+// Math.random() 대신 이걸 써야 두 플레이어의 결과가 똑같습니다.
+const RNG = {
+    seed: 1,
+    init: function(s) { 
+        this.seed = s % 2147483647; 
+        if (this.seed <= 0) this.seed += 2147483646; 
+    },
+    next: function() {
+        // Park-Miller 알고리즘 (가볍고 빠름)
+        this.seed = (this.seed * 16807) % 2147483647;
+        return (this.seed - 1) / 2147483646;
+    },
+    // 범위 랜덤 (min ~ max)
+    range: function(min, max) {
+        return Math.floor(this.next() * (max - min + 1)) + min;
+    }
+};
+
 const Common = {
     logAction: function(game, type, source, target, value, extra='') {
         let msg = '';
@@ -1384,85 +1406,130 @@ const Common = {
         } else { msg = `[${source.name.split(' ')[0]}] ${extra}`; }
         game.log(msg);
     },
+    // [공유 로직] 데미지 분산 처리기
+    distributeDamage: function(atk, def, dmg, game, isFire, ignoreShield) {
+        // 1. 방어자가 나무가 아니고, 아군 중에 [뿌리묶기(ROOT_GUARD)] 켜진 나무가 있는지 확인
+        // (자기 자신, 이미 죽은 유닛 제외)
+        const allies = def.team === 0 ? game.pTeam : game.eTeam;
+        const protector = allies.find(u => u.id !== def.id && !u.isDead && u.base === 'Tree' && u.hasStatus('ROOT_GUARD'));
+
+        // 2. 보호자가 없으면 기존대로 단일 피격
+        if (!protector) {
+            const act = def.takeDamage(dmg, isFire, ignoreShield, atk);
+            return { targetAct: act, split: false };
+        }
+
+        // 3. 데미지 분산 (50% : 50%)
+        // 나눗셈 후 소수점 버림 처리하여 1데미지라도 증발하지 않도록 각각 계산
+        const shareDmg = Math.floor(dmg * 0.5);
+        const originalDmg = dmg - shareDmg; // 홀수일 경우 원래 타겟이 1 더 받음
+
+        // [이펙트] 연결선 표현 (투사체 재활용)
+        if (!game.isProcessing) { // 무한 루프 방지용 플래그 체크 필요시
+            UI.fireProjectile(protector, def, '🌿'); 
+        }
+
+        // 로그 출력
+        game.log(`<span class="log-sys" style="color:#66bb6a;">🛡️ [${protector.name}]가 [${def.name}]의 피해를 나눠 받습니다!</span>`);
+
+        // A. 원래 타겟 피격
+        const act1 = def.takeDamage(originalDmg, isFire, ignoreShield, atk);
+        
+        // B. 보호자(나무) 피격
+        // (나무는 패시브로 인해 takeDamage 내부에서 추가 뎀감이 적용됨)
+        const act2 = protector.takeDamage(shareDmg, isFire, ignoreShield, atk);
+        
+        // 통계 기록: 나무가 대신 맞아준 것도 탱킹(taken)으로 기록되지만, 
+        // 힐/쉴드 통계에 '방어' 점수를 주고 싶다면 여기서 커스텀 가능. 
+        // 여기서는 기본 takeDamage 로직에 맡김.
+        
+        // 플로팅 텍스트 (분산됨 표시)
+        UI.floatText(protector, `-${act2} (대신맞기)`, "ft-dmg");
+
+        return { targetAct: act1, split: true };
+    },
+
     basicAttack: function(atk, def, game) {
         AudioSys.play('HIT');
         const blindMod = atk.hasStatus('BLIND') ? 0 : 1;
         if(blindMod === 0) { 
-            // 실명 로그
-            Common.logAction(game, 'miss', atk, def, 0, "(실명)"); 
+            Common.logAction(game, 'miss', atk, def, 0, "(실명)");
             UI.floatText(atk, "BLINDED", "ft-miss"); 
             return; 
         }
 
         const baseAtk = atk.getAtk();
-
-        // [Fix] 세뇌(Team Kill) 시에도 상성 계산 적용
-        // (원래 같은 팀이면 상성 계산 안 하지만, 세뇌 상태면 계산하도록 변경)
         const applyAffinity = (def && def.team !== atk.team) || (game.isMindControlling);
         const aff = applyAffinity ? game.calc(atk, def) : {v:1, t:''};
-
-        const dmg = Math.floor(baseAtk * 1.0 * aff.v * blindMod);
-        const act = def.takeDamage(dmg, false, false, atk);
-        game.recordStat(atk, 'dmg', Math.max(0, act));
+        
+        // [수정] 최종 데미지 산출
+        const rawDmg = Math.floor(baseAtk * 1.0 * aff.v * blindMod);
+        
+        // [수정] 분산 로직 호출
+        const res = Common.distributeDamage(atk, def, rawDmg, game, false, false);
+        const act = res.targetAct;
+        
+        game.recordStat(atk, 'dmg', Math.max(0, act)); // 통계는 원본 타겟 피해량만 (단순화)
 
         if(act !== -1) {
-            Common.logAction(game, 'dmg', atk, def, act, aff.t);
+            Common.logAction(game, 'dmg', atk, def, act, aff.t + (res.split ? "(분산)" : ""));
             const isCrit = (act >= 200) || (atk.isNormal && def.isNormal && act > baseAtk);
             let type = isCrit ? "ft-crit" : "ft-dmg";
             if (aff.v > 1.0) type = "ft-weak";
             else if (aff.v < 1.0) type = "ft-resist";
             
+            // 데미지 텍스트는 distributeDamage 내부에서 뜨는 것과 별개로 타겟에게 뜸
             UI.floatText(def, act, type);
             
             if (isCrit || aff.v > 1.0) { 
-                AudioSys.play('CRITICAL'); 
+                AudioSys.play('CRITICAL');
                 UI.screenShake(); 
                 UI.hitStop(150); 
             } else {
                 game.shake(def);
             }
 
-            // [Fix] 흡혈 통계 처리 (기본 공격)
+            // 흡혈 로직
             if ((atk.getKey() === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
                 const healAmt = Math.min(50, Math.floor(act * 0.25));
                 if(healAmt > 0) { 
-                    atk.heal(healAmt); 
-                    
-                    // 버프 제공자 찾기
+                    atk.heal(healAmt);
                     const buff = atk.status.find(s => s.type === 'LIFESTEAL_BUFF');
                     if (buff && buff.sourceId !== -1 && buff.sourceId !== atk.id) {
                         const allUnits = [...game.pTeam, ...game.eTeam];
                         const provider = allUnits.find(u => u.id === buff.sourceId);
                         if(provider) game.recordStat(provider, 'heal', healAmt);
                     } else {
-                        Common.logAction(game, 'heal', atk, atk, healAmt, "(흡혈)"); 
+                        Common.logAction(game, 'heal', atk, atk, healAmt, "(흡혈)");
                     }
                 }
             }
         } else {
-            // [유지] 빗나감 로그 출력
-            Common.logAction(game, 'miss', atk, def, 0); 
+            Common.logAction(game, 'miss', atk, def, 0);
             UI.floatText(def, "MISS", "ft-miss");
         }
     },
+
     applyDamage: function(atk, def, mult, game, ignoreShield=false, isFire=false) {
         const blindMod = atk.hasStatus('BLIND') ? 0 : 1;
         if(blindMod === 0) { 
-            UI.floatText(atk, "BLINDED", "ft-miss"); 
+            UI.floatText(atk, "BLINDED", "ft-miss");
             Common.logAction(game, 'miss', atk, def, 0, "(실명)"); 
             return -1; 
         }
         
         const baseAtk = atk.getAtk();
-
-        // [Fix] 세뇌(Team Kill) 시에도 상성 계산 적용
         const applyAffinity = (def.team !== atk.team) || (game.isMindControlling);
         const aff = applyAffinity ? game.calc(atk, def) : {v:1, t:''};
 
-        const dmg = Math.floor(baseAtk * mult * aff.v);
-        const act = def.takeDamage(dmg, isFire, ignoreShield, atk);
-        game.recordStat(atk, 'dmg', Math.max(0, act));
+        // [수정] 최종 데미지 산출
+        const rawDmg = Math.floor(baseAtk * mult * aff.v);
+        
+        // [수정] 분산 로직 호출
+        const res = Common.distributeDamage(atk, def, rawDmg, game, isFire, ignoreShield);
+        const act = res.targetAct;
 
+        game.recordStat(atk, 'dmg', Math.max(0, act));
         if(act !== -1) { 
             let type = act>=200 ? "ft-crit" : "ft-dmg";
             if (aff.v > 1.0) type = "ft-weak";
@@ -1470,24 +1537,21 @@ const Common = {
             UI.floatText(def, act, type); 
             game.shake(def); 
 
-            // [Fix] 흡혈 통계 처리 (스킬 공격)
             if ((atk.getKey() === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
                 const healAmt = Math.min(50, Math.floor(act * 0.25));
                 if(healAmt > 0) { 
-                    atk.heal(healAmt); 
-                    
+                    atk.heal(healAmt);
                     const buff = atk.status.find(s => s.type === 'LIFESTEAL_BUFF');
                     if (buff && buff.sourceId !== -1 && buff.sourceId !== atk.id) {
                         const allUnits = [...game.pTeam, ...game.eTeam];
                         const provider = allUnits.find(u => u.id === buff.sourceId);
                         if(provider) game.recordStat(provider, 'heal', healAmt);
                     } else {
-                        Common.logAction(game, 'heal', atk, atk, healAmt, "(흡혈)"); 
+                        Common.logAction(game, 'heal', atk, atk, healAmt, "(흡혈)");
                     }
                 }
             }
         } else { 
-            // [유지] 빗나감 로그 출력
             Common.logAction(game, 'miss', atk, def, 0);
             UI.floatText(def, "MISS", "ft-miss"); 
         }
@@ -1563,24 +1627,46 @@ const SKILL_LOGIC = {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
-                game.log(`<b>[${atk.name}]</b> 광합성 🌿`);
+                // S1: 뿌리 묶기 (자신에게 수호 버프)
+                game.log(`<b>[${atk.name}]</b> 뿌리 묶기 🪵`);
                 AudioSys.play('POWER_UP');
-                atk.atk += 18;
-                atk.shield += 30;
-                atk.growthStack = (atk.growthStack || 0) + 1;
-                atk.addStatus('GROWTH', 99);
-                game.recordStat(atk, 'shield', 30);
-                UI.floatText(atk, "성장", "ft-heal");
-                Common.logAction(game, 'shield', atk, atk, 30, "(성장)");
+                
+                // ROOT_GUARD: 아군 피해 50% 대신 받음
+                atk.addStatus('ROOT_GUARD', 3, 0, atk);
+                UI.floatText(atk, "수호태세", "ft-heal");
+                Common.logAction(game, 'buff', atk, atk, 0, "(3턴간 피해분산)");
                 return false;
             } else {
+                // S2: 치유의 잎 (힐 140 + 조건부 패시브 강화)
                 if (!def) return;
                 game.log(`<b>[${atk.name}]</b> 치유의 잎 🌿`);
                 AudioSys.play('HEAL');
-                const h = def.heal(150);
+                
+                // 1. 힐 실행
+                const h = def.heal(140);
+                
+                // 2. 행동불가 CC 체크 (기절, 빙결, 수면 등)
+                // (일반 디버프인 침묵, 속박 등은 제외하고 완벽한 행동불가만 카운트하여 밸런스 조절)
+                const hardCC = ['STUN', 'FREEZE', 'SLEEP', 'BANISH'];
+                const hasHardCC = def.status.some(s => hardCC.includes(s.type));
+                
+                // 3. 정화
                 def.cleanse();
+                
+                // 4. CC 해제 성공 시 패시브 강화 (최대 2스택 = +10%)
+                let extraMsg = "(정화)";
+                if (hasHardCC) {
+                    if (atk.treeStack < 2) {
+                        atk.treeStack++;
+                        UI.floatText(atk, "거목성장!", "ft-crit");
+                        extraMsg += " + 🛡️성장";
+                    } else {
+                        UI.floatText(atk, "MAX", "ft-miss");
+                    }
+                }
+
                 game.recordStat(atk, 'heal', h);
-                Common.logAction(game, 'heal', atk, def, h, "(정화)");
+                Common.logAction(game, 'heal', atk, def, h, extraMsg);
                 return false;
             }
         }
@@ -1825,9 +1911,9 @@ const SKILL_LOGIC = {
                     UI.floatText(def, "스택-1", "ft-miss");
                 }
                 
-                // [Balance] CC(기절/빙결/수면) 또는 면역(CC종료 직후) 상태면 데미지 50% 증가
+                // [Balance] CC(기절/빙결/수면) 또는 면역(CC종료 직후) 상태면 데미지 1.5배 (500% 증가)
                 const isCC = def.hasStatus('STUN') || def.hasStatus('FREEZE') || def.hasStatus('SLEEP') || def.hasStatus('IMMUNITY');
-                const dmgMult = isCC ? 0.45 : 0.3; // 0.3의 1.5배 = 0.45
+                const dmgMult = isCC ? 1.5 : 0.3; 
                 
                 const act = Common.applyDamage(atk, def, dmgMult, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, isCC ? "(추가딜)" : "");
@@ -1964,15 +2050,20 @@ const SKILL_LOGIC = {
                     atk.status = atk.status.filter(s => s.type !== 'IMMUNITY');
                     UI.floatText(atk, "면역삭제", "ft-miss");
                 }
+                
+                // 1. 기절 부여 (행동 불가, 정화 가능)
                 const ex = atk.status.find(s => s.type === 'STUN');
                 if (ex) ex.turn = 2;
-                else atk.status.push({
-                    type: 'STUN',
-                    turn: 2,
-                    val: 0
-                });
-                UI.floatText(atk, "💤휴식", "ft-miss");
-                game.log("(반동:휴식)");
+                else atk.status.push({ type: 'STUN', turn: 2, val: 0 });
+
+                // 2. [신규] 반동 부여 (피해 증가, 정화 불가)
+                // 기존 상태가 있으면 갱신, 없으면 추가
+                const recoil = atk.status.find(s => s.type === 'EARTH_RECOIL');
+                if (recoil) recoil.turn = 2;
+                else atk.status.push({ type: 'EARTH_RECOIL', turn: 2, val: 15 });
+
+                UI.floatText(atk, "💤휴식+반동", "ft-miss");
+                game.log("(반동: 기절 + 받는데미지 증가)");
             }
         }
     },
@@ -2032,7 +2123,7 @@ const SKILL_LOGIC = {
             }
 
             // 1. 코스트 지불
-            const cost = Math.floor(atk.hp * 0.12);
+            const cost = Math.floor(atk.hp * 0.25);
             atk.hp = Math.max(1, atk.hp - cost);
             UI.floatText(atk, `HP소모(-${cost})`, "ft-miss");
             
@@ -2086,6 +2177,7 @@ class Unit {
         this.s2Count = 0;
         this.elecStacks = 0;
         this.growthStack = 0;
+        this.treeStack = 0; // [Tree] 패시브 스택 (0~2)
         this.resist = 0;
         this.stats = {
             dmg: 0,
@@ -2187,6 +2279,12 @@ if (awakened) {
     }
 
     takeDamage(dmg, isFire = false, ignoreShield = false, source = null) {
+        // [Tree 패시브] 거목: 기본 15% 뎀감 + 스택당 5% (최대 25%)
+        if (this.base === 'Tree') {
+            const reducePct = 0.15 + (this.treeStack * 0.05);
+            dmg = Math.floor(dmg * (1.0 - reducePct));
+        }
+
         if (isFire && this.hasStatus('BURN')) dmg = Math.floor(dmg * 1.25);
 
         if (this.base === 'Metal' && !this.extra && this.shield > 0) {
@@ -2234,10 +2332,10 @@ if (awakened) {
         } else {
             hpDmg = dmg;
         }
-        if (hpDmg > 0 && this.base === 'Earth' && this.extra === 'Dark' && this.hasStatus('STUN')) {
-            hpDmg += 10;
-            this.stats.taken += 10;
-            UI.floatText(this, "Crack!", "ft-crit");
+        if (hpDmg > 0 && this.hasStatus('EARTH_RECOIL')) {
+            hpDmg += 15;
+            this.stats.taken += 15;
+            UI.floatText(this, "Crack(+15)", "ft-crit");
         }
         this.hp = Math.max(0, this.hp - hpDmg);
 
@@ -3616,16 +3714,20 @@ turn: function() {
         }
         if (this.endCheck()) return;
 
-        // 5. [수정] 턴 시작 상태이상 처리 (도트 데미지 -> 사망 체크 -> CC 체크)
+        // 5. [수정] 턴 시작 직후 도트 데미지 적용 (가장 먼저 실행)
         if (!u.isDead) {
             u.resetTurn();
             
-            // 5-1. 도트 데미지 처리 (맹독, 화상 등)
+            // [중요] 도트 데미지(독, 화상) 적용 시점
             const dotLogs = u.tickStatus();
             dotLogs.forEach(log => this.log(log));
             
-            // 도트 데미지로 사망 시 턴 종료
+            // ✅ [Fix] 도트 데미지가 발생했다면 즉시 화면(체력바)을 갱신합니다.
+            if (dotLogs.length > 0) this.render();
+            
+            // 만약 도트 데미지로 사망했다면, 아무 행동도 못하고 턴 종료
             if (u.isDead) {
+                this.log(`<span class='log-crit'>☠️ [${u.name}] 턴 시작과 동시에 쓰러졌습니다!</span>`);
                 this.endTurn(true);
                 return;
             }
@@ -3832,7 +3934,7 @@ turn: function() {
                     }
                 };
 
-                // [신규] 마우스 오버 시 데미지 미리보기
+                // [신규] 마우스 오버 시 데미지 미리보기 (위치 보정 적용)
                 d.onmouseenter = () => {
                     // 스킬 선택 중이고 + 적군이며 + 내가 조작 중일 때
                     if (Game.selectedSkillIdx !== -1 && tid !== 0 && !Game.isProcessing) {
@@ -3842,9 +3944,18 @@ turn: function() {
                             if (bar) {
                                 const preview = document.createElement('div');
                                 preview.className = 'hp-preview';
-                                // 체력바 비율 계산
-                                const widthPct = Math.min(100, (pred / u.maxHp) * 100);
-                                preview.style.width = widthPct + '%';
+                                
+                                // 현재 체력 %
+                                const currentHpPct = (u.hp / u.maxHp) * 100;
+                                // 깎일 데미지 %
+                                const dmgPct = Math.min(currentHpPct, (pred / u.maxHp) * 100);
+                                
+                                // 게이지가 깎일 위치 계산 (왼쪽 기준)
+                                // 예: 체력 80%에서 20%가 깎인다면, left는 60%, width는 20%여야 함
+                                const leftPos = Math.max(0, currentHpPct - dmgPct);
+                                
+                                preview.style.left = leftPos + '%';
+                                preview.style.width = dmgPct + '%';
                                 bar.appendChild(preview);
                             }
                         }
@@ -3860,7 +3971,9 @@ turn: function() {
                         'ATK_DOWN': 'atkdown', 'BLIND': 'blind', 'IMMUNITY': 'immunity',
                         'HEAL_DOWN': 'healdown', 'LIGHT_MIGHT': 'atkup', 'LIFESTEAL_BUFF': 'lifesteal',
                         'ATK_BUFF_SMALL': 'atkup_s', 'START_IMMUNITY': 'start-immunity',
-                        'MC_WAIT': 'mc-wait', 'MC_READY': 'mc-ready'
+                        'ROOT_GUARD': 'bind',
+                        'MC_WAIT': 'mc-wait', 'MC_READY': 'mc-ready',
+                        'EARTH_RECOIL': 'atkdown' // 보라색(atkdown) 스타일 재활용
                     };
                     if (s.type.includes('PROVOKED')) c += ' taunt';
                     else if (s.type.startsWith('KARMA_VICTIM')) c += ' karma';
@@ -3872,7 +3985,9 @@ turn: function() {
                         'BIND': '결속', 'GROWTH': '성장', 'ATK_DOWN': '공격↓', 'BLIND': '실명',
                         'IMMUNITY': '면역', 'HEAL_DOWN': '치유↓', 'LIGHT_MIGHT': '공격↑',
                         'LIFESTEAL_BUFF': '🩸흡혈', 'ATK_BUFF_SMALL': '🔥공격↑', 'START_IMMUNITY': '🛡️선공방어',
-                        'MC_WAIT': '🌀세뇌중...', 'MC_READY': '🧠조종가능'
+                        'ROOT_GUARD': '🪵수호',
+                        'MC_WAIT': '🌀세뇌중...', 'MC_READY': '🧠조종가능',
+                        'EARTH_RECOIL': '💔반동'
                     };
                     if (s.type.includes('PROVOKED')) txt = '도발';
                     else if (s.type.startsWith('KARMA_VICTIM')) txt = '👁️업보';
@@ -3886,6 +4001,8 @@ turn: function() {
                 const icon = SKILL_DB[u.getKey()].icon || '';
                 let extraBadge = '';
                 if (u.elecStacks > 0) extraBadge = `<div class="elec-badge">⚡${u.elecStacks}</div>`;
+                // [Tree] 거목 스택 UI (초록색 방패)
+                if (u.treeStack > 0) extraBadge += `<div class="elec-badge" style="background:#66bb6a; color:#fff; top:20px; border-color:#81c784;">🛡️${u.treeStack}</div>`;
 
                 let displayName = u.name.split(' ')[0];
                 if (u.isSuper) {
@@ -3907,16 +4024,24 @@ turn: function() {
                 if (hpPct <= 25) hpColor = '#ef5350'; // Red (Danger)
                 else if (hpPct <= 50) hpColor = '#ffb74d'; // Orange (Warning)
 
-                // [UI] 상성 아이콘 계산 (추가된 코드)
+                // [UI] 상성 아이콘 계산 (수정됨: 현재 턴 유닛 기준)
                 let affInd = '';
-                if (this.turnChar && this.turnChar !== u && this.turnChar.team !== u.team) {
-                    const aff = Common.calc(this.turnChar, u);
-                    if (aff.v > 1.1) affInd = ' <span style="color:red; font-size:12px;">🔺</span>'; // 약점
-                    else if (aff.v < 0.9) affInd = ' <span style="color:gray; font-size:12px;">🛡️</span>'; // 저항
+                // 현재 턴을 잡은 유닛(Active Unit) 찾기
+                const curTVal = this.queue[this.curr];
+                const activeUnit = (curTVal !== undefined) ? (curTVal % 2 === 0 ? this.pTeam[Math.floor(curTVal/2)] : this.eTeam[Math.floor((curTVal-1)/2)]) : null;
+
+                // 내가 조작 중이고(AI처리중 아님), 적군이며, 내가 살아있을 때 표시
+                if (activeUnit && !activeUnit.isDead && activeUnit.team !== u.team && !this.isProcessing) {
+                    // 세뇌 상태라면 기준이 달라질 수 있으나, 기본적으로 공격자 vs 타겟으로 계산
+                    const attacker = this.isMindControlling || activeUnit;
+                    const aff = Game.calc(attacker, u);
+                    
+                    if (aff.v > 1.1) affInd = ' <span style="color:#ff1744; font-weight:900; font-size:14px;">▲</span>'; // 강함(Red Up)
+                    else if (aff.v < 0.9) affInd = ' <span style="color:#2979ff; font-weight:900; font-size:14px;">▼</span>'; // 약함(Blue Down)
                 }
 
                 // 템플릿 리터럴에 ${affInd} 추가
-                const innerHTML = ` ${extraBadge} <div class="tag-container">${tags}</div> <div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div> <div class="unit-name" style="font-size:15px; margin-bottom:3px; ${u.isSuper ? 'color:#fbc02d; text-shadow:0 0 5px rgba(255,235,59,0.5);' : ''}">${displayName} <span class="atk-text">⚔️${u.getAtk()}</span></div> <div class="status-bar" style="height:14px;"><div class="hp-fill" style="width:${hpPct}%; background:${hpColor};"></div><div class="shield-fill" style="width:${(u.shield/u.maxHp)*100}%"></div></div> <div style="font-size:12px; margin-top:3px; color:#777; font-weight:bold;">${u.hp}${u.shield>0?` (+${u.shield})`:''}</div> `;
+                const innerHTML = ` ${extraBadge} <div class="tag-container">${tags}</div> <div class="attr-icon ${bgClass}">${icon || ATTR[u.base].i}<div class="mini-attr-box"><div class="mini-icon">${ATTR[u.base].i}</div>${u.extra ? `<div class="mini-icon">${ATTR[u.extra].i}</div>` : ''}</div></div> <div class="unit-name" style="font-size:15px; margin-bottom:3px; ${u.isSuper ? 'color:#fbc02d; text-shadow:0 0 5px rgba(255,235,59,0.5);' : ''}">${displayName}${affInd} <span class="atk-text">⚔️${u.getAtk()}</span></div> <div class="status-bar" style="height:14px;"><div class="hp-fill" style="width:${hpPct}%; background:${hpColor};"></div><div class="shield-fill" style="width:${(u.shield/u.maxHp)*100}%"></div></div> <div style="font-size:12px; margin-top:3px; color:#777; font-weight:bold;">${u.hp}${u.shield>0?` (+${u.shield})`:''}</div> `;
                 if (d.innerHTML !== innerHTML) d.innerHTML = innerHTML;
             });
         };
