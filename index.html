@@ -966,23 +966,7 @@
         .diff-select { margin: 0; padding: 10px; width: 100%; border-radius: 20px; border: 3px solid #b2dfdb; font-size: 14px; font-family: var(--font-main); color: #555; background: #fff; outline:none; }
         .atk-text { font-size: 12px; font-weight: bold; color: #fff; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 10px; }
 
-        @media (max-height: 700px) {
-            .unit { min-height: 90px; width: 28vw; max-width: 110px; padding: 4px; }
-            .attr-icon { width: 36px; height: 36px; font-size: 20px; }
-            .unit-name { font-size: 12px !important; margin-bottom: 2px !important; }
-            .status-bar { height: 8px; margin-top: 2px; }
-            .control-panel { max-height: 45vh; }
-            .btn-group { min-height: 72px; height: auto; }
-            .skill-name { font-size: 12px; }
-            .skill-desc { font-size: 10px; display: block; line-height: 1.2; }
-            .cp-header { padding: 5px 10px; font-size: 12px; }
-            .timeline-container { height: 35px; }
-            .tl-node { width: 24px; height: 24px; font-size: 14px; }
-            .log-container { min-height: 40px; max-height: 80px; padding: 5px; }
-            .log-entry { font-size: 11px; padding: 2px 6px; margin-bottom: 2px; }
-            .tag { font-size: 8px; padding: 1px 3px; height: 12px; }
-            .tag-container { max-height: 26px; }
-        }
+       
 /* [신규] 데미지 미리보기 & 감정표현 */
         .hp-preview {
             position: absolute;
@@ -1134,47 +1118,59 @@
         .save-submenu div:active { background:#ffe0b2; }
 
         /* ========================================= */
-        /* [모바일 최적화 V2] 더 넓은 공간 확보 */
+        /* [모바일 전문가 설정 V3] 화면 꽉 채우기 + 기능 복구 */
         /* ========================================= */
         @media (max-width: 768px) {
-            /* 1. 카드 크기 더 축소 (숨통 트이기) */
-            .unit {
-                width: 28vw;         /* 너비 약간 축소 */
-                height: 140px;       /* 높이 축소 (165px -> 140px) */
-                border-radius: 8px;  /* 둥근 모서리 약간 줄임 */
-            }
-            
-            /* 카드 내부 요소 크기 조정 */
-            .unit .card-name { font-size: 11px; margin-bottom: 1px; }
-            .unit .tiny-icon { width: 20px; height: 20px; font-size: 12px; }
-            .unit .card-atk { font-size: 9px; padding: 1px 4px; }
-            .unit .card-badge { top: 3px; left: 3px; }
-            .unit .status-bar { height: 6px; }
-
-            /* 2. 전체 레이아웃 여백 조정 */
+            /* 1. 레이아웃: 화면 꽉 채우기 */
             #battle-screen {
-                padding: 10px 5px; /* 상하 여백 축소 */
-                padding-top: 60px; /* 상단 메뉴 버튼 공간 확보 */
-                justify-content: center; /* 중앙 정렬 */
-                gap: 5px; /* 요소 간 간격 최소화 */
+                height: 100vh;      /* 높이 100% */
+                height: 100dvh;     /* 모바일 실제 높이 대응 */
+                padding: 5px;       /* 여백 최소화 */
+                padding-top: 50px;  /* 상단 메뉴 공간 */
+                justify-content: space-between; /* 위/아래 요소 양끝 정렬 (중앙 공백은 패널이 채움) */
+                gap: 0;             /* 불필요한 간격 제거 */
             }
 
-            /* 3. 중앙 패널 다이어트 */
+            /* 2. 카드 크기 대폭 확대 (140px -> 175px) */
+            .unit {
+                width: 30vw;        /* 가로 3개 꽉 차게 */
+                height: 175px;      /* 높이 시원하게 확대 */
+                max-width: none;    /* 너비 제한 해제 */
+                border-radius: 12px;
+                margin-bottom: 0;
+            }
+            /* 내부 글자 및 아이콘 최적화 */
+            .unit .card-name { font-size: 13px; margin-bottom: 3px; }
+            .unit .tiny-icon { width: 24px; height: 24px; font-size: 14px; }
+            .unit .card-atk { font-size: 11px; padding: 2px 6px; }
+            .unit .status-bar { height: 7px; }
+
+            /* 3. 컨트롤 패널: 기능 완전 복구 */
             .control-panel { 
-                max-height: 30vh; /* 높이 제한 강화 */
-                width: 96%; /* 좌우 여백 약간 줌 */
-                align-self: center;
-                border-radius: 20px; /* 모바일에서는 둥글게 */
+                width: 98%;         /* 좌우 꽉 차게 */
+                max-height: 40vh;   /* 높이 넉넉하게 (32vh -> 40vh) */
+                margin: 0 auto;     /* 중앙 정렬 */
+                align-self: flex-end; /* 바닥 쪽으로 배치 */
+                border-radius: 20px 20px 0 0; /* 위쪽만 둥글게 */
             }
-            
-            /* 버튼 그룹 높이 축소 */
-            .btn-group { min-height: 45px; gap: 3px; padding: 3px; }
-            .skill-btn { border-radius: 10px; }
-            .skill-name { font-size: 12px; }
-            .skill-desc { display: none; } /* 모바일에서는 스킬 설명 텍스트 숨김 (깔끔하게) */
 
-            /* 로그창 축소 */
-            .log-container { display: none; } /* 과감한 선택: 모바일에서는 로그창을 숨기거나 아주 작게 */
+            /* 4. [복구] 로그창과 스킬 설명 다시 보이기 */
+            .log-container { 
+                display: flex;      /* 숨김 해제! */
+                height: 60px;       /* 로그 볼 수 있는 높이 확보 */
+                min-height: 40px;
+                font-size: 11px;
+                padding: 5px;
+            }
+            .skill-desc {
+                display: block;     /* 스킬 설명 다시 표시! */
+                font-size: 10px;
+                color: #666;
+                margin-top: 2px;
+                line-height: 1.2;
+            }
+            .btn-group { min-height: 60px; padding: 5px; gap: 5px; }
+            .skill-btn { padding: 5px; }
         }
         /* [신규] 턴 알림 통합 효과 (헤더 반짝임) */
         @keyframes header-flash-ally {
