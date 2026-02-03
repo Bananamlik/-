@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v16.3 Fixed</title>
+    <title>Elemental Tactics: v16.1 Fixed</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -1125,11 +1125,115 @@
      margin-bottom: 0;
      transition: margin-bottom 0.3s ease;
 }
+/* 하단 메뉴용 위로 올라가는 애니메이션 */
+@keyframes slide-up-menu { 
+    from { opacity: 0; transform: translateY(20px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+.dock-folder.show { 
+    animation: slide-up-menu 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important; 
+}
+/* [중요] 메뉴가 패널 밖으로 튀어나와도 잘리지 않게 함 */
+.control-panel {
+    overflow: visible !important;
+}
+/* [긴급 수정] 하단 패널 및 메뉴 계층 최상위로 격상 */
+.control-panel {
+    z-index: 5000 !important; /* 유닛(100), 이펙트(999)보다 무조건 높게 */
+    overflow: visible !important; /* 메뉴가 패널 밖으로 튀어나가도 보이게 */
+}
+
+/* 메뉴 안의 팝업들(저장/설정) 위치 및 클릭 보정 */
+.dock-folder {
+    z-index: 6000 !important; /* 패널보다 더 높게 */
+    pointer-events: auto !important; /* 클릭 강제 허용 */
+}
+
+/* 설정/저장 팝업창 스타일 보정 (메뉴 옆으로 예쁘게 뜨게) */
+.settings-modal, .save-menu {
+    position: absolute !important;
+    bottom: 0 !important;
+    right: 45px !important; /* 아이콘 바로 왼쪽으로 배치 */
+    top: auto !important;
+    left: auto !important;
+    z-index: 7000 !important; /* 메뉴보다도 높게 */
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid var(--text-main);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    width: 180px; /* 너비 확보 */
+}
+/* [신규] 실드 게이지 및 체력바 스타일 보정 */
+.status-bar {
+    position: relative; /* 실드 겹치기를 위한 기준점 */
+    background: #444; /* 빈 공간 배경색 */
+    overflow: hidden; /* 둥근 모서리 유지 */
+}
+
+.hp-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    z-index: 1; /* 체력은 1층 */
+    transition: width 0.3s ease;
+}
+
+.shield-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background-color: var(--shield); /* 보라색 (#ce93d8) */
+    opacity: 0.75; /* 살짝 투명하게 해서 체력과 겹쳐 보이게 */
+    z-index: 2; /* 실드는 체력 위에 2층으로 표시 */
+    pointer-events: none;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 5px rgba(206, 147, 216, 0.5); /* 빛나는 효과 */
+}
+/* =========================================
+   [업그레이드] 스킬 이펙트 (VFX) 시스템 V2
+   ========================================= */
+.vfx-layer {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10000; /* 유닛보다 무조건 위 (10000) */
+    font-size: 80px; /* 크기 2배 확대 (40px -> 80px) */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    white-space: nowrap;
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); /* 그림자 추가로 가시성 확보 */
+}
+
+/* 1. 타격/폭발: 화면을 뚫고 나올 듯한 확대 */
+@keyframes vfx-boom {
+    0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; filter: brightness(2.0); } /* 밝게 빛남 */
+    100% { transform: translate(-50%, -50%) scale(2.0); opacity: 0; }
+}
+
+/* 2. 베기: 빠르고 강렬한 궤적 */
+@keyframes vfx-slash {
+    0% { transform: translate(-50%, -50%) scale(0.5) rotate(-45deg); opacity: 0; }
+    20% { transform: translate(-50%, -50%) scale(1.2) rotate(0deg); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.5) rotate(45deg); opacity: 0; }
+}
+
+/* 3. 회복: 천천히 위로 올라가며 반짝임 */
+@keyframes vfx-heal {
+    0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+    50% { transform: translate(-50%, -50px) scale(1.2); opacity: 1; text-shadow: 0 0 20px #4caf50; }
+    100% { transform: translate(-50%, -100px) scale(1.5); opacity: 0; }
+}
+
+/* 4. 마법: 회전하며 커짐 */
+@keyframes vfx-magic {
+    0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(3) rotate(720deg); opacity: 0; }
+}
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-
+<div id="tooltip-view"></div>
 <div id="flash-overlay"></div>
 <!-- [컷신] 오버레이 -->
 <div id="cut-in-overlay">
@@ -1137,37 +1241,6 @@
     <div class="cut-in-text" id="cut-in-msg">FINISH!</div>
 </div>
 <!-- [툴팁] 뷰 -->
-<div id="tooltip-view"></div>
-<div class="side-controls">
-    <div class="side-btn main-menu-btn" onclick="UI.toggleDock()" title="메뉴">⚙️</div>
-
-    <div id="dock-folder" class="dock-folder">
-        <div class="side-btn" onclick="Game.reset()" title="홈">🏠</div>
-        
-        <div style="position:relative;">
-            <div class="side-btn" onclick="UI.toggleSettings()" title="소리">🎵</div>
-            <div id="audio-settings" class="settings-modal">
-                <div class="set-row"><span>볼륨</span><input type="range" class="vol-slider" min="0" max="100" value="50" oninput="AudioSys.setMasterVolume(this.value)"></div>
-                <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
-                <div class="set-row"><span>BGM</span><div class="toggle-btn on" id="tog-bgm" onclick="AudioSys.toggleChannel('bgm')"></div></div>
-                <div class="bgm-select"><div class="bgm-opt active" onclick="UI.selectBGM('Canon_Piano', this)">🎹피아노</div><div class="bgm-opt" onclick="UI.selectBGM('Battle_Piano', this)">⚔️전투</div></div>
-                <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
-                <div class="set-row"><span>SFX</span><div class="toggle-btn on" id="tog-sfx" onclick="AudioSys.toggleChannel('sfx')"></div></div>
-            </div>
-        </div>
-
-        <div style="position:relative;">
-            <div class="side-btn" onclick="UI.toggleSaveMenu()" title="저장">💾</div>
-            <div id="save-menu-popup" class="save-menu">
-                <div class="save-opt" onclick="Game.saveGame(); UI.toggleSaveMenu()">💾저장</div>
-                <div class="save-opt" onclick="Game.loadGame(); UI.toggleSaveMenu()">📂로드</div>
-            </div>
-        </div>
-
-        <div class="side-btn" onclick="UI.showGuide()" title="가이드">📖</div>
-        <div class="side-btn" onclick="UI.showCollection()" title="도감">💎</div>
-    </div>
-</div>
 
 <div id="app">
     <div id="modal-overlay">
@@ -1180,7 +1253,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v16.3 Fixed (ILLUST)</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v16.1 Fixed (ILLUST)</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -1228,10 +1301,39 @@
     <div id="battle-screen" class="screen">
         <div class="field-row" id="enemy-row"></div>
         <div class="control-panel">
-            <div class="cp-header">
-                <span id="turn-indicator" style="font-weight:bold; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 50%;">Ready... 🐱</span>
+            <div class="cp-header" style="position:relative; padding-right:50px;">
+                <span id="turn-indicator" style="font-weight:bold; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width: 100%;">Ready... 🐱</span>
                 
-                <div id="tl-track" style="display:flex; gap:5px; align-items:center;"></div>
+                <div style="position:absolute; right:5px; top:50%; transform:translateY(-50%); z-index: 100;">
+                    <div class="side-btn main-menu-btn" onclick="UI.toggleDock()" style="width:32px; height:32px; font-size:16px; margin:0;" title="메뉴">⚙️</div>
+                    
+                    <div id="dock-folder" class="dock-folder" style="position:absolute; bottom:110%; right:0; flex-direction:column-reverse; background:transparent; padding-bottom:5px;">
+                        <div class="side-btn" onclick="Game.reset()" title="홈" style="width:32px; height:32px; font-size:16px;">🏠</div>
+                        
+                        <div style="position:relative;">
+                            <div class="side-btn" onclick="UI.toggleSettings()" title="소리" style="width:32px; height:32px; font-size:16px;">🎵</div>
+                            <div id="audio-settings" class="settings-modal" style="bottom:0; right:40px; top:auto; left:auto;">
+                                <div class="set-row"><span>볼륨</span><input type="range" class="vol-slider" min="0" max="100" value="50" oninput="AudioSys.setMasterVolume(this.value)"></div>
+                                <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
+                                <div class="set-row"><span>BGM</span><div class="toggle-btn on" id="tog-bgm" onclick="AudioSys.toggleChannel('bgm')"></div></div>
+                                <div class="bgm-select"><div class="bgm-opt active" onclick="UI.selectBGM('Canon_Piano', this)">🎹피아노</div><div class="bgm-opt" onclick="UI.selectBGM('Battle_Piano', this)">⚔️전투</div></div>
+                                <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
+                                <div class="set-row"><span>SFX</span><div class="toggle-btn on" id="tog-sfx" onclick="AudioSys.toggleChannel('sfx')"></div></div>
+                            </div>
+                        </div>
+
+                        <div style="position:relative;">
+                            <div class="side-btn" onclick="UI.toggleSaveMenu()" title="저장" style="width:32px; height:32px; font-size:16px;">💾</div>
+                            <div id="save-menu-popup" class="save-menu" style="bottom:0; right:40px; top:auto; left:auto;">
+                                <div class="save-opt" onclick="Game.saveGame(); UI.toggleSaveMenu()">💾저장</div>
+                                <div class="save-opt" onclick="Game.loadGame(); UI.toggleSaveMenu()">📂로드</div>
+                            </div>
+                        </div>
+
+                        <div class="side-btn" onclick="UI.showGuide()" title="가이드" style="width:32px; height:32px; font-size:16px;">📖</div>
+                        <div class="side-btn" onclick="UI.showCollection()" title="도감" style="width:32px; height:32px; font-size:16px;">💎</div>
+                    </div>
+                </div>
             </div>
 
             <div class="log-container" id="logs"></div>
@@ -1511,17 +1613,17 @@ const IMAGE_DB = {
 const SKILL_DB = {
     'Metal': { s1:'강철베기', s1d:'1.3배+30%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15/데미지X', type:'CC', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>받는 피해 MaxHP 30% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 30%를 넘지 않습니다.' },
     'Tree': { s1:'뿌리묶기', s1d:'3턴간 아군피해 50% 대신받음', s2:'치유의 잎', s2d:'HP+140/정화(CC해제시 뎀감↑)', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', desc:'수호형 탱커<br>피해 분산 + 뎀감 패시브', passive:'🌳 거목: 받는 피해가 15% 감소합니다. S2로 행동불가를 해제하면 뎀감율이 5%씩 증가합니다 (최대 25%).'},
-    'Fire-Light': { s1:'흡혈부여', s1d:'아군전체 흡혈(3턴)', s2:'폭주', s2d:'자신공+20(영구)/전체공+10', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🔷', desc:'공격형 탱커<br>흡혈 + 폭주', passive:'🩸 흡혈: 매 턴 공격 시 피해량의 25%를 회복합니다. (최대 50)' },
+    'Fire-Light': { s1:'흡혈부여', s1d:'아군전체 흡혈(3턴)', s2:'폭주', s2d:'자신공+20(영구)/전체공+10', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🔷', desc:'공격형 탱커<br>흡혈 + 폭주', passive:'🩸 흡혈: 매 턴 공격 시 피해량의 30%를 회복합니다. (최대 50)' },
     'Water-Light': { s1:'스팀젯', s1d:'0.9배+실명(30%)', s2:'안개', s2d:'잃은체력15%힐+회피', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'☁️', desc:'서폿형 탱커<br>회피 + 어그로', passive:'☁️ 기화: 체력 20% 이하 시 1회 자동 회복 및 회피 상태가 됩니다.' },
-    'Fire': { s1:'화염방사', s1d:'1.6배 +화상(60%)', s2:'메테오', s2d:'광역 0.8배+화상(30%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', desc:'메인 딜러<br>초반 강력 (유통기한)', passive:'🔥 불의 기세: 1~2턴 공+20, 3~6턴 공+10, 7턴 이후 0' },
+    'Fire': { s1:'화염방사', s1d:'1.6배 +화상(60%)', s2:'메테오', s2d:'광역 0.8배+화상(30%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', desc:'메인 딜러<br>초반 강력 / 후반 유지', passive:'🔥 불의 기세: 1~2R 공+15, 3~6R 공+10, 7R~ 공+5' },
     'Normal': { s1:'균형타', s1d:'1.5배/내HP-30/쉴드60', s2:'주사위', s2d:'0.8~2.3배 랜덤/노코스트', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'⚖️', desc:'메인 딜러<br>랜덤 한방 (약점:단일기초5속성) + 서브탱킹', passive:'🎲 면역: 행동 제어기(기절,빙결,침묵,세뇌)에 걸리지 않습니다.'},
     'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상(100%)', s2:'소각', s2d:'1.0배+적 공격력만큼 추가타', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', desc:'메인 딜러<br>역이용 카운터', passive:'🔥 소각: 적의 공격력이 높을수록 더 큰 피해를 입힙니다.' },
     'Metal-Dark': { s1:'전기충격', s1d:'1.5배+공격력10↑', s2:'방전', s2d:'광역 0.8배+기절(15%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'⚡', desc:'메인 딜러<br>성장형 광역', passive:'⚡ 과부하: S1 사용 시 공격력이 10 증가합니다 (최대 3회).' },
-    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.5배+자가기절(1턴 휴식)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 사용 후 1턴간 [반동] 상태가 됩니다. 반동 상태에서는 받는 피해가 15 증가하며, 이는 정화되지 않습니다.' },
+    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.35배+자가기절(1턴)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 사용 후 1턴간 [반동] 상태가 됩니다. 반동 상태에서는 받는 피해가 15 증가하며, 이는 정화되지 않습니다.' },
     'Earth': { s1:'암석투척', s1d:'1.3배+기절/침묵(30%)', s2:'지진', s2d:'광역 0.8배 (1:1강화)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🏜️', desc:'CC형 딜러<br>기절 / 침묵', passive:null },
     'Water-Dark': { s1:'고드름', s1d:'1.5배', s2:'절대영도', s2d:'1.0배+빙결(35%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'❄️', desc:'CC형 딜러<br>빙결', passive:null },
     'Metal-Light': { s1:'가스탄', s1d:'0.3배/CC걸린적 1.5배', s2:'맹독살포', s2d:'전체 중독(3턴)', type:'DEBUFF', target:'ALL_ENEMY', role:'nuker', icon:'☣️', desc:'특수 딜러<br>버프 제거 + 조건부폭딜', passive:null },
-    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배(관통)+쉴드타격0.6배', s2:'모래지옥', s2d:'속박+치유감소(60%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'🦂', desc:'특수 딜러<br>쉴드 파괴자', passive:null },
+    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배(관통)+쉴드타격0.6배', s2:'모래지옥', s2d:'속박+치유감소(70%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'🦂', desc:'특수 딜러<br>쉴드 파괴자', passive:null },
     'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+반사강화', s2:'영혼결속', s2d:'아군결속/저항↑', type:'TARGET_BUFF', target:'ALLY', role:'nuker', icon:'🥀', desc:'특수 딜러<br>복수 + 결속', passive:'🥀 복수: 결속된 아군 사망 시 공격력+20, S1계수+0.3 영구 증가.' },
     'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'전체120+(20%확률50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'메인 힐러<br>광역 회복', passive:null },
     'Tree-Light': { s1:'숲의분노', s1d:'1.3배+아군랜덤힐20', s2:'축복', s2d:'아군 정화/HP+70', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚', desc:'메인 힐러<br>공격 + 회복', passive:null },
@@ -1659,64 +1761,26 @@ const Common = {
     },
 
     basicAttack: function(atk, def, game) {
+        // 1. 소리는 공격 시도 시 바로 재생 (취향에 따라 실명일 때 끌 수도 있음)
         AudioSys.play('HIT');
+
+        // 2. 실명(BLIND) 체크 로직 (기존 코드 복구)
         const blindMod = atk.hasStatus('BLIND') ? 0 : 1;
         if(blindMod === 0) { 
             Common.logAction(game, 'miss', atk, def, 0, "(실명)");
             UI.floatText(atk, "BLINDED", "ft-miss"); 
-            return; 
+            return; // 실명이면 여기서 함수 종료 (데미지 X, 이펙트 X)
         }
 
-        const baseAtk = atk.getAtk();
-        const applyAffinity = (def && def.team !== atk.team) || (game.isMindControlling);
-        const aff = applyAffinity ? game.calc(atk, def) : {v:1, t:''};
+        // 3. 실명이 아닐 때만 공격 로그 및 이펙트 출력
+        game.log(`<b>[${atk.name}]</b> 공격! ⚔️`);
         
-        // [수정] 최종 데미지 산출
-        const rawDmg = Math.floor(baseAtk * 1.0 * aff.v * blindMod);
-        
-        // [수정] 분산 로직 호출
-        const res = Common.distributeDamage(atk, def, rawDmg, game, false, false);
-        const act = res.targetAct;
-        
-        game.recordStat(atk, 'dmg', Math.max(0, act)); // 통계는 원본 타겟 피해량만 (단순화)
+        // [이펙트] 공격 성공 시에만 샥! (실명일 땐 안 나옴)
+        UI.playVFX(def, 'slash'); 
 
-        if(act !== -1) {
-            Common.logAction(game, 'dmg', atk, def, act, aff.t + (res.split ? "(분산)" : ""));
-            const isCrit = (act >= 200) || (atk.isNormal && def.isNormal && act > baseAtk);
-            let type = isCrit ? "ft-crit" : "ft-dmg";
-            if (aff.v > 1.0) type = "ft-weak";
-            else if (aff.v < 1.0) type = "ft-resist";
-            
-            // 데미지 텍스트는 distributeDamage 내부에서 뜨는 것과 별개로 타겟에게 뜸
-            UI.floatText(def, act, type);
-            
-            if (isCrit || aff.v > 1.0) { 
-                AudioSys.play('CRITICAL');
-                UI.screenShake(); 
-                UI.hitStop(150); 
-            } else {
-                game.shake(def);
-            }
-
-            // 흡혈 로직
-            if ((atk.getKey() === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
-                const healAmt = Math.min(50, Math.floor(act * 0.25));
-                if(healAmt > 0) { 
-                    atk.heal(healAmt);
-                    const buff = atk.status.find(s => s.type === 'LIFESTEAL_BUFF');
-                    if (buff && buff.sourceId !== -1 && buff.sourceId !== atk.id) {
-                        const allUnits = [...game.pTeam, ...game.eTeam];
-                        const provider = allUnits.find(u => u.id === buff.sourceId);
-                        if(provider) game.recordStat(provider, 'heal', healAmt);
-                    } else {
-                        Common.logAction(game, 'heal', atk, atk, healAmt, "(흡혈)");
-                    }
-                }
-            }
-        } else {
-            Common.logAction(game, 'miss', atk, def, 0);
-            UI.floatText(def, "MISS", "ft-miss");
-        }
+        // 4. 데미지 계산
+        const act = Common.applyDamage(atk, def, 1.0, game);
+        if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
     },
 
     applyDamage: function(atk, def, mult, game, ignoreShield=false, isFire=false) {
@@ -1747,7 +1811,7 @@ const Common = {
             game.shake(def); 
 
             if ((atk.getKey() === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
-                const healAmt = Math.min(50, Math.floor(act * 0.25));
+                const healAmt = Math.min(50, Math.floor(act * 0.30));
                 if(healAmt > 0) { 
                     atk.heal(healAmt);
                     const buff = atk.status.find(s => s.type === 'LIFESTEAL_BUFF');
@@ -1791,19 +1855,25 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 화염방사! 🔥`);
-                // [Balance] 화상 확률 60% 적용
+                UI.playVFX(def, 'fire'); // [이펙트] 불꽃 발사
+                
+                // [Balance] 화상 확률 60% 유지
                 const act = Common.applyDamage(atk, def, 1.6, game, false, true);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
                     if (game.netRandom() < 0.60) def.addStatus('BURN', 2, 0, atk);
                 }
             } else {
-                // ... (S2 메테오는 기존 유지)
                 game.log(`<b>[${atk.name}]</b> 메테오! ☄️`);
+                // [이펙트] 적 전체 폭발
+                Common.forEachEnemy(atk, game, (e) => UI.playVFX(e, 'fire'));
+
                 Common.forEachEnemy(atk, game, (e) => {
                     const act = Common.applyDamage(atk, e, 0.8, game, false, true);
-                    if (act !== -1) Common.logAction(game, 'dmg', atk, e, act, "");
-                    if (act !== -1 && game.netRandom() < 0.30) e.addStatus('BURN', 2, 0, atk);
+                    if (act !== -1) {
+                         Common.logAction(game, 'dmg', atk, e, act, "");
+                         if (game.netRandom() < 0.30) e.addStatus('BURN', 2, 0, atk);
+                    }
                 });
             }
         }
@@ -2249,24 +2319,28 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 낙석 🧗`);
+                UI.playVFX(def, 'rock'); // [이펙트] 돌덩이 쿵
                 const act = Common.applyDamage(atk, def, 1.5, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
             } else {
                 game.log(`<b>[${atk.name}]</b> 산사태 🌋`);
-                const act = Common.applyDamage(atk, def, 2.5, game);
+                UI.playVFX(def, 'rock'); // [이펙트] 강력한 바위
+                
+                // 2.35배 데미지 + 반동 로직 유지
+                const act = Common.applyDamage(atk, def, 2.35, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
+                
                 if (atk.hasStatus('IMMUNITY')) {
                     atk.status = atk.status.filter(s => s.type !== 'IMMUNITY');
                     UI.floatText(atk, "면역삭제", "ft-miss");
                 }
-                
-                // 1. 기절 부여 (행동 불가, 정화 가능)
+
+                // 기절 부여
                 const ex = atk.status.find(s => s.type === 'STUN');
                 if (ex) ex.turn = 2;
                 else atk.status.push({ type: 'STUN', turn: 2, val: 0 });
 
-                // 2. [신규] 반동 부여 (피해 증가, 정화 불가)
-                // 기존 상태가 있으면 갱신, 없으면 추가
+                // 반동 부여 (받는 피해 15 증가)
                 const recoil = atk.status.find(s => s.type === 'EARTH_RECOIL');
                 if (recoil) recoil.turn = 2;
                 else atk.status.push({ type: 'EARTH_RECOIL', turn: 2, val: 15 });
@@ -2464,8 +2538,9 @@ if (awakened) {
         let v = this.atk;
         if (this.base === 'Fire' && !this.extra) {
             const turn = Game.turnCount;
-            if (turn <= 12) v += 20;
+            if (turn <= 12) v += 15;
             else if (turn <= 36) v += 10;
+            else v += 5;
         }
         if (this.revengeAtk > 0) v += this.revengeAtk;
         const lightMight = this.status.find(s => s.type === 'LIGHT_MIGHT');
@@ -2745,7 +2820,7 @@ if (awakened) {
         this.status = this.status.filter(s => s.turn > 0);
     }
     heal(amount) {
-        if (this.hasStatus('HEAL_DOWN')) amount = Math.floor(amount * 0.4);
+        if (this.hasStatus('HEAL_DOWN')) amount = Math.floor(amount * 0.3);
         const prev = this.hp;
         this.hp = Math.min(this.maxHp, this.hp + amount);
         const diff = this.hp - prev;
@@ -3148,21 +3223,53 @@ const UI = {
         document.body.classList.add('screen-shake');
     },
     showTurnBanner: function(isPlayerTurn) {
-        // 배너 요소가 삭제되었으므로 아무 작업도 하지 않음 (오류 방지)
         const banner = document.getElementById('turn-banner');
-        if (!banner) return; 
+        if (!banner) return; // 배너 없으면 조용히 종료
 
+        // (기존 배너 로직 유지)
         if (isPlayerTurn) {
             banner.style.background = 'linear-gradient(90deg, transparent, rgba(33, 150, 243, 0.8), transparent)';
-            banner.innerHTML = "⚔️ 아군 턴 (Player Turn)";
+            banner.innerHTML = "⚔️ 아군 턴";
         } else {
             banner.style.background = 'linear-gradient(90deg, transparent, rgba(255, 87, 34, 0.8), transparent)';
-            banner.innerHTML = "👹 적군 턴 (Enemy Turn)";
+            banner.innerHTML = "👹 적군 턴";
         }
         banner.style.animation = 'none';
         void banner.offsetWidth;
-        const duration = Game.turnCount > 5 ? '0.6s' : '1.2s';
-        banner.style.animation = `banner-swipe ${duration} cubic-bezier(0.22, 1, 0.36, 1) forwards`;
+        banner.style.animation = 'banner-swipe 1.2s forwards';
+    },
+    // [수정] 이펙트를 화면 전체 좌표 기준으로 생성 (가려짐 방지)
+    playVFX: function(unit, type) {
+        const id = unit.team === 0 ? `p-card-${unit.id}` : `e-card-${unit.id}`;
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        // 타겟 카드의 현재 화면상 위치(좌표)를 가져옴
+        const rect = el.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        const vfx = document.createElement('div');
+        vfx.className = 'vfx-layer';
+        // 좌표를 직접 지정 (화면 기준 절대 좌표)
+        vfx.style.left = `${centerX}px`;
+        vfx.style.top = `${centerY}px`;
+        vfx.style.transform = "translate(-50%, -50%)"; // 중앙 정렬 보정
+        
+        switch(type) {
+            case 'hit': vfx.innerText = '💥'; vfx.style.animation = 'vfx-boom 0.4s ease-out forwards'; break;
+            case 'slash': vfx.innerText = '⚔️'; vfx.style.animation = 'vfx-slash 0.3s ease-out forwards'; break;
+            case 'fire': vfx.innerText = '🔥'; vfx.style.animation = 'vfx-boom 0.6s ease-out forwards'; vfx.style.color = 'orange'; break;
+            case 'ice': vfx.innerText = '❄️'; vfx.style.animation = 'vfx-boom 0.5s ease-out forwards'; break;
+            case 'heal': vfx.innerText = '✨'; vfx.style.animation = 'vfx-heal 0.8s ease-out forwards'; break;
+            case 'rock': vfx.innerText = '🪨'; vfx.style.animation = 'vfx-boom 0.4s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards'; break;
+            case 'magic': vfx.innerText = '🌀'; vfx.style.animation = 'vfx-magic 0.7s ease-out forwards'; break;
+            default: vfx.innerText = '💥'; vfx.style.animation = 'vfx-boom 0.4s ease-out forwards'; break;
+        }
+        
+        // 카드가 아닌 'body'에 직접 붙여서 가장 위에 표시
+        document.body.appendChild(vfx);
+        setTimeout(() => vfx.remove(), 1000);
     },
     showResult: function(winnerTeamStr) {
         const allUnits = [...Game.pTeam, ...Game.eTeam];
@@ -3399,23 +3506,27 @@ const UI = {
         }, duration);
     },
 
-    // [여기가 새로 추가되는 메뉴 열기 기능]
+    // [메뉴 열기/닫기 기능]
     toggleDock: function() {
-        var el = document.getElementById('dock-folder');
-        // 현재 열려있는지 확인
-        if (el.style.display === 'flex') {
-            el.style.display = 'none'; // 닫기
-            // 열려있는 팝업창들도 싹 닫기
-            var s1 = document.getElementById('audio-settings');
-            var s2 = document.getElementById('save-menu-popup');
+        const el = document.getElementById('dock-folder');
+        if (!el) return; 
+
+        if (el.classList.contains('show')) {
+            el.classList.remove('show');
+            el.style.display = 'none'; 
+            
+            const s1 = document.getElementById('audio-settings');
+            const s2 = document.getElementById('save-menu-popup');
             if(s1) s1.style.display = 'none';
             if(s2) s2.style.display = 'none';
         } else {
-            el.style.display = 'flex'; // 열기
+            el.style.display = 'flex'; 
+            void el.offsetWidth; 
             el.classList.add('show');
+            el.style.zIndex = '9999';
         }
     }
-}; // UI 객체 종료 (이 세미콜론이 중요합니다!)
+}; // UI 객체 여기서 끝! (중괄호, 세미콜론 필수)
 
 
 const Game = {
@@ -4139,28 +4250,18 @@ turn: function() {
     },
 
     render: function() {
-        const tl = document.getElementById('tl-track');
-        tl.innerHTML = '';
-        for (let i = 0; i < 6; i++) {
-            const idx = (this.curr + i) % 6;
-            const qId = this.queue[idx];
-            const isP = qId % 2 === 0;
-            const uIdx = isP ? Math.floor(qId / 2) : Math.floor((qId - 1) / 2);
-            const team = isP ? this.pTeam : this.eTeam;
-            const u = team[uIdx];
-            if (!u) continue; // null 체크 추가
-            const n = document.createElement('div');
-            n.className = `tl-node ${isP?'ally':'enemy'} ${i===0?'curr':''}`;
-            if (u.isDead) n.style.opacity = 0.3;
-            n.innerText = SKILL_DB[u.getKey()].icon || ATTR[u.base].i;
-            tl.appendChild(n);
-        }
+        // [수정 완료] 타임라인 코드 완전 제거됨
+        
+        // 1. 유닛 그리기
         const draw = (rowId, team, tid) => {
             const row = document.getElementById(rowId);
+            if (!row) return;
+
             const currentIds = team.map(u => u.id);
             Array.from(row.children).forEach(c => {
                 if (!currentIds.includes(parseInt(c.dataset.uid))) c.remove();
             });
+            
             team.forEach((u) => {
                 const cardId = tid === 0 ? `p-card-${u.id}` : `e-card-${u.id}`;
                 let d = document.getElementById(cardId);
@@ -4170,38 +4271,20 @@ turn: function() {
                     d.dataset.uid = u.id;
                     row.appendChild(d);
                 }
+                
                 let isActive = false;
                 if (tid === 0) isActive = this.queue[this.curr] === u.id * 2;
                 else isActive = this.queue[this.curr] === (u.id - 3) * 2 + 1;
-                const role = SKILL_DB[u.getKey()].role || 'nuker';
                 
-                // 카드 클래스 설정
+                const role = SKILL_DB[u.getKey()].role || 'nuker';
                 d.className = `unit role-${role} ${u.isSuper ? 'super-hero' : ''} ${u.isDead?'dead':''} ${isActive?'active-turn':''} ${tid===1?'target-enemy':''} ${tid===0?'target-ally':''}`;
 
-                // 이벤트 리스너 연결
-                d.onmousedown = (e) => {
-                    if (d.classList.contains('target-enemy') || d.classList.contains('target-ally')) return;
-                    d.pressTimer = setTimeout(() => UI.showTooltip(u, d), 500);
-                };
-                d.onmouseup = () => { clearTimeout(d.pressTimer); UI.hideTooltip(); };
-                d.onmouseleave = () => { 
-                    clearTimeout(d.pressTimer);
-                    UI.hideTooltip();
-                    const p = d.querySelector('.hp-preview');
-                    if(p) p.remove();
-                };
-                d.ontouchstart = (e) => {
-                    if (d.classList.contains('target-enemy') || d.classList.contains('target-ally')) return;
-                    d.pressTimer = setTimeout(() => UI.showTooltip(u, d), 500);
-                };
-                d.ontouchend = () => { clearTimeout(d.pressTimer); UI.hideTooltip(); };
+                // 이벤트 연결
                 d.onclick = (e) => {
                     if (Game.selectedSkillIdx !== -1) return;
-                    if (u.team === 0) {
-                        UI.showEmoteMenu(u, d);
-                        e.stopPropagation();
-                    }
+                    if (u.team === 0) { UI.showEmoteMenu(u, d); e.stopPropagation(); }
                 };
+                
                 d.onmouseenter = () => {
                      if (Game.selectedSkillIdx !== -1 && tid !== 0 && !Game.isProcessing) {
                          const pred = Game.predictDmg(u);
@@ -4212,108 +4295,72 @@ turn: function() {
                                 preview.className = 'hp-preview';
                                 const currentHpPct = (u.hp / u.maxHp) * 100;
                                 const dmgPct = Math.min(currentHpPct, (pred / u.maxHp) * 100);
-                                const leftPos = Math.max(0, currentHpPct - dmgPct);
-                                preview.style.left = leftPos + '%';
+                                preview.style.left = Math.max(0, currentHpPct - dmgPct) + '%';
                                 preview.style.width = dmgPct + '%';
                                 bar.appendChild(preview);
                             }
                         }
                      }
+                     UI.showTooltip(u, d);
                 };
+                d.onmouseleave = () => { UI.hideTooltip(); const p = d.querySelector('.hp-preview'); if(p) p.remove(); };
 
-                // 상태이상 태그 생성 로직
-                // 상태이상 태그 생성 로직 (턴 수 표시 기능 추가)
+                // 상태이상 태그 생성
                 let tags = u.status.map(s => {
                     let c = 'tag';
-                    const map = {
-                        'POISON': 'poison', 'FREEZE': 'freeze', 'SILENCE': 'silence',
-                        'EVADE': 'evade', 'BURN': 'burn', 'BANISH': 'banish',
-                        'TRAP': 'trap', 'BIND': 'bind', 'GROWTH': 'growth',
-                        'ATK_DOWN': 'atkdown', 'BLIND': 'blind', 'IMMUNITY': 'immunity',
-                        'HEAL_DOWN': 'healdown', 'LIGHT_MIGHT': 'atkup', 'LIFESTEAL_BUFF': 'lifesteal',
-                        'ATK_BUFF_SMALL': 'atkup_s', 'START_IMMUNITY': 'start-immunity',
-                        'ROOT_GUARD': 'bind', 'MC_WAIT': 'mc-wait', 'MC_READY': 'mc-ready',
-                        'EARTH_RECOIL': 'atkdown'
-                    };
+                    const map = {'POISON':'poison','FREEZE':'freeze','SILENCE':'silence','EVADE':'evade','BURN':'burn','BANISH':'banish','TRAP':'trap','BIND':'bind','GROWTH':'growth','ATK_DOWN':'atkdown','BLIND':'blind','IMMUNITY':'immunity','HEAL_DOWN':'healdown','LIGHT_MIGHT':'atkup','LIFESTEAL_BUFF':'lifesteal','ATK_BUFF_SMALL':'atkup_s','START_IMMUNITY':'start-immunity','ROOT_GUARD':'bind','MC_WAIT':'mc-wait','MC_READY':'mc-ready','EARTH_RECOIL':'atkdown'};
                     if (s.type.includes('PROVOKED')) c += ' taunt';
                     else if (s.type.startsWith('KARMA_VICTIM')) c += ' karma';
                     else if (map[s.type]) c += ` ${map[s.type]}`;
                     
                     let txt = s.type;
-                    const tMap = {
-                        'POISON': '독', 'FREEZE': '빙결', 'SILENCE': '침묵', 'DMG_RED': '방어↑',
-                        'EVADE': '회피', 'BURN': '화상', 'TRAP': '속박', 'BANISH': '추방',
-                        'BIND': '결속', 'GROWTH': '성장', 'ATK_DOWN': '공격↓', 'BLIND': '실명',
-                        'IMMUNITY': '면역', 'HEAL_DOWN': '치유↓', 'LIGHT_MIGHT': '공격↑',
-                        'LIFESTEAL_BUFF': '🩸흡혈', 'ATK_BUFF_SMALL': '🔥공격↑', 'START_IMMUNITY': '🛡️선공방어',
-                        'ROOT_GUARD': '🪵수호', 'MC_WAIT': '🌀세뇌중', 'MC_READY': '🧠조종',
-                        'EARTH_RECOIL': '💔반동'
-                    };
+                    const tMap = {'POISON':'독','FREEZE':'빙결','SILENCE':'침묵','DMG_RED':'방어↑','EVADE':'회피','BURN':'화상','TRAP':'속박','BANISH':'추방','BIND':'결속','GROWTH':'성장','ATK_DOWN':'공격↓','BLIND':'실명','IMMUNITY':'면역','HEAL_DOWN':'치유↓','LIGHT_MIGHT':'공격↑','LIFESTEAL_BUFF':'🩸흡혈','ATK_BUFF_SMALL':'🔥공격↑','START_IMMUNITY':'🛡️선공방어','ROOT_GUARD':'🪵수호','MC_WAIT':'🌀세뇌중','MC_READY':'🧠조종','EARTH_RECOIL':'💔반동'};
                     if (s.type.includes('PROVOKED')) txt = '도발';
                     else if (s.type.startsWith('KARMA_VICTIM')) txt = '👁️업보';
                     else if (tMap[s.type]) txt = tMap[s.type];
 
-                    // [UI 개선] 남은 턴 수 표시 (90턴 미만인 경우만 표시하여 깔끔함 유지)
-                    if (s.turn < 90) {
-                        txt += ` <b style="font-family:sans-serif; margin-left:1px;">${s.turn}</b>`;
-                    }
-
+                    if (s.turn < 90) txt += ` <b style="font-family:sans-serif; margin-left:1px;">${s.turn}</b>`;
                     return `<span class="${c}">${txt}</span>`;
                 }).join('');
-                if (u.linkedAllyId !== -1) tags += `<span class="tag bind" style="background:#27ae60; border:1px solid #fff;">🔗Link</span>`;
 
-                // [이미지 및 UI 렌더링]
+                if (u.linkedAllyId !== -1) tags += `<span class="tag bind" style="background:#27ae60;">🔗Link</span>`;
+
                 const key = u.getKey();
                 const imgUrl = IMAGE_DB[key] || IMAGE_DB['Default'];
-                let tintColor = 'transparent';
-                if(u.base === 'Fire') tintColor = 'rgba(255, 0, 0, 0.1)';
-                if(u.base === 'Water') tintColor = 'rgba(0, 0, 255, 0.1)';
-                if(u.base === 'Tree') tintColor = 'rgba(0, 255, 0, 0.1)';
                 
                 const hpPct = (u.hp / u.maxHp) * 100;
                 let hpColor = '#66bb6a';
                 if (hpPct <= 25) hpColor = '#ef5350';
                 else if (hpPct <= 50) hpColor = '#ffb74d';
-                
+
                 let displayName = u.name.split(' ')[0];
                 if (u.isSuper) {
                     const emo = EMOTION_DB[u.getKey()];
                     if (emo) displayName = `[${emo.t}] ${displayName}`;
                 }
 
-                // [신규] 아이콘 생성 로직 (1개 또는 2개)
                 let iconsHtml = '';
-                // 1. 기본 속성 아이콘
-                if (ATTR[u.base]) {
-                    iconsHtml += `<div class="tiny-icon">${ATTR[u.base].i}</div>`;
-                }
-                // 2. 추가 속성 아이콘 (있으면 추가, Dark-Dark의 경우 Dark가 두 번 들어감)
-                if (u.extra && ATTR[u.extra]) {
-                    iconsHtml += `<div class="tiny-icon">${ATTR[u.extra].i}</div>`;
-                }
-                // 3. 노말 등 특수 케이스 처리 (아이콘이 없으면 스킬DB 아이콘 사용)
-                if (iconsHtml === '' && SKILL_DB[key]) {
-                    iconsHtml = `<div class="tiny-icon">${SKILL_DB[key].icon}</div>`;
-                }
+                if (ATTR[u.base]) iconsHtml += `<div class="tiny-icon">${ATTR[u.base].i}</div>`;
+                if (u.extra && ATTR[u.extra]) iconsHtml += `<div class="tiny-icon">${ATTR[u.extra].i}</div>`;
+                if (iconsHtml === '' && SKILL_DB[key]) iconsHtml = `<div class="tiny-icon">${SKILL_DB[key].icon}</div>`;
 
+                // [체력바 UI 변경 핵심 부분]
                 const innerHTML = `
                     <div class="unit-img-bg" style="background-image: url('${imgUrl}');">
-                        <div style="position:absolute; inset:0; background:${tintColor};"></div>
+                        <div style="position:absolute; inset:0; background:${'transparent'};"></div>
                     </div>
                     <div class="card-badge">${iconsHtml}</div>
                     <div class="card-atk">⚔️ ${u.getAtk()}</div>
                     ${u.elecStacks > 0 ? `<div class="elec-badge" style="top:30px;">⚡${u.elecStacks}</div>` : ''}
                     <div class="tag-container">${tags}</div>
                     <div class="unit-info-overlay">
-                        <div class="card-name" style="${u.isSuper ? 'color:#ffd700;' : ''}">
-                            ${displayName}
-                        </div>
+                        <div class="card-name" style="${u.isSuper ? 'color:#ffd700;' : ''}">${displayName}</div>
                         <div class="status-bar">
                             <div class="hp-fill" style="width:${hpPct}%; background:${hpColor};"></div>
-                            <div class="shield-fill" style="width:${(u.shield/u.maxHp)*100}%"></div>
+                            <div class="shield-fill" style="width:${Math.min(100, (u.shield/u.maxHp)*100)}%"></div>
                         </div>
-                        <div style="font-size:9px; text-align:right; color:#ddd; margin-top:1px;">
-                            ${u.hp} / ${u.maxHp} ${u.shield>0?`(+${u.shield})`:''}
+                        <div style="font-size:11px; font-weight:bold; text-align:right; color:#fff; text-shadow:1px 1px 1px rgba(0,0,0,0.8); margin-top:2px; letter-spacing:0.5px;">
+                            ${u.hp} / ${u.maxHp} ${u.shield > 0 ? `<span style="color:#e1bee7;">(+${u.shield})</span>` : ''}
                         </div>
                     </div>
                 `;
@@ -4321,6 +4368,7 @@ turn: function() {
                 if (d.innerHTML !== innerHTML) d.innerHTML = innerHTML;
             });
         };
+
         draw('player-row', this.pTeam, 0);
         draw('enemy-row', this.eTeam, 1);
     },
@@ -4359,7 +4407,7 @@ endTurn: function(isFast = false) {
         // 데스매치 로직
         if (this.curr === 0) {
             const round = Math.ceil(this.turnCount / 6);
-            if (round > 20) {
+            if (round > 15) {
                 [...this.pTeam, ...this.eTeam].forEach(u => {
                     if (!u.isDead) u.atk += 10;
                 });
