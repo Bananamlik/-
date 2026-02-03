@@ -1134,30 +1134,48 @@
         .save-submenu div:active { background:#ffe0b2; }
 
         /* ========================================= */
-        /* [최종 수정] 상하 배치 강제 고정 (PC/모바일 공통) */
+        /* [복구 완료] 상하 배치 + 원본 색감 유지 */
         /* ========================================= */
         
-        /* 1. 기본 레이아웃 (모바일 베이스) */
+        /* 1. 기본 레이아웃 (원본 스타일 복구) */
         body {
-            /* PC에서 너무 커지는 것 방지하기 위해 배경색 깔고 중앙 정렬 */
-            background-color: #fce4ec; /* 연한 핑크 배경 */
-            background-image: var(--paw-pattern);
+            /* [중요] 제멋대로 바꾼 색상 삭제하고 원본 변수 복구 */
+            background-color: var(--bg-main) !important;
+            background-image: var(--paw-pattern) !important;
+            background-size: 80px 80px;
+            
+            /* 중앙 정렬 유지 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
         }
 
         #app {
-            /* 앱 크기를 모바일처럼 제한하고 중앙에 둡니다 */
+            /* 앱 크기 제한 (PC에서 너무 퍼지지 않게) */
             max-width: 600px; 
             width: 100%;
             height: 100%;
-            margin: 0 auto; /* 중앙 정렬 */
-            background: rgba(255,255,255,0.9); /* 본문 배경 */
-            box-shadow: 0 0 40px rgba(0,0,0,0.1); /* 그림자 */
-            display: flex;
-            flex-direction: column; /* 무조건 위아래 배치 */
             position: relative;
+            display: flex;
+            flex-direction: column;
+            
+            /* [중요] 불투명한 흰색 배경 제거 -> 원본 발자국 패턴이 보이도록 투명화 */
+            background: transparent; 
+            box-shadow: none; 
+        }
+        
+        /* PC 환경에서만 아주 살짝 그림자를 줘서 앱 경계만 표시 (색감 영향 X) */
+        @media (min-width: 800px) {
+            #app {
+                box-shadow: 0 0 50px rgba(0,0,0,0.05); 
+            }
         }
 
-        /* 2. 전장 배치 (위:적 / 중간:패널 / 아래:아군) */
+        /* 2. 전장 배치 (상하 배치 강제) */
         #battle-screen {
             display: none; /* JS 제어 */
             flex-direction: column;
@@ -1167,11 +1185,11 @@
             overflow: hidden;
         }
 
-        /* 3. 유닛 카드 크기 (화면 꽉 차게) */
+        /* 3. 유닛 카드 크기 */
         .unit {
-            width: 28vw;           /* 화면 너비 비례 */
-            max-width: 130px;      /* 너무 커지지 않게 제한 */
-            height: 140px;         /* 높이 적절히 고정 */
+            width: 28vw;           
+            max-width: 130px;      
+            height: 140px;         
             border-radius: 12px;
         }
 
@@ -1185,29 +1203,22 @@
             z-index: 50;
         }
 
-        /* 5. 좁은 화면(모바일) 미세 조정 */
+        /* 5. 모바일/작은 화면 대응 */
         @media (max-width: 768px) {
-            #app { box-shadow: none; background: transparent; } /* 모바일은 꽉 차게 */
-            
-            .unit { 
-                height: 125px; /* 높이 약간 더 축소 (겹침 방지) */
-            }
+            .unit { height: 125px; }
             .unit .card-name { font-size: 11px; }
             .unit .status-bar { height: 6px; margin-top: 2px; }
-            
             .control-panel { max-height: 35vh; }
             .btn-group { min-height: 50px; padding: 2px; }
-            .skill-desc { display: none; } /* 설명 숨김 */
+            .skill-desc { display: none; }
             .log-container { display: flex; min-height: 20px; max-height: 50px; }
         }
 
-        /* 6. 아주 작은 화면 (폴드 등) 대응 */
         @media (max-height: 700px) {
             .unit { height: 100px; }
             .control-panel { max-height: 40vh; }
-            .log-container { display: none; } /* 공간 부족시 로그 숨김 */
-        }
-    </style>
+            .log-container { display: none; }
+        }</style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
