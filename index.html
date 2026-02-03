@@ -1123,12 +1123,14 @@
         @media (max-width: 768px) {
             /* 1. 레이아웃: 화면 꽉 채우기 */
             #battle-screen {
-                height: 100vh;      /* 높이 100% */
-                height: 100dvh;     /* 모바일 실제 높이 대응 */
-                padding: 5px;       /* 여백 최소화 */
-                padding-top: 50px;  /* 상단 메뉴 공간 */
-                justify-content: space-between; /* 위/아래 요소 양끝 정렬 (중앙 공백은 패널이 채움) */
-                gap: 0;             /* 불필요한 간격 제거 */
+                height: 100vh;
+                height: 100dvh;
+                padding: 10px 5px;  /* 상하 여백 균일하게 10px */
+                /* padding-top 삭제 */
+                justify-content: center; /* 중앙 정렬로 변경 (상하 균형) */
+                gap: 5px;
+                /* 중요: 하단 유닛이 잘리지 않게 바닥에서 살짝 띄움 */
+                padding-bottom: 20px; 
             }
 
             /* 2. 카드 크기 대폭 확대 (140px -> 175px) */
@@ -1202,24 +1204,27 @@
     <div class="cut-in-text" id="cut-in-msg">FINISH!</div>
 </div>
 <!-- [툴팁] 뷰 -->
-<div id="tooltip-view"></div>
-<div class="sys-menu-container">
-    <div class="sys-btn-main" onclick="UI.toggleSysMenu()">⚙️</div>
-    
-    <div id="sys-menu-list" class="sys-menu-list">
-        <div class="sys-item" onclick="UI.toggleSaveMenu()">
-            <span>💾 저장/로드</span>
-            <div id="save-menu-popup" class="save-submenu">
-                <div onclick="Game.saveGame();">💾 저장하기</div>
-                <div onclick="Game.loadGame();">📂 불러오기</div>
+<div id="tooltip-view"></div><div class="cp-header" style="position: relative; display: flex; justify-content: center; align-items: center;">
+                <span id="turn-indicator" style="font-weight:bold; color:var(--accent); font-size: 14px;">Ready... 🐱</span>
+                
+                <div style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%);">
+                    <div onclick="UI.toggleSysMenu()" style="font-size: 20px; cursor: pointer; padding: 5px;">⚙️</div>
+                </div>
+
+                <div id="sys-menu-list" class="sys-menu-list" style="top: 100%; right: 0; width: 150px; font-size: 13px; z-index: 200;">
+                    <div class="sys-item" onclick="UI.toggleSaveMenu()">
+                        <span>💾 저장/로드</span>
+                        <div id="save-menu-popup" class="save-submenu">
+                            <div onclick="Game.saveGame();">💾 저장하기</div>
+                            <div onclick="Game.loadGame();">📂 불러오기</div>
+                        </div>
+                    </div>
+                    <div class="sys-item" onclick="UI.showGuide(); UI.toggleSysMenu()">📖 가이드</div>
+                    <div class="sys-item" onclick="UI.toggleSettings(); UI.toggleSysMenu()">🎵 BGM</div>
+                    <div class="sys-item" style="color:#e57373;" onclick="Game.reset(); UI.toggleSysMenu()">🏠 홈으로</div>
+                    <div class="sys-item close-btn" onclick="UI.toggleSysMenu()">✖ 닫기</div>
+                </div>
             </div>
-        </div>
-        <div class="sys-item" onclick="UI.showGuide(); UI.toggleSysMenu()">📖 가이드북</div>
-        <div class="sys-item" onclick="UI.toggleSettings(); UI.toggleSysMenu()">🎵 오디오 설정</div>
-        <div class="sys-item" style="color:#e57373;" onclick="Game.reset(); UI.toggleSysMenu()">🏠 홈으로</div>
-        <div class="sys-item close-btn" onclick="UI.toggleSysMenu()">✖ 닫기</div>
-    </div>
-</div>
 
 <div id="app">
     <div id="modal-overlay">
@@ -4196,43 +4201,6 @@ turn: function() {
     },
 
     render: function() {
-        const tl = document.getElementById('tl-track');
-        tl.innerHTML = '';
-        for (let i = 0; i < 6; i++) {
-            const idx = (this.curr + i) % 6;
-            const qId = this.queue[idx];
-            const isP = qId % 2 === 0;
-            const uIdx = isP ? Math.floor(qId / 2) : Math.floor((qId - 1) / 2);
-            const team = isP ? this.pTeam : this.eTeam;
-            const u = team[uIdx];
-            if (!u) continue;
-
-            const n = document.createElement('div');
-            // tl-node 클래스 유지하되, 내부 스타일을 위해 flex 설정 추가
-            n.className = `tl-node ${isP?'ally':'enemy'} ${i===0?'curr':''}`;
-            n.style.display = 'flex';
-            n.style.justifyContent = 'center';
-            n.style.alignItems = 'center';
-            n.style.gap = '1px'; // 아이콘 간 간격
-            
-            if (u.isDead) n.style.opacity = 0.3;
-
-            // [카드와 동일한 아이콘 생성 로직]
-            let iconsHtml = '';
-            // 1. 기본 아이콘 (약간 작게)
-            if (ATTR[u.base]) iconsHtml += `<div style="font-size:14px;">${ATTR[u.base].i}</div>`;
-            // 2. 추가 아이콘
-            if (u.extra && ATTR[u.extra]) iconsHtml += `<div style="font-size:14px;">${ATTR[u.extra].i}</div>`;
-            
-            // 예외 처리
-            if (iconsHtml === '') {
-                const key = u.getKey();
-                if(SKILL_DB[key]) iconsHtml = SKILL_DB[key].icon;
-            }
-
-            n.innerHTML = iconsHtml; // innerText 대신 innerHTML 사용
-            tl.appendChild(n);
-        }
         const draw = (rowId, team, tid) => {
             const row = document.getElementById(rowId);
             const currentIds = team.map(u => u.id);
