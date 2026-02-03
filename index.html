@@ -1134,17 +1134,16 @@
         .save-submenu div:active { background:#ffe0b2; }
 
         /* ========================================= */
-        /* [복구 완료] 상하 배치 + 원본 색감 유지 */
+        /* [최종 V6] 카드 크기 최적화 (패널 겹침 방지) */
         /* ========================================= */
         
-        /* 1. 기본 레이아웃 (원본 스타일 복구) */
+        /* 1. 기본 레이아웃 (공통) */
         body {
-            /* [중요] 제멋대로 바꾼 색상 삭제하고 원본 변수 복구 */
+            /* 원본 색감 및 배경 유지 */
             background-color: var(--bg-main) !important;
             background-image: var(--paw-pattern) !important;
             background-size: 80px 80px;
             
-            /* 중앙 정렬 유지 */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -1155,70 +1154,121 @@
         }
 
         #app {
-            /* 앱 크기 제한 (PC에서 너무 퍼지지 않게) */
-            max-width: 600px; 
+            max-width: 1024px; 
             width: 100%;
             height: 100%;
             position: relative;
             display: flex;
             flex-direction: column;
-            
-            /* [중요] 불투명한 흰색 배경 제거 -> 원본 발자국 패턴이 보이도록 투명화 */
             background: transparent; 
             box-shadow: none; 
+            transition: 0.3s;
         }
         
-        /* PC 환경에서만 아주 살짝 그림자를 줘서 앱 경계만 표시 (색감 영향 X) */
-        @media (min-width: 800px) {
+        /* PC 환경 설정 */
+        @media (min-width: 1024px) {
             #app {
-                box-shadow: 0 0 50px rgba(0,0,0,0.05); 
+                max-width: 800px; /* PC 앱 너비 */
+                height: 95vh;     /* 높이 여백 */
+                border: 2px solid rgba(255,255,255,0.6);
+                border-radius: 30px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                background: rgba(255,255,255,0.2); 
             }
         }
 
         /* 2. 전장 배치 (상하 배치 강제) */
         #battle-screen {
-            display: none; /* JS 제어 */
+            display: none;
             flex-direction: column;
             padding: 10px;
             height: 100%;
-            justify-content: space-between;
+            justify-content: space-between; 
+            align-items: center; 
             overflow: hidden;
         }
 
-        /* 3. 유닛 카드 크기 */
+        /* 3. 유닛 카드 크기 조정 */
         .unit {
-            width: 28vw;           
-            max-width: 130px;      
-            height: 140px;         
-            border-radius: 12px;
+            /* [수정] 카드 크기 축소 (180px -> 150px) */
+            width: 150px;           
+            height: 220px;         
+            max-width: none;
+            border-radius: 14px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
         }
+        
+        /* 폰트 및 UI 크기 조정 (카드 크기에 맞춰 최적화) */
+        .unit .card-name { font-size: 15px; margin-bottom: 4px; }
+        .unit .tiny-icon { width: 30px; height: 30px; font-size: 16px; }
+        .unit .card-atk { font-size: 11px; padding: 3px 6px; top: 6px; right: 6px; }
+        .unit .card-badge { top: 6px; left: 6px; }
+        .unit .status-bar { height: 8px; margin-top: 4px; }
 
         /* 4. 컨트롤 패널 (중앙) */
         .control-panel {
             flex: 0 0 auto;
-            width: 98%;
+            width: 95%;
+            max-width: 600px;
             align-self: center;
-            border-radius: 20px 20px 0 0;
+            border-radius: 25px 25px 0 0;
             margin-bottom: 0;
             z-index: 50;
+            /* [추가] 패널 위아래 여백 확보 */
+            margin-top: 10px;
         }
+        
+        .btn-group { min-height: 70px; }
+        .skill-name { font-size: 15px; }
 
-        /* 5. 모바일/작은 화면 대응 */
+        /* 5. 모바일 최적화 */
         @media (max-width: 768px) {
-            .unit { height: 125px; }
-            .unit .card-name { font-size: 11px; }
+            #app { 
+                max-width: 100%; 
+                height: 100%; 
+                border: none; 
+                border-radius: 0; 
+                background: transparent; 
+                box-shadow: none;
+            }
+            
+            #battle-screen { padding: 5px; }
+
+            /* 모바일에서는 꽉 차게 유지 */
+            .unit {
+                width: 31vw;       
+                max-width: 130px;  
+                height: 150px;    
+                border-radius: 10px;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+            }
+            
+            .unit .card-name { font-size: 12px; margin-bottom: 2px; }
+            .unit .tiny-icon { width: 24px; height: 24px; font-size: 12px; }
+            .unit .card-atk { font-size: 10px; padding: 2px 5px; top: 4px; right: 4px; }
+            .unit .card-badge { top: 4px; left: 4px; }
             .unit .status-bar { height: 6px; margin-top: 2px; }
-            .control-panel { max-height: 35vh; }
-            .btn-group { min-height: 50px; padding: 2px; }
-            .skill-desc { display: none; }
-            .log-container { display: flex; min-height: 20px; max-height: 50px; }
+            
+            .control-panel { 
+                max-height: 35vh; 
+                width: 98%; 
+                border-radius: 20px 20px 0 0;
+                margin-top: 0;
+            }
+            .btn-group { min-height: 55px; padding: 2px; }
+            .skill-name { font-size: 13px; }
+            
+            .skill-desc { display: none; } 
+            .log-container { display: flex; min-height: 25px; max-height: 60px; }
         }
 
+        /* 6. 높이가 낮은 화면 대응 */
         @media (max-height: 700px) {
-            .unit { height: 100px; }
-            .control-panel { max-height: 40vh; }
+            .unit { height: 110px; }
+            .control-panel { max-height: 45vh; }
             .log-container { display: none; }
-        }</style>
+        }
+         </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
