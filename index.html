@@ -1081,6 +1081,50 @@
             transition: 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
         .toggle-btn.on::after { left: 22px; }
+        /* =========================================
+   [새로운 턴 활성화 디자인 적용]
+   기존의 튀어오름 및 두꺼운 테두리를 제거하고,
+   레이아웃에 영향을 주지 않는 빛(Glow) 효과로 대체합니다.
+========================================= */
+
+/* 1. 활성화된 카드 스타일 재정의 */
+.unit.active-turn {
+    /* 기존의 이동(translateY)과 두꺼운 테두리 제거 */
+    transform: none !important; /* 혹시 모를 상속된 변형 강제 초기화 */
+    border: 1px solid rgba(0,0,0,0.1) !important; /* 기본 얇은 테두리로 고정 */
+    z-index: 5; /* 다른 카드보다 약간 위로 */
+
+    /* 새로운 강조 효과: 부드럽게 일렁이는 핑크빛 후광 */
+    animation: active-glow-pulse 1.5s infinite ease-in-out;
+}
+
+/* 2. 빛이 숨쉬듯 일렁이는 애니메이션 정의 */
+@keyframes active-glow-pulse {
+    0%, 100% {
+        /* 빛이 은은할 때 */
+        box-shadow: 
+            0 0 10px 2px var(--accent),          /* 외부 후광 */
+            inset 0 0 5px rgba(255, 255, 255, 0.3); /* 내부 하이라이트 */
+    }
+    50% {
+        /* 빛이 가장 강할 때 */
+        box-shadow: 
+            0 0 20px 5px var(--accent),          /* 더 넓고 진한 외부 후광 */
+            inset 0 0 15px rgba(255, 255, 255, 0.5); /* 더 강한 내부 하이라이트 */
+    }
+}
+
+/* 3. 플레이어 카드 추가 보정 (혹시 모를 미세 겹침 방지) */
+/* 플레이어 카드는 컨트롤 패널과 가까우므로 하단 마진을 살짝 확보 */
+#player-row .unit.active-turn {
+    margin-bottom: 4px; 
+    transition: margin-bottom 0.3s ease;
+}
+/* 비활성 상태일 때 자연스럽게 복귀 */
+#player-row .unit:not(.active-turn) {
+     margin-bottom: 0;
+     transition: margin-bottom 0.3s ease;
+}
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
