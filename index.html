@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v16.1 Fixed</title>
+    <title>Elemental Tactics: v16.3 Fixed</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -1180,7 +1180,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v16.1 Fixed (ILLUST)</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v16.3 Fixed (ILLUST)</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -4222,6 +4222,7 @@ turn: function() {
                 };
 
                 // 상태이상 태그 생성 로직
+                // 상태이상 태그 생성 로직 (턴 수 표시 기능 추가)
                 let tags = u.status.map(s => {
                     let c = 'tag';
                     const map = {
@@ -4245,12 +4246,18 @@ turn: function() {
                         'BIND': '결속', 'GROWTH': '성장', 'ATK_DOWN': '공격↓', 'BLIND': '실명',
                         'IMMUNITY': '면역', 'HEAL_DOWN': '치유↓', 'LIGHT_MIGHT': '공격↑',
                         'LIFESTEAL_BUFF': '🩸흡혈', 'ATK_BUFF_SMALL': '🔥공격↑', 'START_IMMUNITY': '🛡️선공방어',
-                        'ROOT_GUARD': '🪵수호', 'MC_WAIT': '🌀세뇌중...', 'MC_READY': '🧠조종가능',
+                        'ROOT_GUARD': '🪵수호', 'MC_WAIT': '🌀세뇌중', 'MC_READY': '🧠조종',
                         'EARTH_RECOIL': '💔반동'
                     };
                     if (s.type.includes('PROVOKED')) txt = '도발';
                     else if (s.type.startsWith('KARMA_VICTIM')) txt = '👁️업보';
                     else if (tMap[s.type]) txt = tMap[s.type];
+
+                    // [UI 개선] 남은 턴 수 표시 (90턴 미만인 경우만 표시하여 깔끔함 유지)
+                    if (s.turn < 90) {
+                        txt += ` <b style="font-family:sans-serif; margin-left:1px;">${s.turn}</b>`;
+                    }
+
                     return `<span class="${c}">${txt}</span>`;
                 }).join('');
                 if (u.linkedAllyId !== -1) tags += `<span class="tag bind" style="background:#27ae60; border:1px solid #fff;">🔗Link</span>`;
