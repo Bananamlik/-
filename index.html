@@ -1205,30 +1205,13 @@
             /* 로그창 축소 */
             .log-container { display: none; } /* 과감한 선택: 모바일에서는 로그창을 숨기거나 아주 작게 */
         }
-        /* [신규] 턴 알림 통합 효과 (헤더 반짝임) */
-        @keyframes header-flash-ally {
-            0% { background-color: #fff; }
-            50% { background-color: #81d4fa; } /* 파란 반짝임 */
-            100% { background-color: #e3f2fd; } /* 은은한 파랑 유지 */
-        }
-        @keyframes header-flash-enemy {
-            0% { background-color: #fff; }
-            50% { background-color: #ffcc80; } /* 주황 반짝임 */
-            100% { background-color: #fff8e1; } /* 은은한 노랑 유지 */
-        }
-        
-        .cp-header.ally-turn {
-            animation: header-flash-ally 0.5s ease-out forwards;
-            border-bottom-color: #81d4fa;
-        }
-        .cp-header.enemy-turn {
-            animation: header-flash-enemy 0.5s ease-out forwards;
-            border-bottom-color: #ffcc80;
-        }
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
+
+<div id="flash-overlay"></div>
+<div id="turn-banner"></div>
 <!-- [컷신] 오버레이 -->
 <div id="cut-in-overlay">
     <div class="cut-in-img" id="cut-in-emoji">🦁</div>
@@ -3250,27 +3233,19 @@ const UI = {
         void document.body.offsetWidth;
         document.body.classList.add('screen-shake');
     },
-    // [수정] 상단 배너 제거 -> 컨트롤 패널 헤더에 통합
     showTurnBanner: function(isPlayerTurn) {
-        const header = document.querySelector('.cp-header');
-        const container = document.querySelector('.control-panel');
-        
-        // 헤더가 없으면 에러 방지하고 종료
-        if (!header) return;
-
-        // 기존 클래스 초기화 (애니메이션 리셋)
-        header.classList.remove('ally-turn', 'enemy-turn');
-        void header.offsetWidth; // 강제 리플로우 (애니메이션 재시작용 필수 코드)
-
+        const banner = document.getElementById('turn-banner');
         if (isPlayerTurn) {
-            header.classList.add('ally-turn');
-            // 패널 테두리 색상도 파랑/핑크 계열로 변경
-            if(container) container.style.borderTop = "5px solid #ff80ab"; 
+            banner.style.background = 'linear-gradient(90deg, transparent, rgba(33, 150, 243, 0.8), transparent)';
+            banner.innerHTML = "⚔️ 아군 턴 (Player Turn)";
         } else {
-            header.classList.add('enemy-turn');
-            // 패널 테두리 색상도 적군 느낌(주황)으로 변경
-            if(container) container.style.borderTop = "5px solid #ffcc80";
+            banner.style.background = 'linear-gradient(90deg, transparent, rgba(255, 87, 34, 0.8), transparent)';
+            banner.innerHTML = "👹 적군 턴 (Enemy Turn)";
         }
+        banner.style.animation = 'none';
+        void banner.offsetWidth;
+        const duration = Game.turnCount > 5 ? '0.6s' : '1.2s';
+        banner.style.animation = `banner-swipe ${duration} cubic-bezier(0.22, 1, 0.36, 1) forwards`;
     },
     showResult: function(winnerTeamStr) {
         const allUnits = [...Game.pTeam, ...Game.eTeam];
