@@ -446,10 +446,33 @@
 
         .elec-badge {
             position: absolute;
-            top: -5px;
-            right: -5px;
+            /* [수정] 카드 안쪽으로 안전하게 배치하여 잘림 방지 */
+            top: 30px;  
+            right: 4px;
             background: #ffeb3b;
             color: #f57f17;
+            font-weight: 900;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 5;
+            animation: jelly-bounce 1s infinite;
+        }
+
+        /* [신규] 나무 스택 뱃지 (Metal-Dark 참고) */
+        .tree-badge {
+            position: absolute;
+            /* [수정] 카드 안쪽으로 안전하게 배치하여 잘림 방지 */
+            top: 30px; 
+            right: 4px;
+            background: #66bb6a; /* 초록색 */
+            color: #fff;
             font-weight: 900;
             border: 2px solid #fff;
             border-radius: 50%;
