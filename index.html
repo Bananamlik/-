@@ -1641,26 +1641,42 @@ const IMAGE_DB = {
     'Default': 'https://via.placeholder.com/150/cccccc/ffffff?text=No+Image'
 };
 const SKILL_DB = {
-    'Metal': { s1:'강철베기', s1d:'1.3배+30%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15/데미지X', type:'CC', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>받는 피해 MaxHP 20% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 20%를 넘지 않습니다.' },
+    'Metal': { s1:'강철베기', s1d:'1.3배+30%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15', type:'CC', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>받는 피해 MaxHP 20% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 20%를 넘지 않습니다.' },
     'Tree': { s1:'뿌리묶기', s1d:'3턴간 아군피해 40% 대신받음', s2:'치유의 잎', s2d:'HP+100/정화(CC해제시 뎀감↑)', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', desc:'수호형 탱커<br>피해 분산 + 뎀감 패시브', passive:'🌳 거목: 받는 피해가 15% 감소합니다. S2로 행동불가를 해제하면 뎀감율이 5%씩 증가합니다 (최대 25%).'},
     'Fire-Light': { s1:'흡혈부여', s1d:'아군전체 흡혈(3턴)', s2:'폭주', s2d:'자신공+20(영구)/전체공+10', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🔷', desc:'공격형 탱커<br>흡혈 + 폭주', passive:'🩸 흡혈: 매 턴 공격 시 피해량의 30%를 회복합니다. (최대 50)' },
     'Water-Light': { s1:'스팀젯', s1d:'0.9배+실명(30%)', s2:'안개', s2d:'잃은체력15%힐+회피', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'☁️', desc:'서폿형 탱커<br>회피 + 어그로', passive:'☁️ 기화: 체력 20% 이하 시 1회 자동 회복 및 회피 상태가 됩니다.' },
     'Fire': { s1:'화염방사', s1d:'1.5배 +화상(60%)', s2:'메테오', s2d:'광역 0.8배+화상(30%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', desc:'메인 딜러<br>초반 강력 / 유리대포', passive:'🔥 불의 기세: 1~2R 공+15, 3~6R 공+10, 7R~ 공+5' },
     'Normal': { s1:'균형타', s1d:'1.5배/내HP-30/쉴드60', s2:'주사위', s2d:'0.8~2.3배 랜덤/노코스트', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'⚖️', desc:'메인 딜러<br>랜덤 한방 (약점:단일기초5속성) + 서브탱킹', passive:'🎲 면역: 행동 제어기(기절,빙결,침묵,세뇌)에 걸리지 않습니다.'},
-    'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상(100%)', s2:'소각', s2d:'1.0배+적 공격력만큼 추가타', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', desc:'메인 딜러<br>역이용 / 스킬사용시 자가화상(40%)', passive:'🔥 소각: 적의 공격력이 높을수록 더 큰 피해를 입힙니다. 스킬 사용 시 40% 확률로 자신에게 화상을 입힙니다.' },
+    
+    // [수정] 자가화상 패시브 설명 삭제
+    'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상(100%)', s2:'소각', s2d:'1.0배+적 공격력만큼 추가타', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', desc:'메인 딜러<br>역이용 / 강력한 광역 도트', passive:'🔥 소각: 적의 공격력이 높을수록 더 큰 피해를 입힙니다.' },
+    
     'Metal-Dark': { s1:'전기충격', s1d:'1.5배+공격력10↑', s2:'방전', s2d:'광역 0.8배+기절(15%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'⚡', desc:'메인 딜러<br>성장형 광역', passive:'⚡ 과부하: S1 사용 시 공격력이 10 증가합니다 (최대 3회).' },
     'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.35배+자가기절(1턴)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 사용 후 1턴간 [반동] 상태가 됩니다. 반동 상태에서는 받는 피해가 15 증가하며, 이는 정화되지 않습니다.' },
     'Earth': { s1:'암석투척', s1d:'1.4배+버프파괴+CC', s2:'지진', s2d:'광역 0.8배 (1:1강화)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🏜️', desc:'CC형 딜러<br>버프 파괴 / 기절', passive:null },
     'Water-Dark': { s1:'고드름', s1d:'1.5배+데미지20%쉴드', s2:'절대영도', s2d:'1.0배+빙결(35%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'❄️', desc:'CC형 딜러<br>빙결 + 자가쉴드', passive:'❄️ 얼음 갑옷: S1 사용 시 입힌 데미지의 20%만큼 쉴드를 획득합니다.' },
     'Metal-Light': { s1:'가스탄', s1d:'3뎀+피격대상1.0배(CC1.3배)', s2:'맹독살포', s2d:'전체독/치유감소20%', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'☣️', desc:'특수 딜러<br>나무(Tree) 카운터 / 힐밴', passive:null },
-    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배(관통)+쉴드타격0.6배', s2:'모래지옥', s2d:'속박+치유감소(70%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'🦂', desc:'특수 딜러<br>쉴드 파괴자', passive:null },
+    
+    // [수정] 속박 -> 모래지옥(지속피해) 명시
+    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배(관통)+쉴드타격0.6배', s2:'모래지옥', s2d:'지속피해(60)+치유감소(70%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'🦂', desc:'특수 딜러<br>쉴드 파괴자 / 힐러 억제', passive:null },
+    
     'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+복수(계수증가)', s2:'영혼결속', s2d:'아군결속/저항↑', type:'TARGET_BUFF', target:'ALLY', role:'nuker', icon:'🥀', desc:'특수 딜러<br>복수 + 결속', passive:'🥀 복수: 결속된 아군 사망 시 공격력+20, S1계수+0.3 영구 증가.' },
-    'Water': { s1:'물대포', s1d:'1.5배', s2:'치유의 비', s2d:'전체120+(15%확률50)', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'메인 힐러<br>광역 회복', passive:null },
+    
+    // [수정] 1.5배->1.4배, 힐량 표기 수정, 패시브 추가
+    'Water': { s1:'물대포', s1d:'1.4배', s2:'치유의 비', s2d:'전체 100 회복', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'메인 힐러<br>광역 회복', passive:'💧 생명수: 스킬 사용 시 20% 확률로 체력이 가장 낮은 아군을 50 추가 치유합니다.' },
+    
     'Tree-Light': { s1:'숲의분노', s1d:'1.3배+빈사아군 쉴드40', s2:'축복', s2d:'아군 정화/HP+70', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚', desc:'메인 힐러<br>공격 + 보호막', passive:null },
-    'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+15', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', desc:'메인 버퍼<br>광역 쉴드', passive:null },
+    
+    // [수정] 중첩 시 효과 강화 명시
+    'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+15(중첩↑)', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', desc:'메인 버퍼<br>광역 쉴드', passive:null },
+    
     'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'👼', desc:'메인 버퍼<br>정화 + 쉴드', passive:null },
-    'Dark': { s1:'다크볼', s1d:'1.5배+업보(피해30%/CC반사50%)', s2:'공포', s2d:'광역 0.4배/공35%↓/쉴드30%파괴', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'👻', desc:'광역 디버퍼<br>공포 + 쉴드파괴', passive:'👁️ 업보: 다크볼 피격자가 상태이상을 걸면 50% 확률로 반사.' },
-    'Dark-Dark': { s1:'심연일격', s1d:'0.8배+침묵(1턴)', s2:'정신지배', s2d:'HP20%소모/세뇌(30~55%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🧠', desc:'심연의 지배자<br>적 제어권 탈취', passive:'🌑 심연의 힘: 세뇌 성공률은 기본 30%이며, 대상의 체력이 낮을수록 최대 55%까지 증가합니다. 성공 시 다음 턴 적을 1회 조종합니다.' }
+    
+    // [수정] 공깎 수치 조건 명시
+    'Dark': { s1:'다크볼', s1d:'1.5배+업보(피해30%/CC반사50%)', s2:'공포', s2d:'광역 0.4배/공20~35%↓', type:'AOE', target:'ALL_ENEMY', role:'supp', icon:'👻', desc:'광역 디버퍼<br>공포 + 쉴드파괴', passive:'👁️ 업보: 다크볼 피격자가 상태이상을 걸면 50% 확률로 반사.' },
+    
+    // [수정] 코스트 20% -> 12% 수정
+    'Dark-Dark': { s1:'심연일격', s1d:'0.8배+침묵(1턴)', s2:'정신지배', s2d:'HP12%소모/세뇌(30~55%)', type:'DEBUFF', target:'ENEMY', role:'supp', icon:'🧠', desc:'심연의 지배자<br>적 제어권 탈취', passive:'🌑 심연의 힘: 세뇌 성공률은 기본 30%이며, 대상의 체력이 낮을수록 최대 55%까지 증가합니다. 성공 시 다음 턴 적을 1회 조종합니다.' }
 };
 
 // [신규] Emotion Alias Database (English)
@@ -1916,23 +1932,34 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 물대포! 💧`);
-                const act = Common.applyDamage(atk, def, 1.5, game);
+                // [Balance] 1.5배 -> 1.4배 너프
+                const act = Common.applyDamage(atk, def, 1.4, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
             } else {
                 game.log(`<b>[${atk.name}]</b> 치유의 비 🌧️`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
-                    let amt = 120;
-                    if (game.netRandom() < 0.15) { // [Balance] 20% -> 15% 너프
-                        amt += 50;
-                        UI.floatText(a, "Lucky!", "ft-crit");
-                    }
-                    const h = a.heal(amt);
+                    // [Balance] 기본 힐량 120 -> 100, 랜덤 추가 힐 삭제
+                    const h = a.heal(100);
                     game.recordStat(atk, 'heal', h);
                     Common.logAction(game, 'heal', atk, a, h, "");
                 });
-                return false;
             }
+
+            // [New Passive] S1, S2 사용 시 20% 확률로 최저 체력 아군 치유
+            if (sIdx > 0 && game.netRandom() < 0.20) {
+                const allies = atk.team === 0 ? game.pTeam : game.eTeam;
+                // 체력이 가장 낮은(절대값 기준) 아군 찾기
+                const target = allies.filter(a => !a.isDead).sort((a, b) => a.hp - b.hp)[0];
+                if (target) {
+                    const h = target.heal(50);
+                    game.recordStat(atk, 'heal', h);
+                    UI.floatText(target, "+50(P)", "ft-heal");
+                    game.log(`<span class='log-sys'>💧 [패시브] ${target.name} 추가 치유 (+${h})</span>`);
+                }
+            }
+            
+            if (sIdx === 2) return false; // S2는 공격이 아니므로 투사체 소리 방지
         }
     },
     'Tree': {
@@ -2316,11 +2343,7 @@ const SKILL_LOGIC = {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
-                // [Balance] 40% 확률로 자가 화상 (리스크)
-                if (game.netRandom() < 0.4) {
-                    atk.addStatus('BURN', 1, 0, atk);
-                    UI.floatText(atk, "자해(화상)", "ft-dmg");
-                }
+                // [Balance] 패시브(자가 화상) 삭제됨
                 game.log(`<b>[${atk.name}]</b> 흑염 🌑`);
                 const act = Common.applyDamage(atk, def, 1.0, game);
                 if (act !== -1) {
@@ -2328,11 +2351,7 @@ const SKILL_LOGIC = {
                     Common.forEachEnemy(atk, game, (e) => e.addStatus('BURN', 2, 0, atk));
                 }
             } else {
-                // [Balance] 40% 확률로 자가 화상
-                if (game.netRandom() < 0.4) {
-                    atk.addStatus('BURN', 1, 0, atk);
-                    UI.floatText(atk, "자해(화상)", "ft-dmg");
-                }
+                // [Balance] 패시브(자가 화상) 삭제됨
                 game.log(`<b>[${atk.name}]</b> 소각 🔥`);
                 const act = Common.applyDamage(atk, def, 1.0, game);
                 if (act !== -1) {
@@ -2483,8 +2502,8 @@ const SKILL_LOGIC = {
                 return;
             }
 
-            // 1. 코스트 지불
-            const cost = Math.floor(atk.hp * 0.20);
+            // 1. 코스트 지불 (20% -> 12% 버프)
+            const cost = Math.floor(atk.hp * 0.12);
             atk.hp = Math.max(1, atk.hp - cost);
             UI.floatText(atk, `HP소모(-${cost})`, "ft-miss");
             
@@ -2832,8 +2851,9 @@ if (awakened) {
         }
         if (this.resist > 0 && Game.netRandom() < this.resist && ['POISON', 'BURN', 'FREEZE', 'STUN', 'SILENCE', 'BLIND', 'TRAP', 'BANISH', 'ATK_DOWN'].includes(type)) return;
         
-        if (type === 'ATK_DOWN') {
-            const s = this.status.filter(s => s.type === 'ATK_DOWN');
+        // [수정] ATK_DOWN과 HEAL_DOWN을 중첩 가능(최대 2개)하도록 처리
+        if (type === 'ATK_DOWN' || type === 'HEAL_DOWN') {
+            const s = this.status.filter(s => s.type === type);
             if (s.length < 2) {
                 this.status.push({
                     type,
@@ -2842,27 +2862,45 @@ if (awakened) {
                     sourceId: source ? source.id : -1
                 });
             } else {
+                // 이미 2개가 쌓였다면, 지속시간이 가장 짧은 것을 갱신
                 const shortest = s.sort((a, b) => a.turn - b.turn)[0];
                 shortest.turn = turn;
-                if(source) shortest.sourceId = source.id;
+                shortest.val = val; // [중요] 새로운 수치로 갱신 (예: 20 -> 70)
+                if (source) shortest.sourceId = source.id;
             }
+            // UI 상태바 갱신 후 리턴
+            UI.updateStatus(this);
             return;
         }
 
-        const idx = this.status.findIndex(s => s.type === type);
-    if (idx >= 0) {
-        this.status[idx].turn = turn;
-        if (val !== 0) this.status[idx].val = val;
-        if (source) this.status[idx].sourceId = source.id; // ✅ 갱신 시에도 sourceId 저장
-    } else {
-        this.status.push({
-            type,
-            turn,
-            val,
-            sourceId: source ? source.id : -1 // ✅ 신규 생성 시 sourceId 저장
-        });
+       const idx = this.status.findIndex(s => s.type === type);
+        if (idx >= 0) {
+            // [Fix] 치유 감소(HEAL_DOWN) 충돌 방지 로직 추가
+            if (type === 'HEAL_DOWN') {
+                // 기존 수치보다 새로운 수치(val)가 클 때만 값을 덮어씀 (예: 30 vs 70)
+                if (val > this.status[idx].val) {
+                    this.status[idx].val = val;
+                    this.status[idx].turn = turn;
+                } else {
+                    // 약한 효과가 들어오면 값은 무시하고, 지속 시간만 긴 쪽으로 갱신
+                    this.status[idx].turn = Math.max(this.status[idx].turn, turn);
+                }
+                if (source) this.status[idx].sourceId = source.id;
+            } else {
+                // [기존 로직] 그 외 상태이상은 덮어쓰기
+                this.status[idx].turn = turn;
+                if (val !== 0) this.status[idx].val = val;
+                if (source) this.status[idx].sourceId = source.id;
+            }
+        } else {
+            this.status.push({
+                type,
+                turn,
+                val,
+                sourceId: source ? source.id : -1
+            });
+        }
     }
-}
     hasStatus(type) {
         return this.status.some(s => s.type === type);
     }
@@ -2890,7 +2928,8 @@ if (awakened) {
             log.push(`🔥 [${this.name}] 화상 피해 -${d}`);
         }
         if (this.hasStatus('TRAP')) {
-            const d = this.takeDamage(40, false, false, null);
+            // [Balance] 속박 데미지 40 -> 60 상향
+            const d = this.takeDamage(60, false, false, null);
             UI.floatText(this, d, 'ft-dmg');
             log.push(`⏳ [${this.name}] 모래지옥 -${d}`);
         }
@@ -2901,7 +2940,19 @@ if (awakened) {
         this.status = this.status.filter(s => s.turn > 0);
     }
     heal(amount) {
-        if (this.hasStatus('HEAL_DOWN')) amount = Math.floor(amount * 0.3);
+        // [Fix] 치유 감소 효과 중첩 적용 (합연산)
+        // 예: 독가스(-30%) + 모래(-70%) = 100% 감소 -> 힐량 0
+        const healDebuffs = this.status.filter(s => s.type === 'HEAL_DOWN');
+        if (healDebuffs.length > 0) {
+            // 모든 치유 감소 디버프의 val 값을 합산
+            const totalReduction = healDebuffs.reduce((sum, s) => sum + (s.val || 0), 0);
+            
+            // 효율 계산 (감소량이 100% 이상이면 0)
+            const multiplier = Math.max(0, (100 - totalReduction) / 100);
+            
+            amount = Math.floor(amount * multiplier);
+        }
+
         const prev = this.hp;
         this.hp = Math.min(this.maxHp, this.hp + amount);
         const diff = this.hp - prev;
