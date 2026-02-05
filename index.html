@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v16.9 Fixed</title>
+    <title>Elemental Tactics: v17.1 Fixed</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -1297,7 +1297,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v16.9 Fixed (ILLUST)</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v17.1 Fixed (ILLUST)</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -4005,8 +4005,46 @@ const Game = {
         btn.disabled = count !== 3;
     },
     randomPick: function() {
+        const diff = document.getElementById('diff-select').value;
+
+        // [A] 오프라인 1:1 (Local) 모드 전용 로직
+        if (diff === 'local') {
+            if (typeof this.pickTurn === 'undefined') this.pickTurn = 0;
+            const isP1 = (this.pickTurn === 0);
+            const cssClass = isP1 ? 'selected' : 'p2-selected';
+
+            // 1. 기존 선택 초기화 (시각적 + 데이터)
+            const currentList = isP1 ? (this.p1Selection || []) : (this.p2Selection || []);
+            currentList.forEach(idx => {
+                const el = document.getElementById(`card-${idx}`);
+                if (el) el.classList.remove(cssClass);
+            });
+
+            // 2. 데이터 배열 초기화
+            if (isP1) this.p1Selection = [];
+            else this.p2Selection = [];
+            const targetList = isP1 ? this.p1Selection : this.p2Selection;
+
+            // 3. 랜덤 3명 뽑기 (중복 없이)
+            while (targetList.length < 3) {
+                const r = Math.floor(Math.random() * 20);
+                if (!targetList.includes(r)) {
+                    targetList.push(r);
+                    const el = document.getElementById(`card-${r}`);
+                    if (el) el.classList.add(cssClass);
+                }
+            }
+
+            // 4. 버튼 텍스트 갱신
+            const btn = document.getElementById('btn-start');
+            btn.innerText = isP1 ? `🔴 1P 선택 (3/3)` : `🔵 2P 선택 (3/3)`;
+            btn.disabled = false;
+            return;
+        }
+
+        // [B] 기존 PvE / 온라인 모드 로직
         Game.selected.forEach(i => {
-            const el = document.querySelectorAll('.hero-card')[i];
+            const el = document.getElementById(`card-${i}`);
             if (el) el.classList.remove('selected');
         });
         Game.selected = [];
@@ -4014,7 +4052,7 @@ const Game = {
             const r = Math.floor(Math.random() * 20);
             if (!Game.selected.includes(r)) {
                 Game.selected.push(r);
-                const el = document.querySelectorAll('.hero-card')[r];
+                const el = document.getElementById(`card-${r}`);
                 if (el) el.classList.add('selected');
             }
         }
@@ -5274,6 +5312,23 @@ ai: function(u) {
                         else score += 500;
                     }
                 }
+
+                // [AI 심화] 쇠(Metal) 전용: 도발 유지 및 S1 연계 (User Request)
+            if (u.base === 'Metal' && !u.extra) {
+                // 내가 도발을 건 대상이 살아있는지 확인
+                const myProvokedTarget = aliveEnemies.find(e => e.status.some(s => s.type === `PROVOKED_BY_${u.id}`));
+
+                if (myProvokedTarget) {
+                    if (skillIdx === 2) {
+                        // S2(도발): 이미 내 도발에 걸린 놈이 있는데, 엄한 놈에게 도발을 갈아타려 하면 감점
+                        // (단, 킬각(50000점)이나 힐러 점사(1000점) 등 더 중요한 사유가 있으면 점수가 상쇄되어 스킬을 씀)
+                        score -= 2000;
+                    } else if (skillIdx === 1 && target.id === myProvokedTarget.id) {
+                        // S1(강철베기): 도발 걸린 녀석을 때리면 점수 대폭 추가 (확정타 + 쉴드 수급)
+                        score += 2500;
+                    }
+                }
+            }
 
                 // D. 바위(Earth-Dark) S2 과잉 사용 방지
                 if (u.getKey() === 'Earth-Dark' && skillIdx === 2) {
