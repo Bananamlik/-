@@ -5360,9 +5360,14 @@ ai: function(u) {
                 return supportKeywords.some(kw => desc.includes(kw)) || supportTypes.includes(type);
             };
 
-            // ⚔️ 공격 점수 계산
+            // ⚔️ [AI 업데이트 V3] 공격 점수 계산 (도발/딜 계산 최적화)
             const getAttackScore = (target, skillIdx) => {
                 if (!target || target.isDead) return -9999;
+                
+                // 🛑 자살 방지
+                if (u.base === 'Normal' && skillIdx === 1 && u.hp <= 30) return -9999; 
+                if (u.getKey() === 'Dark-Dark' && skillIdx === 2 && u.hp < u.maxHp * 0.15) return -5000;
+
                 let score = 0;
                 const skillDesc = skillIdx === 0 ? "기본공격" : (skillIdx === 1 ? (sk.s1d || "") : (sk.s2d || ""));
                 
@@ -5378,25 +5383,34 @@ ai: function(u) {
                 const aff = Game.calc(u, target);
                 const baseDmg = u.getAtk() * multiplier * aff.v;
 
-                // A. 킬 캐치 (Kill Catch)
+                // A. 킬 캐치 (Kill Catch) - 최우선
                 if (baseDmg > 0 && target.hp <= baseDmg && !target.hasStatus('IMMORTAL')) {
                     score += 50000; 
                 } else {
                     score += baseDmg;
                 }
                 
+                // 🧠 낭비 방지: 적 1명일 때 광역기 억제
+                if (aliveEnemies.length === 1 && ['AOE', 'ALL_ENEMY', 'NUKE_PER'].includes(sk.type) && skillIdx > 0) {
+                    if (target.hp > baseDmg) score -= 2000;
+                }
+
+                // 🧱 버프 파괴자 (Earth)
+                if (u.base === 'Earth' && skillIdx === 1) {
+                    if (target.status.some(s => ['EVADE', 'shield', 'LIGHT_MIGHT', 'ATK_BUFF_SMALL'].includes(s.type) || target.shield > 0)) {
+                        score += 2500; 
+                    }
+                }
+
                 // B. 상성 우위
                 if (aff.v > 1.0) score += 300;
 
-                // 🔥 [AI 심화] 악랄한 타겟팅 로직
-                // 1. 약자 멸시
+                // [심화] 타겟팅 우선순위
                 const hpPct = target.hp / target.maxHp;
-                if (hpPct < 0.4) score += 1500;
-                if (hpPct < 0.2) score += 2000;
-
-                // 2. 힐러/서포터 점사
+                if (hpPct < 0.4) score += 1500; // 약자 멸시
+                
                 const tKey = target.getKey();
-                if (SKILL_DB[tKey] && SKILL_DB[tKey].role === 'supp') score += 1000;
+                if (SKILL_DB[tKey] && SKILL_DB[tKey].role === 'supp') score += 1000; // 힐러 점사
 
                 // 3. 쉴드 낭비 방지 (Metal 상대로)
                 if (target.base === 'Metal' && !target.extra && target.shield > 0) {
@@ -5404,7 +5418,7 @@ ai: function(u) {
                     if (baseDmg > dmgCap * 1.5) score -= 3000; 
                 }
 
-                // 4. 광역기 효율 계산
+                // 4. 광역기 효율
                 if (['AOE', 'ALL_ENEMY', 'NUKE_PER'].includes(sk.type) && skillIdx > 0) {
                     let aoeBonus = 0;
                     aliveEnemies.forEach(en => {
@@ -5417,36 +5431,40 @@ ai: function(u) {
                     score += aoeBonus;
                 }
 
-                // C. CC 중복 방지
-                const ccKeywords = ['기절', '빙결', '침묵', '세뇌', '속박', 'STUN', 'FREEZE', 'SILENCE'];
+                // C. CC 중복 방지 (도발 추가!)
+                // 🟢 [수정] '도발'을 CC 키워드에 포함시켜 기본 점수를 받게 함
+                const ccKeywords = ['기절', '빙결', '침묵', '세뇌', '속박', '도발', 'STUN', 'FREEZE', 'SILENCE'];
                 if (ccKeywords.some(kw => skillDesc.includes(kw))) {
                     if (!target.hasStatus('IMMUNITY') && !target.isNormal) {
-                        const hasHardCC = target.hasStatus('STUN') || target.hasStatus('FREEZE') || target.hasStatus('SLEEP');
+                        const hasHardCC = target.hasStatus('STUN') || target.hasStatus('FREEZE') || target.hasStatus('MC_WAIT');
                         if (hasHardCC) score -= 3000;
                         else score += 500;
                     }
                 }
 
-                // [AI 심화] 쇠(Metal) 전용: 도발 유지 및 S1 연계 (User Request)
-            if (u.base === 'Metal' && !u.extra) {
-                // 내가 도발을 건 대상이 살아있는지 확인
-                const myProvokedTarget = aliveEnemies.find(e => e.status.some(s => s.type === `PROVOKED_BY_${u.id}`));
-
-                if (myProvokedTarget) {
-                    if (skillIdx === 2) {
-                        // S2(도발): 이미 내 도발에 걸린 놈이 있는데, 엄한 놈에게 도발을 갈아타려 하면 감점
-                        score -= 2000;
-                    } else if (skillIdx === 1 && target.id === myProvokedTarget.id) {
-                        // S1(강철베기): 도발 걸린 녀석을 때리면 점수 대폭 추가 (확정타 + 쉴드 수급)
-                        score += 2500;
-                    }
-                } else {
-                    // 🟢 [추가] 아무도 도발하지 않았다면 S2(도발) 우선 사용! (점수 대폭 추가)
-                    if (skillIdx === 2) {
-                        score += 3000; 
+                // 🛡️ [AI 핵심] Metal(쇠) 도발 로직 완전 개편
+                if (u.base === 'Metal' && !u.extra) {
+                    const myProvokedTarget = aliveEnemies.find(e => e.status.some(s => s.type === `PROVOKED_BY_${u.id}`));
+                    
+                    if (myProvokedTarget) {
+                        // 이미 도발 건 상대가 있다면
+                        if (skillIdx === 2) {
+                            score -= 5000; // 도발 또 쓰지 마 (턴 낭비)
+                        } else if (skillIdx === 1 && target.id === myProvokedTarget.id) {
+                            score += 3000; // 도발 걸린 놈 패서 쉴드 리필
+                        }
+                    } else {
+                        // 🟢 [핵심] 도발 대상이 없다면 S2(도발) 최우선!
+                        if (skillIdx === 2) {
+                            score += 6000; // 킬각(50000) 제외하고 무조건 1순위
+                            
+                            // 🔥 [추가] 아무나 도발하지 말고, '공격력 높은 적'을 우선 도발
+                            if (target.atk) {
+                                score += target.atk * 10; 
+                            }
+                        }
                     }
                 }
-            }
 
                 // D. 바위(Earth-Dark) S2 과잉 사용 방지
                 if (u.getKey() === 'Earth-Dark' && skillIdx === 2) {
@@ -5458,7 +5476,7 @@ ai: function(u) {
 
                 // E. 고난이도 평타 억제
                 if (this.difficulty !== 'easy' && skillIdx === 0) {
-                     if (!silenced) score -= 2000;
+                     if (!u.hasStatus('SILENCE')) score -= 2000;
                 }
 
                 return score;
