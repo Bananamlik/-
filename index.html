@@ -1301,7 +1301,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v17.1 Fixed (Balance)</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v17.1 Fixed (ILLUST)</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -1736,18 +1736,39 @@ const TitleManager = {
 };
 
 const ChallengeDB = [
-    { name: "부동의 철옹성", desc: "쇠(Metal)가 막고 물(Water)이 채우며 불(Fire)이 때립니다.", team: ['Metal', 'Water', 'Fire'] },
-    { name: "무한 통제", desc: "빙결, 기절, 기절... 숨 쉴 틈을 주지 않습니다.", team: ['Water-Dark', 'Earth', 'Metal-Dark'] },
-    { name: "흡혈 귀족단", desc: "푸른불(Fire-Light)의 흡혈 부여와 나무(Tree)의 유지력.", team: ['Fire-Light', 'Tree', 'Fire'] },
-    { name: "심리전의 대가", desc: "반사(업보)와 복수(가시)로 딜레마를 유발합니다.", team: ['Dark', 'Tree-Dark', 'Normal'] },
-    { name: "쉴드 파괴자", desc: "쉴드를 관통하고 도트 데미지로 말려 죽입니다.", team: ['Earth-Light', 'Fire-Dark', 'Metal-Light'] },
-    { name: "세뇌 공작", desc: "내 유닛이 적이 되는 공포를 느껴보세요.", team: ['Dark-Dark', 'Metal', 'Water-Light'] },
-    { name: "초반 스노우볼", desc: "초반 깡패 불(Fire)과 강력한 한방 바위(Earth-Dark).", team: ['Fire', 'Earth-Dark', 'Metal'] },
-    // [순서 고정] 빛강화(쉴드/정화) -> 바위(2.5배 딜) 콤보
-    { name: "대지의 분노", desc: "정화 받은 바위(Earth-Dark)의 2.5배 핵펀치 연계.", team: ['Light-Light', 'Earth-Dark', 'Water'], fixedOrder: true },
-    { name: "운빨 존망겜", desc: "세뇌, 정화, 그리고 노말의 랜덤 주사위.", team: ['Dark-Dark', 'Light-Light', 'Normal'] },
-    // [최종 보스]
-    { name: "심연의 맹독", desc: "세뇌(Dark-Dark), 맹독/해제(Metal-Light), 힐(Water)의 최악 조합.", team: ['Dark-Dark', 'Metal-Light', 'Water'] }
+    /* === [초급] 기본 기믹 학습 === */
+    // 1. [입문] 탱커의 기본 (Metal 등장 1/4)
+    { name: "부동의 철옹성", desc: "쇠(Metal)가 앞을 막고 있습니다. 뒤에 숨은 딜러부터 노리세요!", team: ['Metal', 'Water', 'Fire'] },
+
+    // 2. [유지력] 흡혈과 힐
+    { name: "붉은 귀족", desc: "때려서 회복하는 흡혈귀들입니다. 한 명씩 확실하게 끊어야 합니다.", team: ['Fire-Light', 'Tree', 'Fire-Dark'] },
+
+    // 3. [심리전] 반사와 복수
+    { name: "딜레마의 숲", desc: "어둠(Dark)을 치면 반사되고, 나무(Tree-Dark)를 남기면 괴물이 됩니다.", team: ['Dark', 'Tree-Dark', 'Normal'] },
+
+    /* === [중급] 특수 공략 필요 === */
+    // 4. [회피] 물리 공격 무효화
+    { name: "신기루 작전", desc: "증기(Water-Light)는 위기 시 회피합니다. 독이나 한방 딜이 필요합니다.", team: ['Water-Light', 'Fire-Dark', 'Light'] },
+
+    // 5. [방어] 통곡의 좀비 벽 (Metal 등장 2/4)
+    { name: "불멸의 요새", desc: "죽지 않는 좀비 조합. 쇠(Metal)를 뚫을 강력한 화력이 필요합니다.", team: ['Metal', 'Tree', 'Water'] },
+
+    // 6. [저격] 힐러 말려 죽이기
+    { name: "모래 폭풍", desc: "치유 감소 효과로 당신의 힐러를 무력화시킵니다.", team: ['Earth-Light', 'Metal-Light', 'Earth'] },
+
+    /* === [상급] 메타 조합 (지옥) === */
+    // 7. [CC] 무한 메즈 지옥
+    { name: "절대 영도", desc: "얼리고, 기절시키고, 조종합니다. 당신에게 턴은 오지 않습니다.", team: ['Water-Dark', 'Metal-Dark', 'Dark-Dark'] },
+
+    // 8. [콤보] 리미트 해제 (Metal 등장 3/4) - ★ 수정됨!
+    // 설명: 바위가 때리고(기절) -> 천사가 풀어주고 -> 바위가 또 때림 (무한 반복)
+    { name: "대지의 진격", desc: "천사(Light-Light)가 바위(Earth-Dark)의 기절 패널티를 지워줍니다. 무한 핵펀치를 조심하세요.", team: ['Metal', 'Earth-Dark', 'Light-Light'] },
+
+    // 9. [변수] 최악의 서포팅
+    { name: "성역의 지배자", desc: "무한 쉴드와 정화, 그리고 세뇌. 가장 불쾌한 경험을 선사합니다.", team: ['Light-Light', 'Dark-Dark', 'Water-Light'] },
+
+    // 10. [보스] 엔드 컨텐츠 (Metal 등장 4/4)
+    { name: "The Apex (정점)", desc: "도발(Metal), 세뇌(Dark-Dark), 정화(Light-Light). 이 게임의 최강자들입니다.", team: ['Metal', 'Dark-Dark', 'Light-Light'] }
 ];
 
 // [Online] 시드 기반 난수 생성기 (동기화 필수)
@@ -2479,67 +2500,62 @@ const SKILL_LOGIC = {
         }
     },
 'Dark-Dark': {
-    useSkill: function(atk, def, sIdx, game) {
-        if (sIdx === 0) Common.basicAttack(atk, def, game);
-        else if (sIdx === 1) {
-            game.log(`<b>[${atk.name}]</b> 심연일격 🗡️`); // ✅ 괄호 () 필요
-            const act = Common.applyDamage(atk, def, 0.8, game);
-            if (act !== -1) {
-                Common.logAction(game, 'dmg', atk, def, act, "");
-                def.addStatus('SILENCE', 1, 0, atk);
-            }
-        } else {
-            // 세뇌 스킬 (온라인/오프라인 모두 사용 가능)
-            game.log(`<b>[${atk.name}]</b> 마인드 컨트롤 🧠`);
-    
-            // [제약 1] 이미 누군가를 조종 중이면 불가
-            if (game.isMindControlling) {
-                game.log("<span class='log-sys'>🚫 이미 조종 중인 대상이 있습니다!</span>");
-                UI.floatText(atk, "사용불가", "ft-miss");
-                return;
-            }
-            
-            // [제약 1] 이미 누군가를 조종 중이면 불가
-            if (game.isMindControlling) {
-                game.log("<span class='log-sys'>🚫 이미 조종 중인 대상이 있습니다!</span>");
-                UI.floatText(atk, "사용불가", "ft-miss");
-                return;
-            }
-            
-            // [제약 2] 면역 체크
-            if (def.getKey() === 'Dark-Dark' || def.hasStatus('IMMUNITY') || (def.isNormal && !def.extra)) {
-                game.log("<span class='log-sys'>🚫 정신 지배가 통하지 않는 대상입니다.</span>");
-                UI.floatText(def, "면역", "ft-miss");
-                return;
-            }
-
-            // 1. 코스트 지불 (20% -> 12% 버프)
-            const cost = Math.floor(atk.hp * 0.12);
-            atk.hp = Math.max(1, atk.hp - cost);
-            UI.floatText(atk, `HP소모(-${cost})`, "ft-miss");
-            
-            // 2. 확률 계산
-            const missingPct = 1.0 - (def.hp / def.maxHp);
-            // [Balance] 30% ~ 55%로 상향
-            const chance = 0.30 + (missingPct * 0.25);
-
-            if (game.netRandom() < chance) {
-                def.addStatus('MC_WAIT', 1, 0, atk, true); 
-                game.log(` 🌀 <b>[${def.name}]</b> 정신 지배 시작! (1턴 후 스킵, 그 다음 조종)`);
-                UI.floatText(def, "세뇌 대기", "ft-crit");
-                AudioSys.play('DEBUFF');
-            } else if (def.hasStatus('MC_WAIT') || def.hasStatus('MC_READY')) {
-                // 이미 걸려있는 경우
-                game.log("<span class='log-sys'>🚫 이미 정신 지배가 진행 중인 대상입니다.</span>");
-                UI.floatText(def, "중복불가", "ft-miss");
+        useSkill: function(atk, def, sIdx, game) {
+            if (sIdx === 0) Common.basicAttack(atk, def, game);
+            else if (sIdx === 1) {
+                game.log(`<b>[${atk.name}]</b> 심연일격 🗡️`);
+                const act = Common.applyDamage(atk, def, 0.8, game);
+                if (act !== -1) {
+                    Common.logAction(game, 'dmg', atk, def, act, "");
+                    def.addStatus('SILENCE', 1, 0, atk);
+                }
             } else {
-                game.log(" (정신 지배 실패)");
-                UI.floatText(def, "저항", "ft-miss");
+                // 세뇌 스킬
+                game.log(`<b>[${atk.name}]</b> 마인드 컨트롤 🧠`);
+        
+                // [제약 1] 이미 조종 중이면 불가
+                if (game.isMindControlling) {
+                    game.log("<span class='log-sys'>🚫 이미 조종 중인 대상이 있습니다!</span>");
+                    UI.floatText(atk, "사용불가", "ft-miss");
+                    return;
+                }
+                
+                // [제약 2] 면역 체크
+                if (def.getKey() === 'Dark-Dark' || def.hasStatus('IMMUNITY') || (def.isNormal && !def.extra)) {
+                    game.log("<span class='log-sys'>🚫 정신 지배가 통하지 않는 대상입니다.</span>");
+                    UI.floatText(def, "면역", "ft-miss");
+                    return;
+                }
+
+                // 1. 코스트 지불
+                const cost = Math.floor(atk.hp * 0.12);
+                atk.hp = Math.max(1, atk.hp - cost);
+                UI.floatText(atk, `HP소모(-${cost})`, "ft-miss");
+                
+                // 2. 확률 계산
+                const missingPct = 1.0 - (def.hp / def.maxHp);
+                let chance = 0.30 + (missingPct * 0.25);
+                
+                // [챌린지 모드 보정]
+                if (game.mode === 'challenge') {
+                    chance = 0.90;
+                    game.log("<span class='log-sys'>⚠️ [챌린지] 정신지배 확률 90% 적용!</span>");
+                }
+
+                // 3. 성공/실패 판정
+                if (game.netRandom() < chance) {
+                    def.addStatus('MC_WAIT', 1, 0, atk, true); 
+                    game.log(` 🌀 <b>[${def.name}]</b> 정신 지배 시작! (1턴 후 스킵, 그 다음 조종)`);
+                    UI.floatText(def, "세뇌 대기", "ft-crit");
+                    AudioSys.play('DEBUFF');
+                } else {
+                    game.log(" (정신력으로 저항했습니다!)");
+                    UI.floatText(def, "저항", "ft-miss");
+                }
             }
         }
     }
-}
-};
+}; // SKILL_LOGIC 끝
 
 class Unit {
     constructor(id, team, base, extra) {
@@ -4287,38 +4303,56 @@ const Game = {
                     }
                 }
             } else if (this.difficulty === 'hard') {
-                let bestIdx = Math.floor(Math.random() * ChallengeDB.length);
+                // 🟢 [수정] 하드모드: 플레이어 덱을 분석하여 카운터(유리한) 덱 선정
+                const pDeck = this.pTeam;
+                const advMap = {
+                    'Fire': ['Metal', 'Tree'], 'Water': ['Fire', 'Metal'], 'Tree': ['Water', 'Earth'],
+                    'Metal': ['Tree', 'Earth'], 'Earth': ['Fire', 'Water'],
+                    'Light': ['Dark'], 'Dark': ['Light'],
+                    'Light-Light': ['Dark', 'Dark-Dark'], 'Dark-Dark': ['Light', 'Light-Light'],
+                    'Fire-Light': ['Metal', 'Tree', 'Dark'], 'Fire-Dark': ['Metal', 'Tree', 'Light']
+                };
+
+                let bestIdx = 0;
                 let maxScore = -999;
+
+                // ChallengeDB(검증된 덱들) 중에서 가장 유리한 덱을 탐색
                 ChallengeDB.forEach((stage, idx) => {
                     let score = 0;
-                    stage.team.forEach(key => {
-                        let b, e, isN = false, isEnh = false;
-                        if (key === 'Normal') { b = 'Normal'; isN = true; } 
-                        else {
-                            const parts = key.split('-');
-                            b = parts[0]; e = parts[1] || null;
-                            if (b === e) isEnh = true;
-                        }
-                        const dumE = { base: b, extra: e, isNormal: isN, isEnhanced: isEnh };
-                        this.pTeam.forEach(p => {
-                            const atkRel = this.calc(dumE, p);
-                            if (atkRel.v > 1.0) score += 3;
-                            const defRel = this.calc(p, dumE);
-                            if (defRel.v < 1.0) score += 2;
+                    stage.team.forEach(eKey => {
+                        const eBase = eKey.split('-')[0];
+                        pDeck.forEach(pUnit => {
+                            const pBase = pUnit.base;
+                            // 적이 플레이어에게 강하면 +1점 (카운터)
+                            if (advMap[eBase] && advMap[eBase].includes(pBase)) score += 1.5;
+                            // 적이 플레이어에게 약하면 -1점
+                            if (advMap[pBase] && advMap[pBase].includes(eBase)) score -= 1.0;
                         });
                     });
-                    score += Math.random();
-                    if (score > maxScore) { maxScore = score; bestIdx = idx; }
+
+                    // 점수가 높거나, 같으면 50% 확률로 교체 (매번 같은 덱 방지)
+                    if (score > maxScore || (score === maxScore && Math.random() < 0.5)) {
+                        maxScore = score;
+                        bestIdx = idx;
+                    }
                 });
+
                 const targetDeck = ChallengeDB[bestIdx].team;
                 this.eTeam = targetDeck.map((key, i) => {
                     let b, e;
                     if (key === 'Normal') { b = 'Normal'; e = null; } 
                     else if (key.includes('-')) { [b, e] = key.split('-'); } 
                     else { b = key; e = null; }
-                    return makeEnemy(i, b, e);
+                    
+                    const u = makeEnemy(i, b, e);
+                    // [하드 보정] 공격력 1.1배, 체력 1.1배
+                    u.atk = Math.floor(u.atk * 1.1);
+                    u.maxHp = Math.floor(u.maxHp * 1.1);
+                    u.hp = u.maxHp;
+                    return u;
                 });
-                this.log(`<span class='log-sys'>🔥 어려움(Counter): 적이 당신의 약점을 간파했습니다! (${ChallengeDB[bestIdx].name})</span>`);
+                
+                this.log(`<span class='log-sys' style="color:red;">🔥 Hard Mode: 적이 당신의 약점을 공략합니다! (${ChallengeDB[bestIdx].name})</span>`);
             } else {
                 const used = new Set();
                 while (this.eTeam.length < 3) {
