@@ -813,6 +813,10 @@
         .tag.blind { background: #bdbdbd; color: #5d4037; }
         .tag.immunity { background: #fff; color: #5d4037; border: 1px solid #5d4037; }
         .tag.healdown { background: #8d6e63; color: #fff; }
+        /* [신규] 치유 감소 수치별 색상 구분 */
+        .tag.heal-20 { background: #ab47bc; color: #fff; } /* 보라색 (독) */
+        .tag.heal-50 { background: #fb8c00; color: #fff; } /* 주황색 (모래) */
+        .tag.heal-critical { background: #c62828; color: #fff; font-weight:bold; animation: jelly-bounce 2s infinite; } /* 고위험 */
         .tag.atkup { background: #ef5350; color: #fff; }
         .tag.taunt {
             background: #212121;
@@ -1297,7 +1301,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v17.1 Fixed (ILLUST)</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v17.1 Fixed (Balance)</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -1655,7 +1659,7 @@ const IMAGE_DB = {
     'Default': 'https://via.placeholder.com/150/cccccc/ffffff?text=No+Image'
 };
 const SKILL_DB = {
-    'Metal': { s1:'강철베기', s1d:'1.3배+30%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15', type:'CC', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>받는 피해 MaxHP 20% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 20%를 넘지 않습니다.' },
+    'Metal': { s1:'강철베기', s1d:'1.1배+40%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15', type:'CC', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>받는 피해 MaxHP 20% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 20%를 넘지 않습니다.' },
     'Tree': { s1:'뿌리묶기', s1d:'3턴간 아군피해 40% 대신받음', s2:'치유의 잎', s2d:'HP+100/정화(CC해제시 뎀감↑)', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', desc:'수호형 탱커<br>피해 분산 + 뎀감 패시브', passive:'🌳 거목: 받는 피해가 15% 감소합니다. S2로 행동불가를 해제하면 뎀감율이 5%씩 증가합니다 (최대 25%).'},
     'Fire-Light': { s1:'흡혈부여', s1d:'아군전체 흡혈(3턴)', s2:'폭주', s2d:'자신공+20(영구)/전체공+10', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🔷', desc:'공격형 탱커<br>흡혈 + 폭주', passive:'🩸 흡혈: 매 턴 공격 시 피해량의 30%를 회복합니다. (최대 50)' },
     'Water-Light': { s1:'스팀젯', s1d:'0.9배+실명(30%)', s2:'안개', s2d:'잃은체력15%힐+회피', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'☁️', desc:'서폿형 탱커<br>회피 + 어그로', passive:'☁️ 기화: 체력 20% 이하 시 1회 자동 회복 및 회피 상태가 됩니다.' },
@@ -1672,12 +1676,12 @@ const SKILL_DB = {
     'Metal-Light': { s1:'가스탄', s1d:'3뎀+피격대상1.0배(CC1.3배)', s2:'맹독살포', s2d:'전체독/치유감소20%', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'☣️', desc:'특수 딜러<br>나무(Tree) 카운터 / 힐밴', passive:null },
     
     // [수정] 속박 -> 모래지옥(지속피해) 명시
-    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배(관통)+쉴드타격0.6배', s2:'모래지옥', s2d:'지속피해(60)+치유감소(70%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'🦂', desc:'특수 딜러<br>쉴드 파괴자 / 힐러 억제', passive:null },
+    'Earth-Light': { s1:'모래폭풍', s1d:'1.3배(관통)+쉴드타격0.6배', s2:'모래지옥', s2d:'지속피해(60)+치유감소(50%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'🦂', desc:'특수 딜러<br>쉴드 파괴자 / 힐러 억제', passive:null },
     
     'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+복수(계수증가)', s2:'영혼결속', s2d:'아군결속/저항↑', type:'TARGET_BUFF', target:'ALLY', role:'nuker', icon:'🥀', desc:'특수 딜러<br>복수 + 결속', passive:'🥀 복수: 결속된 아군 사망 시 공격력+20, S1계수+0.3 영구 증가.' },
     
     // [수정] 1.5배->1.4배, 힐량 표기 수정, 패시브 추가
-    'Water': { s1:'물대포', s1d:'1.4배', s2:'치유의 비', s2d:'전체 100 회복', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'메인 힐러<br>광역 회복', passive:'💧 생명수: 스킬 사용 시 20% 확률로 체력이 가장 낮은 아군을 50 추가 치유합니다.' },
+    'Water': { s1:'물대포', s1d:'1.4배', s2:'치유의 비', s2d:'전체 110 회복', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'메인 힐러<br>광역 회복', passive:'💧 생명수: 스킬 사용 시 20% 확률로 체력이 가장 낮은 아군을 50 추가 치유합니다.' },
     
     'Tree-Light': { s1:'숲의분노', s1d:'1.3배+빈사아군 쉴드40', s2:'축복', s2d:'아군 정화/HP+70', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚', desc:'메인 힐러<br>공격 + 보호막', passive:null },
     
@@ -1940,8 +1944,8 @@ const SKILL_LOGIC = {
                 game.log(`<b>[${atk.name}]</b> 치유의 비 🌧️`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
-                    // [Balance] 기본 힐량 120 -> 100, 랜덤 추가 힐 삭제
-                    const h = a.heal(100);
+                    // [Fix] 기본 힐량 110으로 상향
+                    const h = a.heal(110);
                     game.recordStat(atk, 'heal', h);
                     Common.logAction(game, 'heal', atk, a, h, "");
                 });
@@ -2016,10 +2020,12 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 강철베기 ⚔️`);
-                const act = Common.applyDamage(atk, def, 1.3, game);
+                // [Fix] 딜 1.1배로 하향
+                const act = Common.applyDamage(atk, def, 1.1, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
-                    const absorb = Math.floor(act * 0.3);
+                    // [Fix] 쉴드 흡수량 40%로 상향
+                    const absorb = Math.floor(act * 0.40);
                     atk.shield += absorb;
                     game.recordStat(atk, 'shield', absorb);
                     UI.floatText(atk, `+${absorb}🛡️`, "ft-heal");
@@ -2311,8 +2317,12 @@ const SKILL_LOGIC = {
                 }
             } else {
                 game.log(`<b>[${atk.name}]</b> 모래지옥 ⏳`);
-                def.addStatus('TRAP', 2, 0, atk);
-                def.addStatus('HEAL_DOWN', 2, 0, atk);
+                // 속박(TRAP) 부여
+                def.addStatus('TRAP', 2, 60, atk); // 데미지 60 명시
+                
+                // [Fix] 치유 감소 50% 부여 (정화되지 않음)
+                def.addStatus('HEAL_DOWN', 2, 50, atk); 
+                game.log("<span class='log-sys'>(치유효율 50% 감소)</span>");
             }
         }
     },
@@ -2649,6 +2659,10 @@ if (awakened) {
             else v += 20;
         }
         if (this.hasStatus('ATK_BUFF_SMALL')) v += 10;
+
+        // [신규] 데미지 10% 증가 버프 적용 (최종 곱연산)
+        if (this.hasStatus('DMG_UP_10')) v = Math.floor(v * 1.1);
+        
         v = Math.max(10, v);
         const ads = this.status.filter(s => s.type === 'ATK_DOWN');
         if (ads.length > 0) {
@@ -2762,6 +2776,7 @@ if (awakened) {
     addStatus(type, turn, val = 0, source = null, force = false) {
         const CC_LIST = ['STUN', 'FREEZE', 'BANISH', 'SILENCE', 'SLEEP'];
         
+        // 1. 선공 방어막 체크
         if (this.hasStatus('START_IMMUNITY') && !force) {
             if (CC_LIST.includes(type) || type.startsWith('PROVOKED')) { 
                 UI.floatText(this, "🛡️CC방어", "ft-miss");
@@ -2769,6 +2784,7 @@ if (awakened) {
             }
         }
 
+        // 2. 업보(Karma) 반사 체크
         if (source && source.id !== this.id && !force) {
             const karma = source.status.find(s => s.type === `KARMA_VICTIM_${this.id}`);
             const isDarkVsDark = (this.base === 'Dark' && source.base === 'Dark');
@@ -2783,13 +2799,29 @@ if (awakened) {
                 }
             }
         }
-        // 1. 노말 면역 체크 (PROVOKED 제외)
+
+        // 3. 노말 면역 체크
         const NORMAL_IMMUNE = ['FREEZE', 'STUN', 'BANISH', 'SILENCE'];
         if (this.isNormal && !force && NORMAL_IMMUNE.includes(type)) {
             UI.floatText(this, "Immune", "ft-miss");
             return;
         }
 
+        // 🔥 4. 중첩 가능 상태이상(공격/치유 감소) 최우선 처리
+        if (type === 'ATK_DOWN' || type === 'HEAL_DOWN') {
+            const s = this.status.filter(s => s.type === type);
+            if (s.length < 2) {
+                this.status.push({ type, turn, val, sourceId: source ? source.id : -1 });
+            } else {
+                const shortest = s.sort((a, b) => a.turn - b.turn)[0];
+                shortest.turn = turn;
+                shortest.val = val; 
+                if (source) shortest.sourceId = source.id;
+            }
+            return;
+        }
+
+        // 5. 그 외 일반 상태이상 (중복 시 덮어쓰기/갱신)
         const existing = this.status.find(s => s.type === type);
         if (existing && !force) {
             if (turn > existing.turn) {
@@ -2800,6 +2832,7 @@ if (awakened) {
             return;
         }
         
+        // 6. 상호 배타적 상태이상 제거
         const MUTUALLY_EXCLUSIVE = {
             'STUN': ['FREEZE', 'BANISH', 'SLEEP'],
             'FREEZE': ['STUN', 'BANISH', 'SLEEP'],
@@ -2821,7 +2854,7 @@ if (awakened) {
             }
         }
         
-        // 2. 회피 체크 (노말도 가능)
+        // 7. 회피 체크
         if (this.hasStatus('EVADE') && ['STUN', 'FREEZE'].includes(type) && !force) {
             if (source && source.id !== this.id) {
                 if (Game.netRandom() < 0.40) {
@@ -2832,7 +2865,7 @@ if (awakened) {
             }
         }
 
-        // 3. 도발은 별도 체크
+        // 8. 도발 및 기타 면역
         if (this.isNormal && !force && type.startsWith('PROVOKED')) {
             UI.floatText(this, "Immune", "ft-miss");
             return;
@@ -2850,37 +2883,15 @@ if (awakened) {
                 });
             }
         }
-        if (this.resist > 0 && Game.netRandom() < this.resist && ['POISON', 'BURN', 'FREEZE', 'STUN', 'SILENCE', 'BLIND', 'TRAP', 'BANISH', 'ATK_DOWN'].includes(type)) return;
+        if (this.resist > 0 && Game.netRandom() < this.resist && ['POISON', 'BURN', 'FREEZE', 'STUN', 'SILENCE', 'BLIND', 'TRAP', 'BANISH', 'ATK_DOWN', 'HEAL_DOWN'].includes(type)) return;
         
-        // [수정] ATK_DOWN과 HEAL_DOWN을 중첩 가능(최대 2개)하도록 처리
-        if (type === 'ATK_DOWN' || type === 'HEAL_DOWN') {
-            const s = this.status.filter(s => s.type === type);
-            if (s.length < 2) {
-                this.status.push({ type, turn, val, sourceId: source ? source.id : -1 });
-            } else {
-                // 이미 2개가 쌓였다면, 지속시간이 가장 짧은 것을 갱신
-                const shortest = s.sort((a, b) => a.turn - b.turn)[0];
-                shortest.turn = turn;
-                shortest.val = val; 
-                if (source) shortest.sourceId = source.id;
-            }
-            return;
-        }
-
-        const idx = this.status.findIndex(s => s.type === type);
-        if (idx >= 0) {
-            // [기존 로직] 그 외 상태이상은 덮어쓰기
-            this.status[idx].turn = turn;
-            if (val !== 0) this.status[idx].val = val;
-            if (source) this.status[idx].sourceId = source.id;
-        } else {
-            this.status.push({
-                type,
-                turn,
-                val,
-                sourceId: source ? source.id : -1
-            });
-        }
+        // 9. 최종 등록
+        this.status.push({
+            type,
+            turn,
+            val,
+            sourceId: source ? source.id : -1
+        });
     }
     hasStatus(type) {
         return this.status.some(s => s.type === type);
@@ -2898,19 +2909,36 @@ if (awakened) {
 
     tickStatus() {
         let log = [];
-        if (this.hasStatus('POISON')) {
-            const d = this.takeDamage(35, false, false, null);
+        const allUnits = [...Game.pTeam, ...Game.eTeam];
+        const findSource = (id) => allUnits.find(u => u.id === id) || null;
+
+        // 1. 독 (Poison)
+        const poison = this.status.find(s => s.type === 'POISON');
+        if (poison) {
+            const src = findSource(poison.sourceId);
+            const d = this.takeDamage(35, false, false, src); // 킬 로그를 위해 src 전달
+            if (src) Game.recordStat(src, 'dmg', d);          // 통계 기록
             UI.floatText(this, d, 'ft-dmg');
             log.push(`☠️ [${this.name}] 독 피해 -${d}`);
         }
-        if (this.hasStatus('BURN')) {
-            const d = this.takeDamage(20, false, false, null);
+
+        // 2. 화상 (Burn)
+        const burn = this.status.find(s => s.type === 'BURN');
+        if (burn) {
+            const src = findSource(burn.sourceId);
+            const d = this.takeDamage(20, false, false, src);
+            if (src) Game.recordStat(src, 'dmg', d);
             UI.floatText(this, d, 'ft-dmg');
             log.push(`🔥 [${this.name}] 화상 피해 -${d}`);
         }
-        if (this.hasStatus('TRAP')) {
-            // [Balance] 속박 데미지 40 -> 60 상향
-            const d = this.takeDamage(60, false, false, null);
+
+        // 3. 모래지옥 (Trap)
+        const trap = this.status.find(s => s.type === 'TRAP');
+        if (trap) {
+            const src = findSource(trap.sourceId);
+            // [Balance] 속박 데미지 40 -> 60 상향 유지
+            const d = this.takeDamage(60, false, false, src);
+            if (src) Game.recordStat(src, 'dmg', d);
             UI.floatText(this, d, 'ft-dmg');
             log.push(`⏳ [${this.name}] 모래지옥 -${d}`);
         }
@@ -2921,17 +2949,26 @@ if (awakened) {
         this.status = this.status.filter(s => s.turn > 0);
     }
     heal(amount) {
-        // [Fix] 치유 감소 효과 중첩 적용 (합연산)
-        // 예: 독가스(-30%) + 모래(-70%) = 100% 감소 -> 힐량 0
+        // [수정] 치유 감소(HEAL_DOWN) 로직 검증 및 디버깅
         const healDebuffs = this.status.filter(s => s.type === 'HEAL_DOWN');
         if (healDebuffs.length > 0) {
-            // 모든 치유 감소 디버프의 val 값을 합산
+            // 감소율 합산 (예: 독20 + 모래70 = 90)
             const totalReduction = healDebuffs.reduce((sum, s) => sum + (s.val || 0), 0);
             
-            // 효율 계산 (감소량이 100% 이상이면 0)
-            const multiplier = Math.max(0, (100 - totalReduction) / 100);
+            // 기존 힐량 저장 (디버깅용)
+            const originalAmount = amount;
             
+            // 효율 계산 (100 - 감소율)% 적용
+            const multiplier = Math.max(0, (100 - totalReduction) / 100);
             amount = Math.floor(amount * multiplier);
+
+            // [디버그 로그] 콘솔창(F12)에서 작동 여부 확인 가능
+            console.log(`💉 [Healing] ${this.name}: ${originalAmount} -> ${amount} (감소율: ${totalReduction}%)`);
+            
+            // 치유 감소로 0이 되었을 때 "치유차단" 텍스트 표시
+            if (amount === 0 && originalAmount > 0) {
+                UI.floatText(this, "치유차단", "ft-miss");
+            }
         }
 
         const prev = this.hp;
@@ -3294,7 +3331,46 @@ const UI = {
                 </div> 
             </div>`;
         });
-        const content = `<div class="tab-header"> <button class="tab-btn active" onclick="UI.switchTab(0)">📊 상성표</button> <button class="tab-btn" onclick="UI.switchTab(1)">📖 도감</button> </div> <div id="tab-0" class="tab-content active"> <table class="chart-table"> <tr><th>공격자</th><th>유리한 대상 (1.2배)</th></tr> <tr><td>🔥 불</td><td>⚔️ 쇠, 🌿 나무</td></tr> <tr><td>💧 물</td><td>🔥 불, ⚔️ 쇠</td></tr> <tr><td>🌿 나무</td><td>💧 물, ⛰️ 흙</td></tr> <tr><td>⚔️ 쇠</td><td>🌿 나무, ⛰️ 흙</td></tr> <tr><td>⛰️ 흙</td><td>🔥 불, 💧 물</td></tr> <tr><td>☀️/🌙</td><td>서로에게 1.2배</td></tr> <tr><td>🎲 노말</td><td>노말(자신), 강화된 빛/어둠</td></tr> </table> <div class="dual-chart"> <div style="font-weight:bold; color:#00cec9; margin-bottom:5px;">⚡ 이중 상성 (1.3배 치명타)</div> <div class="dual-row" style='font-size:12px; color:#666;'>기초 속성 우위 + 빛/어둠이 상대와 반대일 때</div> </div> </div> <div id="tab-1" class="tab-content" style="max-height: 50vh; overflow-y:auto;"> ${heroList} </div>`;
+
+        // [수정됨] 후공 보너스 설명이 포함된 컨텐츠 HTML
+        const content = `
+        <div class="tab-header">
+            <button class="tab-btn active" onclick="UI.switchTab(0)">📊 상성표</button>
+            <button class="tab-btn" onclick="UI.switchTab(1)">📖 도감</button>
+        </div>
+        
+        <div id="tab-0" class="tab-content active">
+            <table class="chart-table">
+                <tr><th>공격자</th><th>유리한 대상 (1.2배)</th></tr>
+                <tr><td>🔥 불</td><td>⚔️ 쇠, 🌿 나무</td></tr>
+                <tr><td>💧 물</td><td>🔥 불, ⚔️ 쇠</td></tr>
+                <tr><td>🌿 나무</td><td>💧 물, ⛰️ 흙</td></tr>
+                <tr><td>⚔️ 쇠</td><td>🌿 나무, ⛰️ 흙</td></tr>
+                <tr><td>⛰️ 흙</td><td>🔥 불, 💧 물</td></tr>
+                <tr><td>☀️/🌙</td><td>서로에게 1.2배</td></tr>
+                <tr><td>🎲 노말</td><td>노말(자신), 강화된 빛/어둠</td></tr>
+            </table>
+            
+            <div class="dual-chart">
+                <div style="font-weight:bold; color:#00cec9; margin-bottom:5px;">⚡ 이중 상성 (1.3배 치명타)</div>
+                <div class="dual-row" style='font-size:12px; color:#666;'>기초 속성 우위 + 빛/어둠이 상대와 반대일 때</div>
+            </div>
+
+            <div style="background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px; border: 1px solid #90caf9;">
+                <h4 style="margin: 0 0 5px 0; color: #1565c0;">🛡️ 후공(2P) 전술 보너스</h4>
+                <p style="font-size: 0.9em; margin: 0; color: #424242;">
+                    불리한 후공을 위해 특별한 효과가 부여됩니다.<br>
+                    1. <b>모든 유닛:</b> 시작 시 행동 불가 <span style="color:#2980b9;">면역</span><br>
+                    2. <b>선봉장(1번 유닛):</b> 1턴간 <b style="color:red;">최종 데미지 10% 증가</b><br>
+                    <span style="font-size:0.85em; color:#555;">(TIP: 1번 자리에 강력한 딜러를 배치해 카운터를 노리세요!)</span>
+                </p>
+            </div>
+        </div>
+        
+        <div id="tab-1" class="tab-content" style="max-height: 50vh; overflow-y:auto;">
+            ${heroList}
+        </div>`;
+        
         this.showModal("📘 가이드북", content);
     },
     switchTab: function(idx) {
@@ -4282,9 +4358,19 @@ const Game = {
         const firstTurnTeam = this.queue[this.curr] % 2; // 0 (P팀) or 1 (E팀)
         const secondTeam = firstTurnTeam === 0 ? this.eTeam : this.pTeam;
 
-        // 후공 팀에게 면역 부여
-        secondTeam.forEach(u => u.addStatus('START_IMMUNITY', 99, 0, null, true));
-        this.log(`<span class='log-sys'>🛡️ 후공 팀(${firstTurnTeam===0?'적군':'아군'})에게 첫 행동 전까지 면역 부여!</span>`);
+        // [밸런스 패치] 후공 팀 보정: 면역 부여 (생존력)
+        secondTeam.forEach(u => {
+            u.addStatus('START_IMMUNITY', 99, 0, null, true);
+            // 쉴드 +100 삭제됨
+        });
+
+        // [신규] 후공 첫 번째 캐릭터(선봉)에게만 '1턴간 데미지 10% 증가' 부여 (반격 능력)
+        if (secondTeam.length > 0) {
+            secondTeam[0].addStatus('DMG_UP_10', 1, 0, null, true);
+        }
+        
+        const teamName = firstTurnTeam === 0 ? '적군(후공)' : '아군(후공)';
+        this.log(`<span class='log-sys' style='color:#7986cb;'>🛡️ [후공 보정] ${teamName}에게 면역 및 <b>선봉 딜러 강화(+10%)</b> 적용!</span>`);
 
         // [중요] 게임 루프 시작 (누락되었던 부분)
         this.render();
@@ -4597,12 +4683,20 @@ turn: function() {
                     if (s.type.includes('PROVOKED')) c += ' taunt';
                     else if (s.type.startsWith('KARMA_VICTIM')) c += ' karma';
                     else if (map[s.type]) c += ` ${map[s.type]}`;
-                    
-                    let txt = s.type;
-                    const tMap = {'POISON':'독','FREEZE':'빙결','SILENCE':'침묵','DMG_RED':'방어↑','EVADE':'회피','BURN':'화상','TRAP':'속박','BANISH':'추방','BIND':'결속','GROWTH':'성장','ATK_DOWN':'공격↓','BLIND':'실명','IMMUNITY':'면역','HEAL_DOWN':'치유↓','LIGHT_MIGHT':'공격↑','LIFESTEAL_BUFF':'🩸흡혈','ATK_BUFF_SMALL':'🔥공격↑','START_IMMUNITY':'🛡️선공방어','ROOT_GUARD':'🪵수호','MC_WAIT':'🌀세뇌중','MC_READY':'🧠조종','EARTH_RECOIL':'💔반동'};
-                    if (s.type.includes('PROVOKED')) txt = '도발';
-                    else if (s.type.startsWith('KARMA_VICTIM')) txt = '👁️업보';
-                    else if (tMap[s.type]) txt = tMap[s.type];
+
+                // [수정] 치유 감소 수치별 클래스 및 텍스트 적용
+                if (s.type === 'HEAL_DOWN') {
+                    if (s.val <= 20) c += ' heal-20';       // 독가스(보라)
+                    else if (s.val <= 50) c += ' heal-50';  // 모래지옥(주황)
+                    else c += ' heal-critical';             // 중첩됨(빨강)
+                }
+
+                let txt = s.type;
+                const tMap = {'POISON':'독','FREEZE':'빙결','SILENCE':'침묵','DMG_RED':'방어↑','EVADE':'회피','BURN':'화상','TRAP':'속박','BANISH':'추방','BIND':'결속','GROWTH':'성장','ATK_DOWN':'공격↓','BLIND':'실명','IMMUNITY':'면역','HEAL_DOWN':`💔-${s.val}%`,'LIGHT_MIGHT':'공격↑','LIFESTEAL_BUFF':'🩸흡혈','ATK_BUFF_SMALL':'🔥공격↑','START_IMMUNITY':'🛡️선공방어','ROOT_GUARD':'🪵수호','MC_WAIT':'🌀세뇌중','MC_READY':'🧠조종','EARTH_RECOIL':'💔반동'};
+
+                if (s.type.includes('PROVOKED')) txt = '도발';
+                else if (s.type.startsWith('KARMA_VICTIM')) txt = '👁️업보';
+                else if (tMap[s.type]) txt = tMap[s.type];
 
                     if (s.turn < 90) txt += ` <b style="font-family:sans-serif; margin-left:1px;">${s.turn}</b>`;
                     return `<span class="${c}">${txt}</span>`;
@@ -4655,8 +4749,9 @@ turn: function() {
                     ${matchupBadge} 
                     <div class="card-badge">${iconsHtml}</div>
                     <div class="card-atk">⚔️ ${u.getAtk()}</div>
-                    ${u.elecStacks > 0 ? `<div class="elec-badge" style="top:30px;">⚡${u.elecStacks}</div>` : ''}
-                    <div class="tag-container">${tags}</div>
+                ${u.elecStacks > 0 ? `<div class="elec-badge" style="top:30px;">⚡${u.elecStacks}</div>` : ''}
+                ${u.treeStack > 0 ? `<div class="tree-badge" style="top:30px;">🌳${u.treeStack}</div>` : ''}
+                <div class="tag-container">${tags}</div>
                     <div class="unit-info-overlay">
                         <div class="card-name" style="${u.isSuper ? 'color:#ffd700;' : ''}">${displayName}</div>
                         <div class="status-bar">
