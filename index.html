@@ -5435,11 +5435,15 @@ ai: function(u) {
                 if (myProvokedTarget) {
                     if (skillIdx === 2) {
                         // S2(도발): 이미 내 도발에 걸린 놈이 있는데, 엄한 놈에게 도발을 갈아타려 하면 감점
-                        // (단, 킬각(50000점)이나 힐러 점사(1000점) 등 더 중요한 사유가 있으면 점수가 상쇄되어 스킬을 씀)
                         score -= 2000;
                     } else if (skillIdx === 1 && target.id === myProvokedTarget.id) {
                         // S1(강철베기): 도발 걸린 녀석을 때리면 점수 대폭 추가 (확정타 + 쉴드 수급)
                         score += 2500;
+                    }
+                } else {
+                    // 🟢 [추가] 아무도 도발하지 않았다면 S2(도발) 우선 사용! (점수 대폭 추가)
+                    if (skillIdx === 2) {
+                        score += 3000; 
                     }
                 }
             }
