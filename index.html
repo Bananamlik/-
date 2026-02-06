@@ -2536,10 +2536,10 @@ const SKILL_LOGIC = {
                 const missingPct = 1.0 - (def.hp / def.maxHp);
                 let chance = 0.30 + (missingPct * 0.25);
                 
-                // [챌린지 모드 보정]
-                if (game.mode === 'challenge') {
+                // 🟢 [수정됨] 챌린지 모드 + '적군(Team 1)'일 때만 90% 적용
+                if (game.mode === 'challenge' && atk.team === 1) {
                     chance = 0.90;
-                    game.log("<span class='log-sys'>⚠️ [챌린지] 정신지배 확률 90% 적용!</span>");
+                    game.log("<span class='log-sys' style='color:#ff5252;'>⚠️ [BOSS] 적의 정신지배 확률이 대폭 상승합니다! (90%)</span>");
                 }
 
                 // 3. 성공/실패 판정
