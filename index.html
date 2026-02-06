@@ -2856,43 +2856,23 @@ if (awakened) {
         if (type === 'ATK_DOWN' || type === 'HEAL_DOWN') {
             const s = this.status.filter(s => s.type === type);
             if (s.length < 2) {
-                this.status.push({
-                    type,
-                    turn,
-                    val,
-                    sourceId: source ? source.id : -1
-                });
+                this.status.push({ type, turn, val, sourceId: source ? source.id : -1 });
             } else {
                 // 이미 2개가 쌓였다면, 지속시간이 가장 짧은 것을 갱신
                 const shortest = s.sort((a, b) => a.turn - b.turn)[0];
                 shortest.turn = turn;
-                shortest.val = val; // [중요] 새로운 수치로 갱신 (예: 20 -> 70)
+                shortest.val = val; 
                 if (source) shortest.sourceId = source.id;
-        }
-        // UI 상태바 갱신 후 리턴
-        // UI.updateStatus(this); // [Fix] 오류 원인 제거 (존재하지 않는 함수)
-        return;
+            }
+            return;
         }
 
-       const idx = this.status.findIndex(s => s.type === type);
+        const idx = this.status.findIndex(s => s.type === type);
         if (idx >= 0) {
-            // [Fix] 치유 감소(HEAL_DOWN) 충돌 방지 로직 추가
-            if (type === 'HEAL_DOWN') {
-                // 기존 수치보다 새로운 수치(val)가 클 때만 값을 덮어씀 (예: 30 vs 70)
-                if (val > this.status[idx].val) {
-                    this.status[idx].val = val;
-                    this.status[idx].turn = turn;
-                } else {
-                    // 약한 효과가 들어오면 값은 무시하고, 지속 시간만 긴 쪽으로 갱신
-                    this.status[idx].turn = Math.max(this.status[idx].turn, turn);
-                }
-                if (source) this.status[idx].sourceId = source.id;
-            } else {
-                // [기존 로직] 그 외 상태이상은 덮어쓰기
-                this.status[idx].turn = turn;
-                if (val !== 0) this.status[idx].val = val;
-                if (source) this.status[idx].sourceId = source.id;
-            }
+            // [기존 로직] 그 외 상태이상은 덮어쓰기
+            this.status[idx].turn = turn;
+            if (val !== 0) this.status[idx].val = val;
+            if (source) this.status[idx].sourceId = source.id;
         } else {
             this.status.push({
                 type,
@@ -4361,10 +4341,14 @@ turn: function() {
         // 4. AI 감시자 (Watchdog) 및 종료 체크
         if (this.watchdog) clearTimeout(this.watchdog);
         if (!isMyTurn && !isOnlineMode && this.difficulty !== 'local') {
+            // 오프라인 AI전일 때만 강제 턴 넘김 가동
             this.watchdog = setTimeout(() => {
                 console.log("AI Stuck. Forcing next.");
                 this.endTurn();
-            }, 3000);
+            }, 4000); // 3초 -> 4초로 여유 확보
+        } else if (isOnlineMode) {
+            // [Fix] 온라인 모드에서는 클라이언트가 임의로 턴을 넘기지 않도록 확실히 해제
+            if (this.watchdog) clearTimeout(this.watchdog);
         }
         if (this.endCheck()) return;
 
@@ -4400,27 +4384,26 @@ turn: function() {
         // 5-2. 행동 불가(CC) 체크 (우선순위: 사망 > 기절/빙결 > 세뇌)
         const hasCC = u.hasStatus('STUN') || u.hasStatus('FREEZE') || u.hasStatus('SLEEP');
         
-        // [수정] 세뇌 대기 중이어도 기절하면 턴을 날려야 함 (세뇌 불발 처리)
         if (hasCC) {
             UI.floatText(u, "행동불가", "ft-miss");
             this.log(`<span class='log-crit'>🚫 [${u.name}] 상태이상으로 행동할 수 없습니다.</span>`);
             
-            // 기절로 인해 세뇌 타이밍을 놓쳤다면 예약 취소
+            // [Fix] 세뇌 예약(MC_WAIT) 중 기절 시 예약 취소
             if (u.hasStatus('MC_WAIT')) {
                 u.status = u.status.filter(s => s.type !== 'MC_WAIT');
                 this.log(`<span class='log-sys'>🌀 [${u.name}] 기절하여 정신 지배가 불발되었습니다.</span>`);
             }
             
-            setTimeout(() => this.endTurn(), 1000);
+            // [Fix] 이미 조종 중(세뇌 상태)일 때 기절하면, 턴 꼬임 방지를 위해 중복 실행 차단 후 턴 종료
+            this.isProcessing = true; 
+            setTimeout(() => {
+                this.isProcessing = false; // 타임아웃 후 해제
+                this.endTurn();
+            }, 1000);
             return;
         }
         
         // (여기 있던 중복 코드들을 깨끗이 지웠습니다)
-
-        if (u.isDead) {
-            this.endTurn(true);
-            return;
-        }
 
         if (u.isDead) {
             this.endTurn(true);
@@ -5223,26 +5206,28 @@ ai: function(u) {
             const sk = SKILL_DB[k];
 
             // ---------------------------------------------------------
-            // 🧠 [AI Core] 헬퍼 함수 정의
+            // 🧠 [AI Core] 헬퍼 함수 정의 (Parsing Logic Fix)
             // ---------------------------------------------------------
 
             const isAttackSkill = (desc, type) => {
                 if (!desc) return false;
+                // [Fix] 힐/버프 키워드가 있으면 공격 스킬 아님으로 강제
+                if (desc.includes('힐') || desc.includes('회복') || desc.includes('쉴드') || desc.includes('HP+')) return false;
+                
                 if (desc.includes('배') || desc.includes('도발') || desc.includes('속박')) return true;
                 if (['CC', 'DEBUFF', 'AOE', 'NUKE_PER', 'ATK'].includes(type)) return true;
-                const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피', '성장', '결속'];
-                const supportTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
-                if (supportKeywords.some(kw => desc.includes(kw)) || supportTypes.includes(type)) return false;
-                return true;
+                return false;
             };
 
             const isSupportSkill = (desc, type) => {
                 if (!desc) return false;
+                // [Fix] 공격 키워드가 있으면 보조 스킬 아님으로 강제 (단, 힐+공격 복합기는 제외)
                 if (desc.includes('배') && !desc.includes('힐') && !desc.includes('회복')) return false;
                 if (desc.includes('도발') || desc.includes('속박')) return false;
-                if (['CC', 'DEBUFF', 'AOE'].includes(type)) return false;
-                const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피', '성장', '결속'];
-                const supportTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY'];
+                if (['CC', 'DEBUFF', 'AOE', 'NUKE_PER'].includes(type)) return false;
+                
+                const supportKeywords = ['힐', '쉴드', '정화', '버프', '회피', '성장', '결속', '회복', 'HP+'];
+                const supportTypes = ['HEAL', 'BUFF', 'TARGET_BUFF', 'SELF_BUFF', 'ALL_ALLY', 'ALLY'];
                 return supportKeywords.some(kw => desc.includes(kw)) || supportTypes.includes(type);
             };
 
@@ -5472,6 +5457,11 @@ ai: function(u) {
         if (u.isDead) return;
         u.isDead = true;
         u.hp = 0;
+        
+        // [Fix] 즉각적인 시각적 피드백 (죽은 눈)
+        const cardId = u.team === 0 ? `p-card-${u.id}` : `e-card-${u.id}`;
+        const el = document.getElementById(cardId);
+        if (el) el.classList.add('dead');
 
         // [수정] 1. 사망한 유닛(u)이 시전한 '세뇌 대기(MC_WAIT)' 상태 모두 제거
         [...Game.pTeam, ...Game.eTeam].forEach(target => {
