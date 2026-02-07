@@ -2617,6 +2617,11 @@ class Unit {
     }
 
     checkAwakening() {
+        // [신규] 튜토리얼 모드에서는 각성 발동 금지 (도감 오염 방지)
+        if (typeof Game !== 'undefined' && Game.difficulty === 'tutorial') return;
+
+        if (this.isSuper) return;
+        let trigger = false;
         // [Balance] 쉴드 최대량 400으로 제한
         if (this.shield > 400) this.shield = 400;
 
@@ -4301,8 +4306,7 @@ const Game = {
             // [2] PVE (싱글/튜토리얼) 통합 로직
             // =========================================
             
-            // 🟢 [A] 튜토리얼 모드: 강제 세팅 (기존 선택 무시)
-            // 🟢 [A] 튜토리얼 모드: 강제 세팅 (기존 선택 무시)
+            // 🟢 [A] 튜토리얼 모드: 강제 세팅
             if (this.difficulty === 'tutorial') {
                 if (!this.tStage) this.tStage = 1; 
                 
@@ -4311,9 +4315,9 @@ const Game = {
 
                 // 단계별 데이터 정의
                 if (this.tStage === 1) {
-                    // [수정] 1단계: 불 vs 나무/물/쇠 (상성 학습용)
+                    // [수정] 1단계: 불 vs 나무/물/쇠
                     pDeck = ['Fire', 'Normal', 'Normal'];
-                    eDeck = ['Tree', 'Water', 'Metal']; // 다양한 속성 배치
+                    eDeck = ['Tree', 'Water', 'Metal'];
                     guideMsg = "Lesson 1: <b>속성 상성 기초</b><br>불(🔥)로 적들을 공격하며 데미지(약점/저항) 차이를 확인하세요!<br>(적은 훈련용 샌드백 상태입니다)";
                 } else if (this.tStage === 2) {
                     // 2단계: 탱커/딜러
@@ -4321,7 +4325,7 @@ const Game = {
                     eDeck = ['Earth', 'Earth'];
                     guideMsg = "Lesson 2: 쇠(⚔️)의 <b>[도발]</b>로 아군을 보호하고, 💧 물로 공격하세요!";
                 } else if (this.tStage === 3) {
-                    // 3단계: 힐/CC
+                    // 3단계: 힐/CC (여기가 문제였음)
                     pDeck = ['Tree', 'Metal-Dark', 'Normal'];
                     eDeck = ['Metal-Light', 'Metal'];
                     guideMsg = "Lesson 3: 나무(🌿)의 <b>[치유]</b>와 ⚡ 전기의 <b>[성장]</b>을 활용하세요!";
@@ -4330,19 +4334,14 @@ const Game = {
                     this.tStage = 1; location.reload(); return;
                 }
 
-                // 플레이어 팀 생성
-                this.pTeam = pDeck.map((key, i) => {
-                    const u = new Unit(i, 0, key);
-                    if(key === 'Normal') { u.hp = 0; u.isDead = true; } 
-                    return u;
-                });
-                
-                // [수정] 플레이어 팀 생성 (복합 속성 파싱 적용)
+                // [중요] 플레이어 팀 생성 (복합 속성 파싱 로직 포함 - 하나만 있어야 함!)
                 this.pTeam = pDeck.map((key, i) => {
                     let base = key, extra = null;
-                    // 키에 '-'가 있으면 분리 (예: 'Metal-Dark' -> base='Metal', extra='Dark')
+                    // '-'가 있으면 분리, 없으면 그대로
                     if (key !== 'Normal' && key.includes('-')) {
                         [base, extra] = key.split('-');
+                    } else {
+                        base = key;
                     }
                     
                     const u = new Unit(i, 0, base, extra);
@@ -4350,11 +4349,13 @@ const Game = {
                     return u;
                 });
                 
-                // [수정] 적 팀 생성 (복합 속성 파싱 적용)
+                // [중요] 적 팀 생성 (복합 속성 파싱 + 너프 로직)
                 this.eTeam = eDeck.map((key, i) => {
                     let base = key, extra = null;
                     if (key !== 'Normal' && key.includes('-')) {
                         [base, extra] = key.split('-');
+                    } else {
+                        base = key;
                     }
 
                     const u = new Unit(i+3, 1, base, extra);
@@ -4365,11 +4366,11 @@ const Game = {
                         u.addStatus('SILENCE', 999, 0, null, true);
                         u.name = `[훈련] ${u.name}`;
                     } else if (this.tStage === 2) {
-                        // 2단계: 탱킹 실습
+                        // 2단계: 체력 40%
                         u.maxHp = Math.floor(u.maxHp * 0.4); u.hp = u.maxHp;
                         u.name = `[실습] ${u.name}`;
                     } else {
-                        // 3단계: 힐/CC 실습
+                        // 3단계: 체력 50%
                         u.maxHp = Math.floor(u.maxHp * 0.5); u.hp = u.maxHp;
                         u.name = `[실습] ${u.name}`;
                     }
