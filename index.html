@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics: v17.1 Fixed</title>
+    <title>Elemental Tactics v18.0 Refactored & Debugged</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -4374,7 +4374,14 @@ const Game = {
         // =========================================
         this.isOver = false;
         this.queue = [0, 1, 2, 3, 4, 5];
-        this.curr = Math.floor(Math.random() * 6);
+        
+        // [Fix] 온라인 모드 동기화: 초기 턴 순서도 시드 기반 RNG 사용
+        if (typeof isOnlineMode !== 'undefined' && isOnlineMode && typeof globalRNG !== 'undefined' && globalRNG) {
+            this.curr = Math.floor(globalRNG.next() * 6);
+        } else {
+            this.curr = Math.floor(Math.random() * 6);
+        }
+        
         this.turnCount = 1;
         this.isProcessing = false;
         
@@ -4434,8 +4441,15 @@ turn: function() {
         const round = Math.ceil(this.turnCount / 6);
         const tVal = this.queue[this.curr];
         
-        // 1. 유닛 정의 (기존 찌꺼기 오류 해결됨) - 정수 변환 추가
+        // [Fix] 유닛 정의 및 null/undefined 체크 강화
         const u = tVal % 2 === 0 ? this.pTeam[Math.floor(tVal / 2)] : this.eTeam[Math.floor((tVal - 1) / 2)];
+        
+        // [Fix] 유닛이 존재하지 않거나 이미 죽었으면 즉시 턴 종료
+        if (!u || u.isDead) {
+            console.error('❌ Turn error: Unit not found or dead', { tVal, u });
+            this.endTurn(true);
+            return;
+        }
 
         // 2. [로직 삭제됨] 즉시 제어권 탈취 방식으로 변경되어, 사전 준비(MC_READY) 단계가 불필요합니다.
         // (이곳에 있던 문법 오류 및 구버전 로직을 삭제했습니다.)
@@ -4808,7 +4822,16 @@ turn: function() {
 
 endTurn: function(isFast = false) {
         if (this.isOver) return;
-        if (this.watchdog) clearTimeout(this.watchdog);
+        
+        // [Fix] 타이머 누적 방지 - 모든 타이머 명시적으로 정리
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+        if (this.watchdog) {
+            clearTimeout(this.watchdog);
+            this.watchdog = null;
+        }
         
         // 현재 턴 주인 유닛 찾기
         const tVal = this.queue[this.curr];
@@ -4948,13 +4971,19 @@ endTurn: function(isFast = false) {
     },
 
     reset: function() {
-        // [수정] 강제 종료 킬 스위치 가동
+        // [Fix] 강제 종료 킬 스위치 가동
         this.isOver = true; // 진행 중인 로직이 즉시 멈추도록 플래그 설정
         this.isProcessing = false;
 
-        // 타이머 제거
-        if (this.timer) { clearTimeout(this.timer); this.timer = null; }
-        if (this.watchdog) { clearTimeout(this.watchdog); this.watchdog = null; }
+        // [Fix] 타이머 완전 정리 - 모든 타이머 명시적으로 정리
+        if (this.timer) { 
+            clearTimeout(this.timer); 
+            this.timer = null; 
+        }
+        if (this.watchdog) { 
+            clearTimeout(this.watchdog); 
+            this.watchdog = null; 
+        }
 
         // 오디오 정리
         MusicEngine.stop();
@@ -4965,25 +4994,27 @@ endTurn: function(isFast = false) {
         document.getElementById('selection-screen').style.display = 'flex';
         document.querySelectorAll('.hero-card.selected').forEach(el => el.classList.remove('selected'));
 
-        // 데이터 초기화
+        // [Fix] 데이터 초기화 - 메모리 누수 방지
         this.selected = [];
         this.pTeam = []; // 팀 정보도 날려서 유령 참조 방지
         this.eTeam = [];
+        this.isMindControlling = null;
+        this.currentMCCasterId = null;
 
         document.getElementById('btn-start').innerText = "⚔️ 전투 시작 (0/3)";
         document.getElementById('btn-start').disabled = true;
 
-        // 주의: init()은 여기서 호출하지 않고, 영웅 선택 화면만 보여줍니다.
-        // init()은 페이지 로드 시 한 번, 혹은 필요 시에만 호출하도록 변경
         this.pool = []; 
 
         // 온라인 모드 정리 추가
         if (isOnlineMode) {
-                isOnlineMode = false;
-                globalRNG = null;
-                gameSeed = null;
+            isOnlineMode = false;
+            globalRNG = null;
+            gameSeed = null;
         }
-        window.onload(); // 다시 초기화 (Game.init 포함)
+        
+        // [Fix] 완전한 재초기화를 위해 window.onload 대신 init 직접 호출
+        this.init();
     },
     // [각성 체크] 스탯 기록 시 각성 확인
     recordStat: function(unit, type, amount) {
@@ -5340,11 +5371,26 @@ ai: function(u) {
 
             const isAttackSkill = (desc, type) => {
                 if (!desc) return false;
-                // [Fix] 힐/버프 키워드가 있으면 공격 스킬 아님으로 강제
-                if (desc.includes('힐') || desc.includes('회복') || desc.includes('쉴드') || desc.includes('HP+')) return false;
                 
-                if (desc.includes('배') || desc.includes('도발') || desc.includes('속박')) return true;
+                // [Fix V2] 공격 키워드 체크
+                const hasAttackKeyword = desc.includes('배') || desc.includes('도발') || desc.includes('속박');
+                const hasHealKeyword = desc.includes('힐') || desc.includes('회복') || desc.includes('HP+');
+                
+                // 힐/회복이 있으면 공격 스킬 아님
+                if (hasHealKeyword) return false;
+                
+                // ✅ 쉴드+공격 복합 스킬 처리 (Metal S1, S2, Water S2 등)
+                if (desc.includes('쉴드') && hasAttackKeyword) return true;
+                
+                // 순수 쉴드만 있으면 공격 아님 (서포터 스킬)
+                if (desc.includes('쉴드') && !hasAttackKeyword) return false;
+                
+                // 일반 공격 키워드 체크
+                if (hasAttackKeyword) return true;
+                
+                // type 기반 체크
                 if (['CC', 'DEBUFF', 'AOE', 'NUKE_PER', 'ATK'].includes(type)) return true;
+                
                 return false;
             };
 
