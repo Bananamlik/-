@@ -3724,47 +3724,47 @@ const UI = {
     },
     // [신규] 투사체 발사 애니메이션
     fireProjectile: function(atk, def, icon) {
-        return new Promise(resolve => {
-            // 위치 계산
-            const startId = atk.team === 0 ? `p-card-${atk.id}` : `e-card-${atk.id}`;
-            const endId = def.team === 0 ? `p-card-${def.id}` : `e-card-${def.id}`;
-            const sEl = document.getElementById(startId);
-            const eEl = document.getElementById(endId);
-            
-            if (!sEl || !eEl) { resolve(); return; }
+    return new Promise(resolve => {
+        const startId = atk.team === 0 ? `p-card-${atk.id}` : `e-card-${atk.id}`;
+        const endId = def.team === 0 ? `p-card-${def.id}` : `e-card-${def.id}`;
+        const sEl = document.getElementById(startId);
+        const eEl = document.getElementById(endId);
 
-            const sRect = sEl.getBoundingClientRect();
-            const eRect = eEl.getBoundingClientRect();
+        if (!sEl || !eEl) { resolve(); return; }
 
-            // 투사체 생성
-            const p = document.createElement('div');
-            p.className = 'projectile';
-            p.innerText = icon;
-            p.style.left = (sRect.left + sRect.width/2) + 'px';
-            p.style.top = (sRect.top + sRect.height/2) + 'px';
-            document.body.appendChild(p);
+        const sRect = sEl.getBoundingClientRect();
+        const eRect = eEl.getBoundingClientRect();
 
-            // 발사 (강제 리플로우 후 이동)
-            requestAnimationFrame(() => {
-                p.style.left = (eRect.left + eRect.width/2) + 'px';
-                p.style.top = (eRect.top + eRect.height/2) + 'px';
-            });
+        const p = document.createElement('div');
+        p.className = 'projectile';
+        p.innerText = icon;
+        p.style.left = (sRect.left + sRect.width/2) + 'px';
+        p.style.top = (sRect.top + sRect.height/2) + 'px';
 
-            // 도착 후 처리
-            setTimeout(() => {
-                p.remove();
-                // 타격 이펙트
-                const boom = document.createElement('div');
-                boom.className = 'impact-effect';
-                boom.innerText = '💥';
-                boom.style.left = (eRect.left + eRect.width/2) + 'px';
-                boom.style.top = (eRect.top + eRect.height/2) + 'px';
-                document.body.appendChild(boom);
-                setTimeout(() => boom.remove(), 300);
-                resolve();
-            }, 400); // 0.4초 비행
+        // 🟢 [속도 개선] CSS Transition 강제 덮어쓰기 (0.4s -> 0.25s)
+        p.style.transition = 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+
+        document.body.appendChild(p);
+
+        requestAnimationFrame(() => {
+            p.style.left = (eRect.left + eRect.width/2) + 'px';
+            p.style.top = (eRect.top + eRect.height/2) + 'px';
         });
-    },
+
+        // 🟢 [속도 개선] 대기 시간 단축 (400ms -> 250ms)
+        setTimeout(() => {
+            p.remove();
+            const boom = document.createElement('div');
+            boom.className = 'impact-effect';
+            boom.innerText = '💥';
+            boom.style.left = (eRect.left + eRect.width/2) + 'px';
+            boom.style.top = (eRect.top + eRect.height/2) + 'px';
+            document.body.appendChild(boom);
+            setTimeout(() => boom.remove(), 300);
+            resolve();
+        }, 250); // 0.25초 비행 (훨씬 빠름)
+    });
+},
 
     // [기존 히트 스톱 기능 유지]
     hitStop: function(duration = 150) {
@@ -4777,6 +4777,28 @@ turn: function() {
                 const role = SKILL_DB[u.getKey()].role || 'nuker';
                 d.className = `unit role-${role} ${u.isSuper ? 'super-hero' : ''} ${u.isDead?'dead':''} ${isActive?'active-turn':''} ${tid===1?'target-enemy':''} ${tid===0?'target-ally':''}`;
 
+				// 🟢 [추가] 세뇌(Mind Control) 시각 효과 (보라색 오라 + 아이콘)
+                // MC_READY 상태거나, 현재 세뇌 조종 중인 유닛일 경우
+                const isPuppet = u.hasStatus('MC_READY') || (this.isMindControlling && this.isMindControlling.id === u.id);
+                if (isPuppet) {
+                    d.style.filter = 'hue-rotate(270deg) sepia(1) saturate(3)'; // 보라색으로 변조
+                    d.style.boxShadow = '0 0 15px #b026ff'; // 보라색 광채
+
+                    // (선택사항) 머리 위에 아이콘 표시
+                    if (!d.querySelector('.mc-icon')) {
+                        const icon = document.createElement('div');
+                        icon.className = 'mc-icon';
+                        icon.innerText = '🧠';
+                        icon.style.cssText = 'position:absolute; top:-15px; left:50%; transform:translateX(-50%); font-size:20px; z-index:10; animation: bounce 1s infinite;';
+                        d.appendChild(icon);
+                }
+            } else {
+                d.style.filter = ''; // 효과 제거
+                d.style.boxShadow = '';
+                const icon = d.querySelector('.mc-icon');
+                if (icon) icon.remove();
+            }
+				
                 // 이벤트 연결
                 d.onclick = (e) => {
                     // 터치 드래그나 롱프레스 후 손을 뗐을 때 클릭으로 인식되는 것 방지
