@@ -6224,7 +6224,47 @@ ai: function(u) {
         };
     }
 };
+// ==========================================
+// 📱 [Mobile/Web] 백그라운드 진입 시 소리 차단
+// ==========================================
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        // [숨김] 화면에서 사라지면 -> 일시 정지
+        console.log("⏸️ Background detected: Pausing audio.");
 
+        // 1. MP3 정지 (현재 재생 중이라면)
+        if (MusicEngine.currentAudio && !MusicEngine.currentAudio.paused) {
+            MusicEngine.currentAudio.pause();
+            MusicEngine.wasPlayingBeforeHide = true; // "원래 켜져 있었음" 표시
+        } else {
+            MusicEngine.wasPlayingBeforeHide = false;
+        }
+
+        // 2. 효과음(AudioContext) 정지
+        if (AudioSys.ctx && AudioSys.ctx.state === 'running') {
+            AudioSys.ctx.suspend();
+        }
+
+    } else {
+        // [복귀] 화면에 다시 나타나면 -> 재생 재개
+        console.log("▶️ Foreground detected: Resuming audio.");
+
+        // 1. MP3 재개 (원래 켜져 있었고, 음소거 상태가 아닐 때만)
+        if (MusicEngine.wasPlayingBeforeHide && !AudioSys.bgmMuted) {
+            if (MusicEngine.currentAudio) {
+                MusicEngine.currentAudio.play().catch(e => console.log("Auto-resume blocked", e));
+            } else {
+                // 만약 오디오 객체가 날아갔다면 새로 재생 (Start)
+                MusicEngine.play('Start');
+            }
+        }
+
+        // 2. 효과음 재개
+        if (AudioSys.ctx && AudioSys.ctx.state === 'suspended') {
+            AudioSys.ctx.resume();
+        }
+    }
+});
 window.onload = function() {
     Game.init();
 };
