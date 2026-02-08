@@ -3129,8 +3129,11 @@ const MusicEngine = {
         if (MusicEngine.ctx.state === 'suspended') MusicEngine.ctx.resume();
     },
 
-    // [소리 발생기] (캐논 원본 로직 호환용)
+    // [소리 발생기] (캐논 원본 로직 호환용 + 메모리 최적화)
     playTone: (freq, type, duration, vol, detune=0) => {
+        // AudioContext가 없으면 실행 안 함 (안전장치)
+        if (!MusicEngine.ctx) return;
+
         const t = MusicEngine.ctx.currentTime;
         const osc = MusicEngine.ctx.createOscillator();
         const gain = MusicEngine.ctx.createGain();
@@ -3138,18 +3141,34 @@ const MusicEngine = {
         osc.frequency.value = freq;
         if(detune) osc.detune.value = detune;
 
-        // [Fix] 마스터 볼륨 연동 (0일 때 0.5로 강제되는 버그 수정)
-        // AudioSys.masterVol이 정의되어 있으면 그것을 쓰고, 없으면 0.5를 씀
-        const master = (AudioSys.masterVol !== undefined) ? AudioSys.masterVol : 0.5;
+        // [Fix] 마스터 볼륨 연동 (AudioSys가 있으면 연동)
+        const master = (typeof AudioSys !== 'undefined' && AudioSys.masterVol !== undefined) ? AudioSys.masterVol : 0.5;
+        // 최종 볼륨 계산 (너무 크지 않게 0.3 보정)
         const finalVol = vol * master * 0.3;
         
         gain.gain.setValueAtTime(0, t);
         gain.gain.linearRampToValueAtTime(finalVol, t + 0.02); 
         gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
-        osc.connect(gain); gain.connect(MusicEngine.ctx.destination);
-        osc.start(t); osc.stop(t + duration + 0.1);
+        osc.connect(gain); 
+        gain.connect(MusicEngine.ctx.destination);
+        
+        osc.start(t); 
+        osc.stop(t + duration + 0.1);
+
+        // 관리 목록에 추가
         MusicEngine.bgmOscillators.push(osc);
+
+        // 🟢 [핵심 최적화] 재생이 끝나면 스스로 목록에서 삭제 (메모리 누수 방지)
+        osc.onended = () => {
+            // 연결 해제 (가비지 컬렉션 도움)
+            osc.disconnect();
+            gain.disconnect();
+            
+            // 배열에서 제거
+            const i = MusicEngine.bgmOscillators.indexOf(osc);
+            if (i > -1) MusicEngine.bgmOscillators.splice(i, 1);
+        };
     },
 
     // [음계 변환기] (신규 곡용)
@@ -5937,6 +5956,12 @@ ai: function(u) {
         d.className = 'log-entry';
         d.innerHTML = m;
         b.appendChild(d);
+        
+        // 🟢 [최적화] 로그가 50개를 넘으면 가장 오래된 것부터 삭제 (DOM 누적 방지)
+        while (b.children.length > 50) {
+            b.removeChild(b.firstChild);
+        }
+        
         b.scrollTop = b.scrollHeight;
     },
     shake: function(u) {
