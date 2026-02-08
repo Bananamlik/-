@@ -5682,15 +5682,30 @@ ai: function(u) {
                                 score += 10000; 
                             }
                         } else {
-                            // [모드 B: 전략] 일반 - 조건부 사용 (에이스/힐러 저격)
+                                                        // [모드 B: 전략] 일반 - 역할군(Role) 기반 지능적 타겟팅
                             
-                            // 조건 1: 에이스 저격 (공격력 62 이상)
-                            if (target.atk >= 62) score += 200;
+                            // 1. 타겟의 DB 키를 가져옴 (예: 'Fire-Dark')
+                            const targetKey = target.getKey();
                             
-                            // 조건 2: 힐러/서포터 저격
-                            if (typeof SKILL_DB !== 'undefined' && SKILL_DB[target.getKey()] && SKILL_DB[target.getKey()].role === 'supp') {
-                                score += 150;
+                            // 2. [안전장치] DB에 정보가 실제로 있는지 확인
+                            if (typeof SKILL_DB !== 'undefined' && SKILL_DB[targetKey]) {
+                                const role = SKILL_DB[targetKey].role;
+
+                                // 3. 역할군에 따른 점수 부여
+                                if (role === 'nuker') {
+                                    score += 300; // 1순위: 메인 딜러 (가장 위협적)
+                                }
+                                else if (role === 'supp') {
+                                    score += 200; // 2순위: 서포터 (유지력 차단)
+                                }
+                                else if (role === 'tank') {
+                                    score += 50;  // 3순위: 탱커 (굳이 뺏을 필요 없음)
+                                }
                             }
+
+                            // [보정] 역할군 정보가 없거나 예외 상황일 때도, 공격력이 비정상적으로 높으면 뺏음
+                            if (target.atk >= 80) score += 100;
+
                             
                             // 자살 방지: 내 체력이 30% 미만이면 사용 자제
                             if (u.hp < u.maxHp * 0.3) score -= 5000;
