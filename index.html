@@ -2145,7 +2145,12 @@ const SKILL_LOGIC = {
                 game.log(`<b>[${atk.name}]</b> 수호의 빛 🛡️`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
-                    a.shield += 70;
+                    // [Balance] 반동 상태 대상은 실드 획득 30% 감소
+                    let sVal = 70;
+                    if (a.hasStatus('EARTH_RECOIL')) sVal = Math.floor(sVal * 0.7);
+
+                    a.shield += sVal;
+                    
                     const existing = a.status.find(s => s.type === 'LIGHT_MIGHT');
                     const nextVal = existing ? (existing.val || 1) + 1 : 1;
                     const bonus = nextVal > 1 ? 20 : 15;
@@ -2279,20 +2284,23 @@ const SKILL_LOGIC = {
                     const allies = atk.team === 0 ? game.pTeam : game.eTeam;
                     const target = allies.filter(a => !a.isDead).sort((a, b) => (a.hp/a.maxHp) - (b.hp/b.maxHp))[0];
                     if (target) {
-                        target.shield += 40;
-                        game.recordStat(atk, 'shield', 40);
-                        UI.floatText(target, "+40🛡️", "ft-heal");
-                        Common.logAction(game, 'shield', atk, target, 40, "(보호)");
+                        let sVal = 40;
+                        if (target.hasStatus('EARTH_RECOIL')) sVal = Math.floor(sVal * 0.7);
+
+                        target.shield += sVal;
+                        game.recordStat(atk, 'shield', sVal);
+                        UI.floatText(target, `+${sVal}🛡️`, "ft-heal");
+                        Common.logAction(game, 'shield', atk, target, sVal, "(보호)");
                     }
                 }
             } else {
                 game.log(`<b>[${atk.name}]</b> 축복 ✨`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
-                    a.cleanse();
-                    const h = a.heal(70);
-                    game.recordStat(atk, 'heal', h);
-                    Common.logAction(game, 'heal', atk, a, h, "(정화)");
+                    // [Balance] 힐 먼저 적용 (반동/치유감소 적용 후 정화)
+                    a.heal(70);
+                    a.cleanse(); 
+                    Common.logAction(game, 'heal', atk, a, 70, "(정화)");
                 });
                 return false;
             }
@@ -2490,6 +2498,9 @@ const SKILL_LOGIC = {
                 const act = Common.applyDamage(atk, def, 2.35, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
                 
+                // [Balance] 반동 상태 추가 (정화 불가, 치유/실드 감소)
+                atk.addStatus('EARTH_RECOIL', 1, 0, atk);
+
                 if (atk.hasStatus('IMMUNITY')) {
                     atk.status = atk.status.filter(s => s.type !== 'IMMUNITY');
                     UI.floatText(atk, "면역삭제", "ft-miss");
@@ -2521,10 +2532,14 @@ const SKILL_LOGIC = {
                 game.log(`<b>[${atk.name}]</b> 성역 🏰`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
-                    a.shield += 50;
-                    a.cleanse();
-                    game.recordStat(atk, 'shield', 50);
-                    Common.logAction(game, 'shield', atk, a, 50, "(정화)");
+                    // [Balance] 반동 상태 대상은 실드 획득 30% 감소
+                    let sVal = 50;
+                    if (a.hasStatus('EARTH_RECOIL')) sVal = Math.floor(sVal * 0.7);
+
+                    a.shield += sVal;
+                    a.cleanse(); // 정화는 그대로 수행 (반동은 정화불가 속성이므로 안 지워짐)
+                    game.recordStat(atk, 'shield', sVal);
+                    Common.logAction(game, 'shield', atk, a, sVal, "(정화)");
                 });
                 return false;
             }
@@ -3009,21 +3024,31 @@ if (awakened) {
             // 감소율 합산 (예: 독20 + 모래70 = 90)
             const totalReduction = healDebuffs.reduce((sum, s) => sum + (s.val || 0), 0);
             
-            // 기존 힐량 저장 (디버깅용)
-            const originalAmount = amount;
-            
-            // 효율 계산 (100 - 감소율)% 적용
-            const multiplier = Math.max(0, (100 - totalReduction) / 100);
-            amount = Math.floor(amount * multiplier);
+            // 1. 기존 치유 감소(HEAL_DOWN)
+ const healDebuffs = this.status.filter(s => s.type === 'HEAL_DOWN');
+ if (healDebuffs.length > 0) {
+     totalReduction += healDebuffs.reduce((sum, s) => sum + (s.val || 0), 0);
+ }
 
-            // [디버그 로그] 콘솔창(F12)에서 작동 여부 확인 가능
-            console.log(`💉 [Healing] ${this.name}: ${originalAmount} -> ${amount} (감소율: ${totalReduction}%)`);
-            
-            // 치유 감소로 0이 되었을 때 "치유차단" 텍스트 표시
-            if (amount === 0 && originalAmount > 0) {
-                UI.floatText(this, "치유차단", "ft-miss");
-            }
-        }
+ // 2. 반동(EARTH_RECOIL) 상태: 치유량 30% 추가 감소
+ if (this.hasStatus('EARTH_RECOIL')) {
+     totalReduction += 30;
+     UI.floatText(this, "반동(치유↓)", "ft-miss");
+ }
+
+ // 최종 감소 적용
+ if (totalReduction > 0) {
+     const originalAmount = amount;
+     const multiplier = Math.max(0, (100 - totalReduction) / 100);
+     amount = Math.floor(amount * multiplier);
+
+     // [디버그 로그]
+     console.log(`💉 [Healing] ${this.name}: ${originalAmount} -> ${amount} (감소율: ${totalReduction}%)`);
+
+     if (amount === 0 && originalAmount > 0) {
+         UI.floatText(this, "치유차단", "ft-miss");
+     }
+ }
 
         const prev = this.hp;
         this.hp = Math.min(this.maxHp, this.hp + amount);
