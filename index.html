@@ -573,8 +573,23 @@
 .dock-folder.show { display: flex; animation: slide-down 0.2s forwards; }
 @keyframes slide-down { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* 팝업 위치 강제 고정 */
-.save-menu, .settings-modal { left: 55px !important; top: 0 !important; }
+/* [수정] 강제 위치 고정(top:0) 제거 및 디자인 정의 */
+.settings-modal, .save-menu {
+    position: absolute !important; /* 아이콘 근처에 붙도록 설정 */
+    z-index: 9999 !important;      /* 제일 위에 표시 */
+
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid var(--text-main);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    border-radius: 20px;
+    width: 200px;
+    padding: 15px;
+    display: none; /* 평소엔 숨김 */
+    flex-direction: column;
+    gap: 10px;
+
+    /* top, left 등 위치 값은 HTML 태그에서 직접 지정함 */
+}
         .side-btn:active { transform: scale(0.9); }
         
         /* 저장/로드 팝업 메뉴 */
@@ -1365,7 +1380,7 @@
                         
                         <div style="position:relative;">
                         <div class="side-btn" onclick="UI.toggleSettings()" title="소리" style="width:32px; height:32px; font-size:16px;">🎵</div>
-                        <div id="audio-settings" class="settings-modal" style="top:0; right:45px; bottom:auto; left:auto;">
+                        <div id="audio-settings" class="settings-modal" style="top:45px !important; right:-10px !important; bottom:auto !important; left:auto !important;">
 
                             <div class="set-row"><span>BGM</span><div class="toggle-btn on" id="tog-bgm" onclick="AudioSys.toggleChannel('bgm')"></div></div>
                             <div class="set-row" style="margin-top:5px;"><span style="font-size:10px; color:#888;">Vol</span><input type="range" class="vol-slider" min="0" max="100" value="50" oninput="AudioSys.setBgmVolume(this.value)"></div>
@@ -1388,7 +1403,7 @@
 
                         <div style="position:relative;">
                             <div class="side-btn" onclick="UI.toggleSaveMenu()" title="저장" style="width:32px; height:32px; font-size:16px;">💾</div>
-                            <div id="save-menu-popup" class="save-menu" style="bottom:0; right:40px; top:auto; left:auto;">
+                            <div id="save-menu-popup" class="save-menu" style="top:45px !important; right:-10px !important; bottom:auto !important; left:auto !important;">
                                 <div class="save-opt" onclick="Game.saveGame(); UI.toggleSaveMenu()">💾저장</div>
                                 <div class="save-opt" onclick="Game.loadGame(); UI.toggleSaveMenu()">📂로드</div>
                             </div>
