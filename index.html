@@ -5652,11 +5652,25 @@ ai: function(u) {
                     }
                 }
 
-                // D. 바위(Earth-Dark) S2 과잉 사용 방지
+                // 🟢 [AI 패치] Water-Dark(얼음) 중복 빙결 방지
+                if (u.getKey() === 'Water-Dark' && skillIdx === 2) {
+                    // 이미 빙결, 기절, 수면 상태인 적에게는 사용 자제
+                    if (target.hasStatus('FREEZE') || target.hasStatus('STUN') || target.hasStatus('SLEEP')) {
+                        score -= 5000; 
+                    }
+                }
+				
+                // D. 바위(Earth-Dark) S2 과잉 사용 방지 (업그레이드 버전)
                 if (u.getKey() === 'Earth-Dark' && skillIdx === 2) {
-                    score -= 3000; 
-                    if (!target.hasStatus('STUN') && !target.hasStatus('FREEZE')) {
-                         score += 3500;
+                    // 1. 적 체력이 내 공격력보다 낮으면(평타 킬각) 굳이 S2 쓰지 마라 (기절 아끼기)
+                    // (상성 등 복잡한 계산 대신 단순 공격력 기준으로 판단해도 충분)
+                    if (target.hp < u.getAtk()) {
+                        score -= 3000; 
+                    }
+                    
+                    // 2. 만약 내가 '면역(IMMUNITY)' 상태라면 패널티 무시하고 막 질러도 됨 (기절 안 걸리니까)
+                    if (u.hasStatus('IMMUNITY')) {
+                        score += 2000;
                     }
                 }
 
