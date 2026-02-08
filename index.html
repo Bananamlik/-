@@ -1360,22 +1360,27 @@
                         <div class="side-btn" onclick="Game.reset()" title="홈" style="width:32px; height:32px; font-size:16px;">🏠</div>
                         
                         <div style="position:relative;">
-                            <div class="side-btn" onclick="UI.toggleSettings()" title="소리" style="width:32px; height:32px; font-size:16px;">🎵</div>
-                            <div id="audio-settings" class="settings-modal" style="bottom:0; right:40px; top:auto; left:auto;">
-                                <div class="set-row"><span>볼륨</span><input type="range" class="vol-slider" min="0" max="100" value="50" oninput="AudioSys.setMasterVolume(this.value)"></div>
-                                <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
-                                <div class="set-row"><span>BGM</span><div class="toggle-btn on" id="tog-bgm" onclick="AudioSys.toggleChannel('bgm')"></div></div>
-                                <div class="bgm-select" style="flex-wrap:wrap; justify-content: center;">
-                                <div class="bgm-opt active" onclick="UI.selectBGM('Start', this)">🏁Start</div>
-                                <div class="bgm-opt" onclick="UI.selectBGM('Calm', this)">☕Calm</div>
-                                <div class="bgm-opt" onclick="UI.selectBGM('Groove', this)">🎸Groove</div>
-                                <div class="bgm-opt" onclick="UI.selectBGM('Surprise', this)">⚡Surprise</div>
-                                <div class="bgm-opt" onclick="UI.selectBGM('Duck_step', this)">🦆Duck</div>
+                        <div class="side-btn" onclick="UI.toggleSettings()" title="소리" style="width:32px; height:32px; font-size:16px;">🎵</div>
+                        <div id="audio-settings" class="settings-modal" style="top:0; right:45px; bottom:auto; left:auto; width: 200px;">
+
+                            <div class="set-row"><span>BGM</span><div class="toggle-btn on" id="tog-bgm" onclick="AudioSys.toggleChannel('bgm')"></div></div>
+                            <div class="set-row" style="margin-top:5px;"><span style="font-size:10px; color:#888;">Vol</span><input type="range" class="vol-slider" min="0" max="100" value="50" oninput="AudioSys.setBgmVolume(this.value)"></div>
+
+                            <div class="bgm-select" style="flex-wrap:wrap; justify-content: center; margin-top:8px;">
+                                <div class="bgm-opt active" onclick="UI.selectBGM('Start', this)">Start</div>
+                                <div class="bgm-opt" onclick="UI.selectBGM('Calm', this)">Calm</div>
+                                <div class="bgm-opt" onclick="UI.selectBGM('Groove', this)">Groove</div>
+                                <div class="bgm-opt" onclick="UI.selectBGM('Surprise', this)">Surprise</div>
+                                <div class="bgm-opt" onclick="UI.selectBGM('Duck_step', this)">Duck</div>
                             </div>
-                                <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
-                                <div class="set-row"><span>SFX</span><div class="toggle-btn on" id="tog-sfx" onclick="AudioSys.toggleChannel('sfx')"></div></div>
-                            </div>
+
+                            <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:8px 0;">
+
+                            <div class="set-row"><span>SFX</span><div class="toggle-btn on" id="tog-sfx" onclick="AudioSys.toggleChannel('sfx')"></div></div>
+                            <div class="set-row" style="margin-top:5px;"><span style="font-size:10px; color:#888;">Vol</span><input type="range" class="vol-slider" min="0" max="100" value="50" oninput="AudioSys.setSfxVolume(this.value)"></div>
+
                         </div>
+                    </div>
 
                         <div style="position:relative;">
                             <div class="side-btn" onclick="UI.toggleSaveMenu()" title="저장" style="width:32px; height:32px; font-size:16px;">💾</div>
