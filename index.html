@@ -3154,12 +3154,21 @@ const AudioSys = {
         osc.frequency.value = freq;
         if (detune !== 0) osc.detune.value = detune;
 
-        // [수정] 분리된 볼륨 적용
-        const baseVol = isBGM ? this.bgmVol : this.sfxVol;
-        const finalVol = vol * baseVol;
+        // [수정] 효과음 증폭 로직 추가
+        let baseVol = isBGM ? this.bgmVol : this.sfxVol;
+
+        // ⚡ [증폭] 효과음(SFX)이라면 2.5배 더 크게 출력
+        if (!isBGM) {
+            baseVol *= 1.5; 
+        }
+
+        // 최종 볼륨 계산 (너무 커서 찢어지지 않게 최대 1.0으로 제한 안전장치)
+        let finalVol = vol * baseVol;
+        if (finalVol > 1.0) finalVol = 1.0; 
 
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(finalVol, t + 0.05); 
+        // 타격감을 위해 0.02초만에 빠르게 최고 볼륨 도달 (기존 0.05보다 빠름)
+        gain.gain.linearRampToValueAtTime(finalVol, t + 0.02); 
         gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
         osc.connect(gain);
