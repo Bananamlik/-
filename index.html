@@ -5603,6 +5603,15 @@ ai: function(u) {
                     }
                 }
 
+				// 이미 기절, 빙결, 수면, 도발, 침묵 등에 걸린 적에게는 점수 대폭 하락
+                if (u.getKey() === 'Dark-Dark' && skillIdx === 1) {
+                    if (target.hasStatus('STUN') || target.hasStatus('FREEZE') || target.hasStatus('SLEEP') || target.hasStatus('SILENCE')) {
+                        score -= 3000; // 이미 무력화됨
+                    }
+                    else if (typeof target.isProvoked === 'function' && target.isProvoked()) {
+                        score -= 3000; // 도발됨
+                    }
+                }
 			
                 // 🟢 [AI 패치] Dark-Dark(심연) 지능형/확률형 세뇌 로직 (CC 걸린 적 제외)
                 if (u.getKey() === 'Dark-Dark' && skillIdx === 2) {
