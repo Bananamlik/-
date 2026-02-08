@@ -1287,8 +1287,8 @@
         .hero-card.p2-selected .unit-img-bg {
             filter: hue-rotate(180deg) brightness(1.1) !important;
         }
-        .unit.team-1 .hp-bar-fill {
-            background: #5c6bc0 !important;
+        .unit.team-1 .hp-fill {
+        background: #5c6bc0 !important;
         }
         /* 2P 선택 카드 강조 */
         .hero-card.p2-selected {
@@ -2582,11 +2582,11 @@ const SKILL_LOGIC = {
                 const missingPct = 1.0 - (def.hp / def.maxHp);
                 let chance = 0.30 + (missingPct * 0.25);
                 
-                // 🟢 [수정됨] 챌린지 모드 + '적군(Team 1)'일 때만 90% 적용
-                if (game.mode === 'challenge' && atk.team === 1) {
-                    chance = 1.00;
-                    game.log("<span class='log-sys' style='color:#ff5252;'>⚠️ [BOSS] 적의 정신지배 확률이 대폭 상승합니다! (90%)</span>");
-                }
+                // 🟢 [수정됨] 챌린지 모드(hell 난이도) + '적군(Team 1)'일 때만 90% 적용
+            if (game.difficulty === 'hell' && atk.team === 1) {
+                chance = 1.00;
+                game.log("<span class='log-sys' style='color:#ff5252;'>⚠️ [BOSS] 적의 정신지배 확률이 대폭 상승합니다! (90%)</span>");
+            }
 
                 // 3. 성공/실패 판정
                 if (game.netRandom() < chance) {
