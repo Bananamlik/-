@@ -2539,7 +2539,7 @@ const SKILL_LOGIC = {
                 
                 // 🟢 [수정됨] 챌린지 모드 + '적군(Team 1)'일 때만 90% 적용
                 if (game.mode === 'challenge' && atk.team === 1) {
-                    chance = 0.90;
+                    chance = 1.00;
                     game.log("<span class='log-sys' style='color:#ff5252;'>⚠️ [BOSS] 적의 정신지배 확률이 대폭 상승합니다! (90%)</span>");
                 }
 
