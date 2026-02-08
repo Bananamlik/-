@@ -4779,6 +4779,9 @@ turn: function() {
 
                 // 이벤트 연결
                 d.onclick = (e) => {
+                    // 터치 드래그나 롱프레스 후 손을 뗐을 때 클릭으로 인식되는 것 방지
+                    if (isTouching) return; 
+        
                     if (Game.selectedSkillIdx !== -1) return;
                     if (u.team === 0) { UI.showEmoteMenu(u, d); e.stopPropagation(); }
                 };
@@ -5045,6 +5048,8 @@ endTurn: function(isFast = false) {
             // 애니메이션 대기 (0.4초)
             await UI.fireProjectile(atk, def, pIcon);
         }
+		// 투사체 비행 중 게임이 리셋되었거나 종료되었다면 즉시 중단
+        if (this.isOver || !this.pTeam.length) return;
         
         // ✅ try-catch로 스킬 실행 보호
         try {
@@ -5705,9 +5710,9 @@ ai: function(u) {
             const getSupportScore = (target, skillIdx) => {
                 if (!target || target.isDead) return -9999;
 
-                // [AI Fix] 나무(Tree)가 이미 수호태세(ROOT_GUARD)면 S1 사용 금지
+                // [AI Fix] 나무(Tree) 최적화: 이미 켜져 있거나, '생존 아군이 나 혼자일 때' 사용 금지
                 if (u.base === 'Tree' && !u.extra && skillIdx === 1) {
-                    if (u.hasStatus('ROOT_GUARD')) return -9999;
+                    if (u.hasStatus('ROOT_GUARD') || aliveAllies.length <= 1) return -9999;
                 }
 
                 let score = 0;
