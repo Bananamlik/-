@@ -2705,7 +2705,7 @@ if (awakened) {
 
     takeDamage(dmg, isFire = false, ignoreShield = false, source = null) {
         // [Tree 패시브] 거목: 기본 15% 뎀감 + 스택당 5% (최대 25%)
-        if (this.base === 'Tree') {
+        if (this.base === 'Tree' && !this.extra) {
             const reducePct = 0.15 + (this.treeStack * 0.05);
             dmg = Math.floor(dmg * (1.0 - reducePct));
         }
