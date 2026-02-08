@@ -1365,7 +1365,13 @@
                                 <div class="set-row"><span>볼륨</span><input type="range" class="vol-slider" min="0" max="100" value="50" oninput="AudioSys.setMasterVolume(this.value)"></div>
                                 <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
                                 <div class="set-row"><span>BGM</span><div class="toggle-btn on" id="tog-bgm" onclick="AudioSys.toggleChannel('bgm')"></div></div>
-                                <div class="bgm-select"><div class="bgm-opt active" onclick="UI.selectBGM('Canon_Piano', this)">🎹피아노</div><div class="bgm-opt" onclick="UI.selectBGM('Battle_Piano', this)">⚔️전투</div></div>
+                                <div class="bgm-select" style="flex-wrap:wrap; justify-content: center;">
+                                <div class="bgm-opt active" onclick="UI.selectBGM('Start', this)">🏁Start</div>
+                                <div class="bgm-opt" onclick="UI.selectBGM('Calm', this)">☕Calm</div>
+                                <div class="bgm-opt" onclick="UI.selectBGM('Groove', this)">🎸Groove</div>
+                                <div class="bgm-opt" onclick="UI.selectBGM('Surprise', this)">⚡Surprise</div>
+                                <div class="bgm-opt" onclick="UI.selectBGM('Duck_step', this)">🦆Duck</div>
+                            </div>
                                 <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:5px 0;">
                                 <div class="set-row"><span>SFX</span><div class="toggle-btn on" id="tog-sfx" onclick="AudioSys.toggleChannel('sfx')"></div></div>
                             </div>
