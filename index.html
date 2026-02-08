@@ -1701,7 +1701,7 @@ const SKILL_DB = {
     'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상(100%)', s2:'소각', s2d:'1.0배+적 공격력만큼 추가타', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', desc:'메인 딜러<br>역이용 / 강력한 광역 도트', passive:'🔥 소각: 적의 공격력이 높을수록 더 큰 피해를 입힙니다.' },
     
     'Metal-Dark': { s1:'전기충격', s1d:'1.5배+공격력10↑', s2:'방전', s2d:'광역 0.8배+기절(15%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'⚡', desc:'메인 딜러<br>성장형 광역', passive:'⚡ 과부하: S1 사용 시 공격력이 10 증가합니다 (최대 3회).' },
-    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.35배+자가기절(1턴)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 사용 후 1턴간 [반동] 상태가 됩니다. 반동 상태에서는 받는 피해가 15 증가하며, 이는 정화되지 않습니다.' },
+    'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.35배+자가기절(1턴)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 사용 후 1턴간 [반동] 상태가 됩니다. 반동 상태에서는 받는 피해가 15 증가하고 받는 치유/실드가 30% 감소하며, 이는 정화되지 않습니다.' },
     'Earth': { s1:'암석투척', s1d:'1.4배+버프해제+(기절25%/침묵20%)', s2:'지진', s2d:'광역 0.8배 (1:1강화)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🏜️', desc:'CC형 딜러<br>버프 파괴 / 기절', passive:null },
     'Water-Dark': { s1:'고드름', s1d:'1.5배+데미지20%쉴드', s2:'절대영도', s2d:'1.0배+빙결(35%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'❄️', desc:'CC형 딜러<br>빙결 + 자가쉴드', passive:'❄️ 얼음 갑옷: S1 사용 시 입힌 데미지의 20%만큼 쉴드를 획득합니다.' },
     'Metal-Light': { s1:'가스탄', s1d:'3뎀+피격대상1.0배(CC걸린 적1.3배)', s2:'맹독살포', s2d:'전체독(35) 및 치유감소20% 3턴', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'☣️', desc:'특수 딜러<br>나무(Tree) 카운터 / 힐밴', passive:null },
@@ -3018,37 +3018,34 @@ if (awakened) {
         this.status = this.status.filter(s => s.turn > 0);
     }
     heal(amount) {
-        // [수정] 치유 감소(HEAL_DOWN) 로직 검증 및 디버깅
+        // [수정] 치유 감소 및 반동 로직 통합
+        let totalReduction = 0;
+        
+        // 1. 기존 치유 감소(HEAL_DOWN)
         const healDebuffs = this.status.filter(s => s.type === 'HEAL_DOWN');
         if (healDebuffs.length > 0) {
-            // 감소율 합산 (예: 독20 + 모래70 = 90)
-            const totalReduction = healDebuffs.reduce((sum, s) => sum + (s.val || 0), 0);
+            totalReduction += healDebuffs.reduce((sum, s) => sum + (s.val || 0), 0);
+        }
+
+        // 2. 반동(EARTH_RECOIL) 상태: 치유량 30% 추가 감소
+        if (this.hasStatus('EARTH_RECOIL')) {
+            totalReduction += 30;
+            UI.floatText(this, "반동(치유↓)", "ft-miss");
+        }
+
+        // 최종 감소 적용
+        if (totalReduction > 0) {
+            const originalAmount = amount;
+            const multiplier = Math.max(0, (100 - totalReduction) / 100);
+            amount = Math.floor(amount * multiplier);
+
+            // [디버그 로그]
+            console.log(`💉 [Healing] ${this.name}: ${originalAmount} -> ${amount} (감소율: ${totalReduction}%)`);
             
-            // 1. 기존 치유 감소(HEAL_DOWN)
- const healDebuffs = this.status.filter(s => s.type === 'HEAL_DOWN');
- if (healDebuffs.length > 0) {
-     totalReduction += healDebuffs.reduce((sum, s) => sum + (s.val || 0), 0);
- }
-
- // 2. 반동(EARTH_RECOIL) 상태: 치유량 30% 추가 감소
- if (this.hasStatus('EARTH_RECOIL')) {
-     totalReduction += 30;
-     UI.floatText(this, "반동(치유↓)", "ft-miss");
- }
-
- // 최종 감소 적용
- if (totalReduction > 0) {
-     const originalAmount = amount;
-     const multiplier = Math.max(0, (100 - totalReduction) / 100);
-     amount = Math.floor(amount * multiplier);
-
-     // [디버그 로그]
-     console.log(`💉 [Healing] ${this.name}: ${originalAmount} -> ${amount} (감소율: ${totalReduction}%)`);
-
-     if (amount === 0 && originalAmount > 0) {
-         UI.floatText(this, "치유차단", "ft-miss");
-     }
- }
+            if (amount === 0 && originalAmount > 0) {
+                UI.floatText(this, "치유차단", "ft-miss");
+            }
+        }
 
         const prev = this.hp;
         this.hp = Math.min(this.maxHp, this.hp + amount);
