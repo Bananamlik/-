@@ -3038,41 +3038,93 @@ if (awakened) {
 
 const AudioSys = {
     ctx: null,
-    bgmVol: 0.5, // [변경] 배경음악 볼륨
-    sfxVol: 0.5, // [변경] 효과음 볼륨
+    bgmVol: 0.5, // 배경음악 볼륨
+    sfxVol: 0.5, // 효과음 볼륨
     bgmMuted: false,
     sfxMuted: false,
 
     init: function() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.loadSettings(); // [핵심] 저장된 설정 불러오기
         }
         if (this.ctx.state === 'suspended') {
             this.ctx.resume();
         }
     },
-    
+
     resume: function() {
         this.init();
     },
-    
+
+    // [신규] 설정 저장 (볼륨 조절/토글 시 호출)
+    saveSettings: function() {
+        const data = {
+            bgmVol: this.bgmVol,
+            sfxVol: this.sfxVol,
+            bgmMuted: this.bgmMuted,
+            sfxMuted: this.sfxMuted
+        };
+        localStorage.setItem('et_audio_settings', JSON.stringify(data));
+    },
+
+    // [신규] 설정 불러오기 (init에서 호출)
+    loadSettings: function() {
+        const saved = localStorage.getItem('et_audio_settings');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                // 데이터 로드
+                if(data.bgmVol !== undefined) this.bgmVol = data.bgmVol;
+                if(data.sfxVol !== undefined) this.sfxVol = data.sfxVol;
+                if(data.bgmMuted !== undefined) this.bgmMuted = data.bgmMuted;
+                if(data.sfxMuted !== undefined) this.sfxMuted = data.sfxMuted;
+
+                // UI(슬라이더) 강제 동기화
+                setTimeout(() => {
+                    const bgmSlider = document.querySelector('input[oninput*="setBgmVolume"]');
+                    if(bgmSlider) bgmSlider.value = this.bgmVol * 100;
+
+                    const sfxSlider = document.querySelector('input[oninput*="setSfxVolume"]');
+                    if(sfxSlider) sfxSlider.value = this.sfxVol * 100;
+
+                    const bgmBtn = document.getElementById('tog-bgm');
+                    if(bgmBtn) {
+                        if (this.bgmMuted) bgmBtn.classList.remove('on');
+                        else bgmBtn.classList.add('on');
+                    }
+
+                    const sfxBtn = document.getElementById('tog-sfx');
+                    if(sfxBtn) {
+                        if (this.sfxMuted) sfxBtn.classList.remove('on');
+                        else sfxBtn.classList.add('on');
+                    }
+                }, 100); // DOM 렌더링 후 적용
+
+            } catch (e) { console.error("설정 로드 실패", e); }
+        }
+    },
+
     // [신규] BGM 볼륨 조절
     setBgmVolume: function(val) {
         this.bgmVol = val / 100;
         if (MusicEngine && MusicEngine.currentAudio) {
             MusicEngine.currentAudio.volume = this.bgmVol;
         }
+        this.saveSettings(); // 변경 즉시 저장
     },
 
     // [신규] SFX 볼륨 조절
     setSfxVolume: function(val) {
         this.sfxVol = val / 100;
+        this.saveSettings(); // 변경 즉시 저장
     },
 
     toggleChannel: function(type) {
         if (type === 'bgm') {
             this.bgmMuted = !this.bgmMuted;
             document.getElementById('tog-bgm').classList.toggle('on');
+
             if(this.bgmMuted) {
                 MusicEngine.stop();
             } else {
@@ -3086,6 +3138,7 @@ const AudioSys = {
             this.sfxMuted = !this.sfxMuted;
             document.getElementById('tog-sfx').classList.toggle('on');
         }
+        this.saveSettings(); // 상태 변경 저장
     },
 
     playTone: function(freq, type, duration, vol, detune = 0, isBGM = false) {
@@ -3096,12 +3149,12 @@ const AudioSys = {
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        
+
         osc.type = type;
         osc.frequency.value = freq;
         if (detune !== 0) osc.detune.value = detune;
 
-        // [수정] BGM/SFX 여부에 따라 다른 볼륨 적용
+        // [수정] 분리된 볼륨 적용
         const baseVol = isBGM ? this.bgmVol : this.sfxVol;
         const finalVol = vol * baseVol;
 
@@ -3118,7 +3171,6 @@ const AudioSys = {
     play: function(type) {
         if (this.sfxMuted) return;
         this.init();
-        // 효과음 재생 로직 (기존 유지)
         switch (type) {
             case 'HIT': this.playTone(150, 'square', 0.1, 0.2); break;
             case 'CRITICAL': 
