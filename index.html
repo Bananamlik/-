@@ -5684,8 +5684,8 @@ ai: function(u) {
                         } else {
                             // [모드 B: 전략] 일반 - 조건부 사용 (에이스/힐러 저격)
                             
-                            // 조건 1: 에이스 저격 (공격력 80 이상)
-                            if (target.atk >= 80) score += 200;
+                            // 조건 1: 에이스 저격 (공격력 62 이상)
+                            if (target.atk >= 62) score += 200;
                             
                             // 조건 2: 힐러/서포터 저격
                             if (typeof SKILL_DB !== 'undefined' && SKILL_DB[target.getKey()] && SKILL_DB[target.getKey()].role === 'supp') {
