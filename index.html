@@ -1183,18 +1183,22 @@
     pointer-events: auto !important; /* 클릭 강제 허용 */
 }
 
-/* 설정/저장 팝업창 스타일 보정 (메뉴 옆으로 예쁘게 뜨게) */
+/* [수정] 설정/저장 팝업창: 아이콘 종속성 제거하고 화면 고정 위치 사용 */
 .settings-modal, .save-menu {
-    position: absolute !important;
-    bottom: 0 !important;
-    right: 45px !important; /* 아이콘 바로 왼쪽으로 배치 */
-    top: auto !important;
-    left: auto !important;
-    z-index: 7000 !important; /* 메뉴보다도 높게 */
+    position: fixed !important;  /* absolute -> fixed (화면 기준 고정) */
+    top: 20% !important;         /* 화면 상단에서 20% 내려온 지점 */
+    left: 50% !important;        /* 화면 좌우 중앙 */
+    transform: translateX(-50%); /* 정확한 중앙 정렬 */
+    bottom: auto !important;
+    right: auto !important;
+
+    z-index: 9999 !important;    /* 최상단 노출 */
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid var(--text-main);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    width: 180px; /* 너비 확보 */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3); /* 그림자 강화 */
+    border-radius: 20px;
+    width: 220px;                /* 너비 약간 넓힘 */
+    padding: 15px;
 }
 /* [신규] 실드 게이지 및 체력바 스타일 보정 */
 .status-bar {
@@ -1361,7 +1365,7 @@
                         
                         <div style="position:relative;">
                         <div class="side-btn" onclick="UI.toggleSettings()" title="소리" style="width:32px; height:32px; font-size:16px;">🎵</div>
-                        <div id="audio-settings" class="settings-modal" style="top:120px; right:45px; bottom:auto; left:auto; width: 200px;">
+                        <div id="audio-settings" class="settings-modal">
 
                             <div class="set-row"><span>BGM</span><div class="toggle-btn on" id="tog-bgm" onclick="AudioSys.toggleChannel('bgm')"></div></div>
                             <div class="set-row" style="margin-top:5px;"><span style="font-size:10px; color:#888;">Vol</span><input type="range" class="vol-slider" min="0" max="100" value="50" oninput="AudioSys.setBgmVolume(this.value)"></div>
