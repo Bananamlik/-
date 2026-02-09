@@ -3243,6 +3243,7 @@ const MusicEngine = {
     ctx: null, 
     isPlaying: false, 
     currentAudio: null, // HTMLAudioElement
+    wasPlayingBeforeHide: false, // [Fix] 백그라운드 재생 상태 추적 변수 초기화
 
     // [Synth Fallback Data] 파일 로드 실패 시 사용할 캐논 데이터
     canon: {
@@ -5225,6 +5226,10 @@ endTurn: function(isFast = false) {
 
         // UI 정리
         UI.closeModal();
+        
+        // [Fix] 날아가는 투사체 및 이펙트 즉시 제거
+        document.querySelectorAll('.projectile, .impact-effect, .vfx-layer, .float-text').forEach(el => el.remove());
+
         document.getElementById('battle-screen').style.display = 'none';
         document.getElementById('selection-screen').style.display = 'flex';
         document.querySelectorAll('.hero-card.selected').forEach(el => el.classList.remove('selected'));
@@ -5695,7 +5700,9 @@ ai: function(u) {
 
                 // 3. 쉴드 낭비 방지 (Metal 상대로)
                 if (target.base === 'Metal' && !target.extra && target.shield > 0) {
-                    const dmgCap = target.maxHp * 0.3;
+                    const dmgCap = target.maxHp * 0.20; // [Fix] 실제 패시브 수치(20%)와 동기화
+                    
+                    // 데미지가 캡을 훨씬 초과하면(1.5배 이상) 낭비로 판단하여 점수 차감
                     if (baseDmg > dmgCap * 1.5) score -= 3000; 
                 }
 
