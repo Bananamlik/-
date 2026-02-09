@@ -1445,6 +1445,7 @@
                                 <div class="bgm-opt" onclick="UI.selectBGM('Groove', this)">Groove</div>
                                 <div class="bgm-opt" onclick="UI.selectBGM('Surprise', this)">Surprise</div>
                                 <div class="bgm-opt" onclick="UI.selectBGM('Duck_step', this)">Duck</div>
+                                <div class="bgm-opt" onclick="UI.selectBGM('Trip', this)">Trip</div>
                             </div>
 
                             <hr style="border:0; border-top:1px dashed #eee; width:100%; margin:8px 0;">
@@ -3378,7 +3379,8 @@ const MusicEngine = {
 
     // [랜덤 재생] Start 제외한 나머지 곡 중 선택
     playRandom: () => {
-        const playlist = ['Calm', 'Groove', 'Surprise', 'Duck_step'];
+        // [Update] Trip 추가
+        const playlist = ['Calm', 'Groove', 'Surprise', 'Duck_step', 'Trip'];
         const nextTrack = playlist[Math.floor(Math.random() * playlist.length)];
         MusicEngine.play(nextTrack);
     },
