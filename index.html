@@ -1317,6 +1317,39 @@
             transform: scale(1.05);
             box-shadow: 0 0 15px #5c6bc0;
         }
+		/* 📱 [작은 화면 최적화] 높이가 750px 이하인 기기용 패치 */
+    @media (max-height: 750px) {
+        /* 1. 카드 높이 축소 (220px -> 170px) */
+        .unit {
+            height: 170px !important;
+        }
+
+        /* 2. 카드 내부 요소 크기 및 위치 재조정 */
+        .unit .card-name { font-size: 10px; margin-bottom: 2px; }
+        .unit .tiny-icon { width: 20px; height: 20px; font-size: 14px; }
+        .unit .card-badge { top: 4px; left: 4px; }
+        .unit .attr-icon { width: 36px; height: 36px; font-size: 20px; }
+        .unit .elec-badge, .unit .tree-badge { top: 25px; width: 18px; height: 18px; font-size: 10px; }
+
+        /* 3. 체력바 두께 축소 */
+        .unit .status-bar { height: 6px; margin-top: 2px; }
+
+        /* 4. 컨트롤 패널 헤더 축소 */
+        .cp-header { height: 30px; font-size: 11px; }
+
+        /* 5. 스킬 버튼 크기 축소 */
+        .btn-group { min-height: 50px; }
+        .skill-name { font-size: 12px; }
+        .skill-desc { font-size: 9px; display: none; } /* 공간 부족 시 설명 숨김 */
+    }
+
+    /* 📱 [초소형 너비] 아이폰 SE (너비 375px 이하) 대응 */
+    @media (max-width: 380px) {
+        .unit { width: 31vw; } /* 꽉 차게 */
+        .card-atk { font-size: 9px; padding: 1px 4px; }
+        .side-controls { transform: scale(0.8); left: 5px; top: 10px; } /* 메뉴 버튼 작게 */
+    }
+</style>
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -2109,6 +2142,7 @@ const SKILL_LOGIC = {
                 Common.forEachEnemy(atk, game, (e) => e.status = e.status.filter(s => !s.type.startsWith('PROVOKED')));
                 def.addStatus(`PROVOKED_BY_${atk.id}`, 2, 0, atk);
                 atk.shield += 15;
+                atk.checkAwakening(); // [Fix] 쉴드 최대치(400) 제한 적용
                 game.log(" (도발!)");
             }
         }
