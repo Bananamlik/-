@@ -2100,9 +2100,24 @@ const SKILL_LOGIC = {
                 
                 // [Balance] 버프 1개 파괴 (돌로 깨부수기)
                 let dispelled = false;
-                if (def.getKey() === 'Fire-Light' && def.s2Count > 0) { def.s2Count--; dispelled = true; }
-                else if (def.getKey() === 'Metal-Dark' && def.elecStacks > 0) { def.elecStacks--; dispelled = true; }
-                else if (def.getKey() === 'Tree' && def.treeStack > 0) { def.treeStack--; dispelled = true; }
+                // [Fix] 스택 감소 시 실제 스탯도 함께 차감 (무한 스택 방지)
+                if (def.getKey() === 'Fire-Light' && def.s2Count > 0) { 
+                    def.s2Count--; 
+                    def.atk = Math.max(10, def.atk - 20); // 공격력 20 회수
+                    dispelled = true; 
+                    UI.floatText(def, "폭주해제", "ft-miss");
+                }
+                else if (def.getKey() === 'Metal-Dark' && def.elecStacks > 0) { 
+                    def.elecStacks--; 
+                    def.atk = Math.max(10, def.atk - 10); // 공격력 10 회수
+                    dispelled = true; 
+                    UI.floatText(def, "과부하해제", "ft-miss");
+                }
+                else if (def.getKey() === 'Tree' && def.treeStack > 0) { 
+                    def.treeStack--; 
+                    dispelled = true; 
+                    // 나무는 takeDamage에서 treeStack을 실시간 참조하므로 별도 스탯 차감 불필요
+                }
                 if (!dispelled) {
                     const buffs = ['EVADE', 'ATK_BUFF_SMALL', 'LIGHT_MIGHT', 'DMG_RED', 'GROWTH', 'LIFESTEAL_BUFF', 'ROOT_GUARD', 'START_IMMUNITY'];
                     const idx = def.status.findIndex(s => buffs.includes(s.type));
