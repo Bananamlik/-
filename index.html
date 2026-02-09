@@ -6106,7 +6106,7 @@ ai: function(u) {
             this.isOver = true;
             if (this.timer) clearTimeout(this.timer);
             AudioSys.play('WIN');
-            MusicEngine.stop(); // [Fix] 신형 엔진 정지
+            MusicEngine.play('ending'); // [New] 엔딩 BGM 재생 (파일 없으면 기본곡 Fallback)
 
             // [신규] 튜토리얼 승리/패배 처리 (start() 재호출로 연결)
             if (this.difficulty === 'tutorial') {
