@@ -3339,45 +3339,62 @@ const MusicEngine = {
         MusicEngine.stop(); // 기존 곡 정지
         MusicEngine.isPlaying = true;
 
-        // 1. 안전 모드(Synth)일 경우 바로 전자음 재생
-        if (MusicEngine.mode === 'SYNTH') {
-            console.log(`🎹 [MusicEngine] Synth Mode Playing: Canon`);
-            MusicEngine.canon.step = 0;
-            MusicEngine.loopCanon();
-            return;
-        }
+        // [New] 엔딩 BGM 특수 처리: 성공 시에만 기존 BGM 정지 (실패 시 기존 BGM 유지)
+ if (trackName === 'ending') {
+     let filename = "ending.mp3";
+     const newAudio = new Audio(filename);
+     if (typeof AudioSys !== 'undefined') newAudio.volume = AudioSys.bgmVol;
 
-        // 2. MP3 파일 모드
-        let filename = trackName;
-        // 확장자가 없으면 붙여줌 (파일명 대소문자 주의)
-        if (!filename.toLowerCase().endsWith('.mp3')) filename += ".mp3";
+     // 기존 곡을 끄지 않고 먼저 재생 시도
+     const playPromise = newAudio.play();
+     if (playPromise !== undefined) {
+         playPromise.then(() => {
+             console.log("🎵 Ending BGM started. Stopping previous track.");
+             MusicEngine.stop(); // 재생 성공 확인 후 기존 BGM 정지
 
-        console.log(`🎵 [MusicEngine] Loading: ${filename}`);
-        MusicEngine.currentAudio = new Audio(filename);
-        
-        // [수정] BGM 볼륨 사용
-        if (typeof AudioSys !== 'undefined') {
-            MusicEngine.currentAudio.volume = AudioSys.bgmVol;
-        }
+             MusicEngine.isPlaying = true;
+             MusicEngine.currentAudio = newAudio;
+             // 엔딩은 반복/랜덤 재생 하지 않음
+         }).catch(e => {
+             console.warn("⚠️ Ending BGM failed (Missing/Blocked). Keeping offline BGM.", e);
+             // 실패 시 stop()을 호출하지 않으므로 기존 BGM이 계속 나옴
+         });
+     }
+     return;
+ }
 
-        // [이벤트: 곡이 끝나면] -> 랜덤 재생 (Start 제외)
-        MusicEngine.currentAudio.onended = () => {
-            console.log("🎵 Track ended. Next random track.");
-            MusicEngine.playRandom();
-        };
+ // [일반 로직] 기존 BGM 즉시 정지 후 재생
+ MusicEngine.stop(); 
+ MusicEngine.isPlaying = true;
 
-        // [이벤트: 에러 발생 시] -> 안전 모드 전환 (Fallback)
-        MusicEngine.currentAudio.onerror = (e) => {
-            console.warn(`⚠️ [MusicEngine] Failed to load "${filename}". Switching to SYNTH mode.`);
-            MusicEngine.mode = 'SYNTH'; // 모드 영구 변경
-            MusicEngine.currentAudio = null;
-            MusicEngine.play('Canon_Piano'); // 전자음으로 즉시 대체
-        };
+ // 1. 안전 모드(Synth)
+ if (MusicEngine.mode === 'SYNTH') {
+     MusicEngine.canon.step = 0;
+     MusicEngine.loopCanon();
+     return;
+ }
 
-        // 재생 시도 (브라우저 정책상 실패 가능성 있음)
-        MusicEngine.currentAudio.play().catch(e => {
-            console.error("🚫 Autoplay blocked:", e);
-        });
+ // 2. MP3 파일 모드
+ let filename = trackName;
+ if (!filename.toLowerCase().endsWith('.mp3')) filename += ".mp3";
+
+ MusicEngine.currentAudio = new Audio(filename);
+ if (typeof AudioSys !== 'undefined') MusicEngine.currentAudio.volume = AudioSys.bgmVol;
+
+ MusicEngine.currentAudio.onended = () => {
+     MusicEngine.playRandom();
+ };
+
+ MusicEngine.currentAudio.onerror = (e) => {
+     console.warn(`⚠️ [MusicEngine] Failed to load "${filename}". Switching to SYNTH mode.`);
+     MusicEngine.mode = 'SYNTH'; 
+     MusicEngine.currentAudio = null;
+     MusicEngine.play('Canon_Piano'); 
+ };
+
+ MusicEngine.currentAudio.play().catch(e => {
+     console.error("🚫 Autoplay blocked:", e);
+ });
     },
 
     // [랜덤 재생] Start 제외한 나머지 곡 중 선택
