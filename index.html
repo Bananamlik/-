@@ -34,6 +34,7 @@
             justify-content: center;
             height: 100vh;
             height: 100dvh;
+			touch-action: manipulation; /* [Fix] 전체 터치 반응 속도 향상 */
         }
 
         #app {
@@ -61,7 +62,8 @@
         }
 
         /* 공통 UI 컴포넌트 */
-        button {
+        button, .unit, .hero-card, .side-btn { /* 터치 대상들 추가 */
+            touch-action: manipulation; /* [Fix] 더블탭 줌 방지 (반응속도 향상) */
             font-family: var(--font-main);
             border-radius: 25px;
             border: none;
@@ -6227,6 +6229,16 @@ ai: function(u) {
             const data = JSON.parse(json);
             this.difficulty = data.difficulty;
             this.mode = data.mode;
+            
+            // [Fix] UI 셀렉트 박스도 저장된 난이도로 동기화
+            const diffSelect = document.getElementById('diff-select');
+            if(diffSelect) {
+                diffSelect.value = this.difficulty;
+                // 만약 저장된 난이도가 옵션에 없다면(구버전 등), 기본값으로 설정
+                if (diffSelect.value !== this.difficulty) diffSelect.value = 'easy';
+            }
+            this.checkMode(); // 챌린지 모드일 경우 스테이지 정보 갱신
+
             this.turnCount = data.turnCount;
             this.curr = data.curr;
             this.queue = data.queue;
