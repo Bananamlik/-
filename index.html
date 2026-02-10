@@ -1118,9 +1118,209 @@
             font-size: 24px;
             z-index: 150;
             pointer-events: none;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));
         }
+        
+        /* [Phase 1] 속성별 투사체 궤적 애니메이션 */
+        .projectile.trajectory-arc {
+            /* 불 계열: 포물선 (위로 살짝 튀어올랐다 떨어짐) */
+            transition: all 0.3s cubic-bezier(0.5, -0.3, 0.5, 1.3);
+        }
+        
+        .projectile.trajectory-wave {
+            /* 물 계열: 물결 */
+            animation: wave-motion 0.3s ease-in-out;
+        }
+        @keyframes wave-motion {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        
+        .projectile.trajectory-spin {
+            /* 나무 계열: 회전 */
+            animation: spin-motion 0.3s linear;
+        }
+        @keyframes spin-motion {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .projectile.trajectory-straight {
+            /* 쇠/노말 계열: 빠른 직선 */
+            transition: all 0.2s linear;
+        }
+        
+        /* [Phase 1] 지면 이펙트 레이어 */
+        .ground-effect-layer {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            height: 30px;
+            pointer-events: none;
+            z-index: 1;
+            overflow: visible;
+        }
+        
+        /* [Phase 1] 지면 균열 이펙트 */
+        .ground-crack {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #8B4513, transparent);
+            animation: crack-appear 0.3s ease-out forwards;
+            opacity: 0;
+        }
+        @keyframes crack-appear {
+            0% { width: 0%; opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { width: 80%; opacity: 0; }
+        }
+        
+        /* [개선] 속성별 지면/배경 이펙트 */
+        /* 화염 파티클 */
+        .fire-particle {
+            position: absolute;
+            font-size: 20px;
+            animation: fire-rise 0.4s ease-out forwards;
+            pointer-events: none;
+            z-index: 10;
+        }
+        @keyframes fire-rise {
+            0% { transform: translateY(0) scale(0.5); opacity: 1; }
+            100% { transform: translateY(-40px) scale(1.2); opacity: 0; }
+        }
+        
+        /* 물보라 이펙트 */
+        .water-splash {
+            position: absolute;
+            font-size: 18px;
+            animation: splash-out 0.35s ease-out forwards;
+            pointer-events: none;
+            z-index: 10;
+        }
+        @keyframes splash-out {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0.5); opacity: 0; }
+        }
+        
+        /* 얼음 효과 */
+        .ice-frame {
+            position: absolute;
+            inset: -3px;
+            border: 3px solid rgba(135, 206, 250, 0.8);
+            border-radius: 20px;
+            animation: ice-freeze 0.4s ease-out forwards;
+            pointer-events: none;
+            z-index: 15;
+            box-shadow: 0 0 15px rgba(135, 206, 250, 0.6), inset 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+        @keyframes ice-freeze {
+            0% { opacity: 0; transform: scale(1.2); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1); }
+        }
+        
+        /* 서리 파티클 */
+        .frost-particle {
+            position: absolute;
+            font-size: 12px;
+            color: #E0F7FA;
+            animation: frost-float 0.5s ease-out forwards;
+            pointer-events: none;
+            z-index: 10;
+        }
+        @keyframes frost-float {
+            0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) rotate(360deg); opacity: 0; }
+        }
+        
+        /* 전기 스파크 */
+        .electric-spark {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(to bottom, #FFEB3B, transparent);
+            animation: spark-flash 0.25s ease-out forwards;
+            pointer-events: none;
+            z-index: 10;
+            transform-origin: top center;
+        }
+        @keyframes spark-flash {
+            0% { height: 0; opacity: 1; }
+            50% { height: 25px; opacity: 1; }
+            100% { height: 20px; opacity: 0; }
+        }
+        
+        /* 돌 파편 */
+        .rock-debris {
+            position: absolute;
+            font-size: 16px;
+            animation: debris-fly 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            pointer-events: none;
+            z-index: 10;
+        }
+        @keyframes debris-fly {
+            0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) rotate(720deg); opacity: 0; }
+        }
+        
+        /* 어둠 소용돌이 */
+        .dark-vortex {
+            position: absolute;
+            inset: -5px;
+            border-radius: 20px;
+            background: radial-gradient(circle, transparent 30%, rgba(75, 0, 130, 0.3) 70%, rgba(0, 0, 0, 0.5));
+            animation: vortex-spin 0.5s ease-out forwards;
+            pointer-events: none;
+            z-index: 14;
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.6);
+        }
+        @keyframes vortex-spin {
+            0% { opacity: 0; transform: rotate(0deg) scale(0.8); }
+            50% { opacity: 1; transform: rotate(180deg) scale(1); }
+            100% { opacity: 0; transform: rotate(360deg) scale(1.1); }
+        }
+        
+        /* 섬광 폭발 (Light) */
+        .light-flash {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
+            animation: flash-expand 0.3s ease-out forwards;
+            pointer-events: none;
+            z-index: 13;
+        }
+        @keyframes flash-expand {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        /* 십자 반짝임 */
+        .cross-shine {
+            position: absolute;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, white, transparent);
+            animation: shine-fade 0.3s ease-out forwards;
+            pointer-events: none;
+            z-index: 14;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        @keyframes shine-fade {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        /* [Phase 1] 속성별 임팩트 이펙트 */
         .impact-effect {
             position: absolute;
             font-size: 40px;
@@ -1131,6 +1331,61 @@
         @keyframes impact-pop {
             0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
             100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
+        
+        /* [개선] 카드 흔들림 애니메이션 - 타격감 강화 */
+        @keyframes card-shake-light {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-2px, 0) rotate(0deg); }
+            75% { transform: translate(2px, 0) rotate(0deg); }
+        }
+        @keyframes card-shake-medium {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            20% { transform: translate(-5px, -2px) rotate(-1deg); }
+            40% { transform: translate(5px, 2px) rotate(1deg); }
+            60% { transform: translate(-5px, 2px) rotate(-1deg); }
+            80% { transform: translate(5px, -2px) rotate(1deg); }
+        }
+        @keyframes card-shake-heavy {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            15% { transform: translate(-8px, -3px) rotate(-2deg); }
+            30% { transform: translate(8px, 3px) rotate(2deg); }
+            45% { transform: translate(-8px, 3px) rotate(-2deg); }
+            60% { transform: translate(8px, -3px) rotate(2deg); }
+            75% { transform: translate(-4px, 0) rotate(-1deg); }
+        }
+        
+        /* 흔들림 적용 클래스 */
+        .unit.shake-light { animation: card-shake-light 0.1s ease-out; }
+        .unit.shake-medium { animation: card-shake-medium 0.15s ease-out; }
+        .unit.shake-heavy { animation: card-shake-heavy 0.2s ease-out; }
+        
+        /* 속성별 임팩트 색상 */
+        .impact-fire { 
+            animation: impact-burst 0.4s ease-out forwards;
+            filter: drop-shadow(0 0 10px #ff6b00);
+        }
+        @keyframes impact-burst {
+            0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.2) rotate(180deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.8) rotate(360deg); opacity: 0; }
+        }
+        
+        .impact-water { 
+            filter: drop-shadow(0 0 8px #00bcd4);
+        }
+        
+        .impact-tree { 
+            filter: drop-shadow(0 0 8px #4caf50);
+        }
+        
+        .impact-metal { 
+            animation: impact-flash 0.25s ease-out forwards;
+            filter: drop-shadow(0 0 10px #fff);
+        }
+        @keyframes impact-flash {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; filter: brightness(3); }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; filter: brightness(1); }
         }
 /* [신규] 오디오 설정 UI */
         .settings-btn {
@@ -1377,9 +1632,31 @@
         .card-atk { font-size: 9px; padding: 1px 4px; }
         .side-controls { transform: scale(0.8); left: 5px; top: 10px; } /* 메뉴 버튼 작게 */
     }
+
+    /* [신규] 보고서 기반 커스텀 이펙트 (전기 & 정신지배) */
+    .lightning-bolt {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(to bottom, transparent, #ffeb3b, transparent);
+        animation: lightning-flash 0.2s ease-out forwards; pointer-events: none; z-index: 20;
+        border-radius: 15px; /* 카드 모양에 맞춤 */
+    }
+    @keyframes lightning-flash {
+        0% { opacity: 0; transform: scaleY(0); }
+        50% { opacity: 0.8; transform: scaleY(1); }
+        100% { opacity: 0; transform: scaleY(0.5); }
+    }
+    .mind-control-wave {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 20px; height: 20px; border: 4px solid #d500f9; border-radius: 50%;
+        animation: mc-pulse 0.8s ease-out forwards; pointer-events: none; z-index: 100;
+        box-shadow: 0 0 15px #d500f9;
+    }
+    @keyframes mc-pulse {
+        0% { width: 20px; height: 20px; opacity: 1; border-width: 4px; }
+        100% { width: 200px; height: 200px; opacity: 0; border-width: 0px; }
+    }
 </style>
-    </style>
-    <script src="/socket.io/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 <div id="tooltip-view"></div>
@@ -1774,20 +2051,20 @@ const IMAGE_DB = {
 };
 const SKILL_DB = {
     'Metal': { s1:'강철베기', s1d:'1.1배+40%쉴드', s2:'결투 신청', s2d:'도발(2턴)/쉴드+15', type:'CC', target:'ENEMY', role:'tank', icon:'🛡️', desc:'방어형 탱커<br>받는 피해 MaxHP 20% 제한', passive:'🛡️ 강철 맷집: 쉴드 보유 시, 한 번에 받는 피해가 최대 체력의 20%를 넘지 않습니다.' },
-    'Tree': { s1:'뿌리묶기', s1d:'3턴간 아군피해 40% 대신받음', s2:'치유의 잎', s2d:'HP+100/정화(CC해제시 뎀감↑)', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', desc:'수호형 탱커<br>피해 분산 + 뎀감 패시브', passive:'🌳 거목: 받는 피해가 15% 감소합니다. S2로 행동불가를 해제하면 뎀감율이 5%씩 증가합니다 (최대 25%).'},
+    'Tree': { s1:'뿌리묶기', s1d:'3턴간 아군피해 40%대신받음(아군60%)', s2:'치유의 잎', s2d:'HP+100/정화(CC해제시 뎀감↑)', type:'SELF_BUFF', target:'SELF', role:'tank', icon:'🌳', desc:'수호형 탱커<br>피해 분산 + 뎀감 패시브', passive:'🌳 거목: 받는 피해가 15% 감소합니다. S2로 행동불가를 해제하면 뎀감율이 5%씩 증가합니다 (최대 25%).'},
     'Fire-Light': { s1:'흡혈부여', s1d:'아군전체 흡혈(3턴)', s2:'폭주', s2d:'자신공+20(영구)/전체공+10', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'🔷', desc:'공격형 탱커<br>흡혈 + 폭주', passive:'🩸 흡혈: 매 턴 공격 시 피해량의 30%를 회복합니다. (최대 50)' },
     'Water-Light': { s1:'스팀젯', s1d:'0.9배+실명(30%)', s2:'안개', s2d:'잃은체력15%힐+회피', type:'TARGET_BUFF', target:'ALLY', role:'tank', icon:'☁️', desc:'서폿형 탱커<br>회피 + 어그로', passive:'☁️ 기화: 체력 20% 이하 시 1회 자동 회복 및 회피 상태가 됩니다.' },
     'Fire': { s1:'화염방사', s1d:'1.5배 +화상(60%)', s2:'메테오', s2d:'광역 0.8배+화상(30%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🔥', desc:'메인 딜러<br>초반 강력 / 유리대포', passive:'🔥 불의 기세: 1~2R 공+15, 3~6R 공+10, 7R~ 공+5' },
     'Normal': { s1:'균형타', s1d:'1.5배/내HP-30/쉴드60', s2:'주사위', s2d:'0.8~2.3배 랜덤/노코스트', type:'RANDOM', target:'ENEMY', role:'nuker', icon:'⚖️', desc:'메인 딜러<br>랜덤 한방 (약점:단일기초5속성) + 서브탱킹', passive:'🎲 면역: 행동 제어기(기절,빙결,침묵,세뇌)에 걸리지 않습니다.'},
     
     // [수정] 자가화상 패시브 설명 삭제
-    'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상(100%)', s2:'소각', s2d:'1.0배+적 공격력만큼 추가타', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', desc:'메인 딜러<br>역이용 / 강력한 광역 도트', passive:'🔥 소각: 적의 공격력이 높을수록 더 큰 피해를 입힙니다.' },
+    'Fire-Dark': { s1:'흑염', s1d:'1.0배+광역화상(100%)', s2:'소각', s2d:'1.0배+적 공격력만큼 추가타', type:'NUKE_PER', target:'ENEMY', role:'nuker', icon:'🐲', desc:'메인 딜러<br>역이용 / 강력한 광역 도트', passive:'🔥 소각: S2 사용 시 적의 공격력만큼 추가 피해를 입힙니다.' },
     
     'Metal-Dark': { s1:'전기충격', s1d:'1.5배+공격력10↑', s2:'방전', s2d:'광역 0.8배+기절(15%)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'⚡', desc:'메인 딜러<br>성장형 광역', passive:'⚡ 과부하: S1 사용 시 공격력이 10 증가합니다 (최대 3회).' },
     'Earth-Dark': { s1:'낙석', s1d:'1.5배', s2:'산사태', s2d:'2.35배+자가기절(1턴)', type:'ATK', target:'ENEMY', role:'nuker', icon:'🗿', desc:'메인 딜러<br>강력한 한방', passive:'🗿 반동: 산사태 사용 후 1턴간 [반동] 상태가 됩니다. 반동 상태에서는 받는 피해가 15 증가하고 받는 치유/실드가 30% 감소하며, 이는 정화되지 않습니다.' },
     'Earth': { s1:'암석투척', s1d:'1.4배+버프해제+(기절25%/침묵20%)', s2:'지진', s2d:'광역 0.8배 (1:1강화)', type:'AOE', target:'ALL_ENEMY', role:'nuker', icon:'🏜️', desc:'CC형 딜러<br>버프 파괴 / 기절', passive:null },
     'Water-Dark': { s1:'고드름', s1d:'1.5배+데미지20%쉴드', s2:'절대영도', s2d:'1.0배+빙결(35%)', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'❄️', desc:'CC형 딜러<br>빙결 + 자가쉴드', passive:'❄️ 얼음 갑옷: S1 사용 시 입힌 데미지의 20%만큼 쉴드를 획득합니다.' },
-    'Metal-Light': { s1:'가스탄', s1d:'3뎀+피격대상1.0배(CC걸린 적1.3배)', s2:'맹독살포', s2d:'전체독(35) 및 치유감소20% 3턴', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'☣️', desc:'특수 딜러<br>나무(Tree) 카운터 / 힐밴', passive:null },
+    'Metal-Light': { s1:'가스탄', s1d:'초기3뎀+피격자1.0배(CC추가타1.3배/나무보호자전이)', s2:'맹독살포', s2d:'전체독(35) 및 치유감소20% 3턴', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'☣️', desc:'특수 딜러<br>나무(Tree) 카운터 / 힐밴', passive:null },
     
     // [수정] 속박 -> 모래지옥(지속피해) 명시
     'Earth-Light': { s1:'모래폭풍', s1d:'1.3배(관통)+쉴드타격0.6배', s2:'모래지옥', s2d:'속박(60) 및 치유감소(50%) 2턴', type:'DEBUFF', target:'ENEMY', role:'nuker', icon:'🦂', desc:'특수 딜러<br>쉴드 파괴자 / 힐러 억제', passive:null },
@@ -1795,12 +2072,12 @@ const SKILL_DB = {
     'Tree-Dark': { s1:'가시찌르기', s1d:'1.5배+복수(계수증가)', s2:'영혼결속', s2d:'아군결속/저항↑', type:'TARGET_BUFF', target:'ALLY', role:'nuker', icon:'🥀', desc:'특수 딜러<br>복수 + 결속', passive:'🥀 복수: 결속된 아군 사망 시 공격력+20, S1계수+0.3 영구 증가.' },
     
     // [수정] 1.5배->1.4배, 힐량 표기 수정, 패시브 추가
-    'Water': { s1:'물대포', s1d:'1.4배', s2:'치유의 비', s2d:'전체 110 회복', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'메인 힐러<br>광역 회복', passive:'💧 생명수: 스킬 사용 시 20% 확률로 체력이 가장 낮은 아군을 50 추가 치유합니다.' },
+    'Water': { s1:'물대포', s1d:'1.4배', s2:'치유의 비', s2d:'전체 110 회복', type:'HEAL', target:'ALL_ALLY', role:'supp', icon:'🐳', desc:'메인 힐러<br>광역 회복', passive:'💧 생명수: S1/S2 사용 시 20% 확률로 체력이 가장 낮은 아군을 50 추가 치유합니다.' },
     
     'Tree-Light': { s1:'숲의분노', s1d:'1.3배+빈사아군 쉴드40', s2:'축복', s2d:'아군 정화/HP+70', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'🧚', desc:'메인 힐러<br>공격 + 보호막', passive:null },
     
     // [수정] 중첩 시 효과 강화 명시
-    'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+15(중첩↑)', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', desc:'메인 버퍼<br>광역 쉴드', passive:null },
+    'Light': { s1:'홀리볼', s1d:'1.5배', s2:'수호의 빛', s2d:'전체 쉴드+70/공+15(중첩시+20)', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'✨', desc:'메인 버퍼<br>광역 쉴드', passive:null },
     
     'Light-Light': { s1:'신의심판', s1d:'1.5배', s2:'성역', s2d:'전체 쉴드+50/정화', type:'BUFF', target:'ALL_ALLY', role:'supp', icon:'👼', desc:'메인 버퍼<br>정화 + 쉴드', passive:null },
     
@@ -1997,7 +2274,14 @@ const Common = {
             if (aff.v > 1.0) type = "ft-weak";
             else if (aff.v < 1.0) type = "ft-resist";
             UI.floatText(def, act, type); 
-            game.shake(def); 
+            game.shake(def);
+            
+            // [개선] 히트스톱 적용 (킬 여부 판정)
+            const isKill = (def.hp <= 0);
+            if (typeof UI !== 'undefined' && UI.hitStop) {
+                // 광역 공격 여부는 상위에서 판단하기 어려우므로 일단 단일 공격으로 처리
+                UI.hitStop(act, false, true, isKill);
+            }
 
             if ((atk.getKey() === 'Fire-Light') || atk.hasStatus('LIFESTEAL_BUFF')) {
                 const healAmt = Math.min(50, Math.floor(act * 0.30));
@@ -2072,6 +2356,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 물대포! 💧`);
+                UI.playVFX(def, 'water');
                 // [Balance] 1.5배 -> 1.4배 너프
                 const act = Common.applyDamage(atk, def, 1.4, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
@@ -2079,6 +2364,7 @@ const SKILL_LOGIC = {
                 game.log(`<b>[${atk.name}]</b> 치유의 비 🌧️`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
+                    UI.playVFX(a, 'heal');
                     // [Fix] 기본 힐량 110으로 상향
                     const h = a.heal(110);
                     game.recordStat(atk, 'heal', h);
@@ -2092,6 +2378,7 @@ const SKILL_LOGIC = {
                 // 체력이 가장 낮은(절대값 기준) 아군 찾기
                 const target = allies.filter(a => !a.isDead).sort((a, b) => a.hp - b.hp)[0];
                 if (target) {
+                    UI.playVFX(target, 'heal');
                     const h = target.heal(50);
                     game.recordStat(atk, 'heal', h);
                     UI.floatText(target, "+50(P)", "ft-heal");
@@ -2109,6 +2396,7 @@ const SKILL_LOGIC = {
                 // S1: 뿌리 묶기 (자신에게 수호 버프)
                 game.log(`<b>[${atk.name}]</b> 뿌리 묶기 🪵`);
                 AudioSys.play('POWER_UP');
+                UI.playVFX(atk, 'leaf');
                 
                 // ROOT_GUARD: 아군 피해 50% 대신 받음
                 atk.addStatus('ROOT_GUARD', 3, 0, atk);
@@ -2120,6 +2408,7 @@ const SKILL_LOGIC = {
                 if (!def) return;
                 game.log(`<b>[${atk.name}]</b> 치유의 잎 🌿`);
                 AudioSys.play('HEAL');
+                UI.playVFX(def, 'heal');
                 
                 // 1. 힐 실행 [Balance] 140 -> 100 너프
                 const h = def.heal(100);
@@ -2155,6 +2444,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 강철베기 ⚔️`);
+                UI.playVFX(def, 'slash');
                 // [Fix] 딜 1.1배로 하향
                 const act = Common.applyDamage(atk, def, 1.1, game);
                 if (act !== -1) {
@@ -2168,6 +2458,7 @@ const SKILL_LOGIC = {
             } else {
                 if (!def) return;
                 game.log(`<b>[${atk.name}]</b> 결투신청 💢`);
+                UI.playVFX(def, 'magic');
                 Common.forEachEnemy(atk, game, (e) => e.status = e.status.filter(s => !s.type.startsWith('PROVOKED')));
                 def.addStatus(`PROVOKED_BY_${atk.id}`, 2, 0, atk);
                 atk.shield += 15;
@@ -2181,6 +2472,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 암석투척 🪨`);
+                UI.playVFX(def, 'rock');
                 
                 // [Balance] 버프 1개 파괴 (돌로 깨부수기)
                 let dispelled = false;
@@ -2227,6 +2519,7 @@ const SKILL_LOGIC = {
                 const eAlive = game.eTeam.filter(u => !u.isDead).length;
                 if (pAlive === 1 && eAlive === 1) mult = 1.8;
                 Common.forEachEnemy(atk, game, (e) => {
+                    UI.playVFX(e, 'rock');
                     const act = Common.applyDamage(atk, e, mult, game);
                     if (act !== -1) Common.logAction(game, 'dmg', atk, e, act, "");
                 });
@@ -2238,12 +2531,14 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 홀리볼 ✨`);
+                UI.playVFX(def, 'magic');
                 const act = Common.applyDamage(atk, def, 1.5, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
             } else {
                 game.log(`<b>[${atk.name}]</b> 수호의 빛 🛡️`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
+                    UI.playVFX(a, 'heal');
                     // [Balance] 반동 상태 대상은 실드 획득 30% 감소
                     let sVal = 70;
                     if (a.hasStatus('EARTH_RECOIL')) sVal = Math.floor(sVal * 0.7);
@@ -2266,6 +2561,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 다크볼 🌑`);
+                UI.playVFX(def, 'vortex');
                 const act = Common.applyDamage(atk, def, 1.5, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
@@ -2274,6 +2570,7 @@ const SKILL_LOGIC = {
             } else {
                 game.log(`<b>[${atk.name}]</b> 공포 😱`);
                 Common.forEachEnemy(atk, game, (e) => {
+                    UI.playVFX(e, 'vortex');
                     // [Balance] 0.3배 -> 0.4배 상향
                     const act = Common.applyDamage(atk, e, 0.4, game);
                     if (act !== -1) {
@@ -2325,12 +2622,14 @@ const SKILL_LOGIC = {
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 흡혈 부여 🩸`);
                 Common.forEachAlly(atk, game, (a) => {
+                    UI.playVFX(a, 'fire');
                     // [Fix] 버프 이름 통일 (VAMP -> LIFESTEAL_BUFF)
                     a.addStatus('LIFESTEAL_BUFF', 3, 0, atk);
                 });
             } else {
                 game.log(`<b>[${atk.name}]</b> 폭주! 🔥`);
                 AudioSys.play('HEAL');
+                UI.playVFX(atk, 'fire');
                 if ((atk.s2Count || 0) < 5) {
                     atk.s2Count = (atk.s2Count || 0) + 1;
                     atk.atk += 20;
@@ -2348,6 +2647,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 스팀젯 ☁️`);
+                UI.playVFX(def, 'water');
                 const act = Common.applyDamage(atk, def, 0.9, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
@@ -2360,12 +2660,16 @@ const SKILL_LOGIC = {
                 if (!def) return;
                 game.log(`<b>[${atk.name}]</b> 안개 🌫️`);
                 AudioSys.play('HEAL');
+                UI.playVFX(def, 'heal');
                 const healAmt = Math.floor((def.maxHp - def.hp) * 0.15);
                 const h = def.heal(healAmt);
                 game.recordStat(atk, 'heal', h);
                 Common.logAction(game, 'heal', atk, def, h, "(회피부여)");
                 Common.forEachAlly(atk, game, (a) => {
-                    if (a.id !== atk.id) a.addStatus('EVADE', 2);
+                    if (a.id !== atk.id) {
+                        UI.playVFX(a, 'heal');
+                        a.addStatus('EVADE', 2);
+                    }
                 });
                 return false;
             }
@@ -2376,6 +2680,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 숲의분노 🌳`);
+                UI.playVFX(def, 'heal');
                 const act = Common.applyDamage(atk, def, 1.3, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
@@ -2383,6 +2688,7 @@ const SKILL_LOGIC = {
                     const allies = atk.team === 0 ? game.pTeam : game.eTeam;
                     const target = allies.filter(a => !a.isDead).sort((a, b) => (a.hp/a.maxHp) - (b.hp/b.maxHp))[0];
                     if (target) {
+                        UI.playVFX(target, 'heal');
                         let sVal = 40;
                         if (target.hasStatus('EARTH_RECOIL')) sVal = Math.floor(sVal * 0.7);
 
@@ -2396,6 +2702,7 @@ const SKILL_LOGIC = {
                 game.log(`<b>[${atk.name}]</b> 축복 ✨`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
+                    UI.playVFX(a, 'heal');
                     // [Balance] 힐 먼저 적용 (반동/치유감소 적용 후 정화)
                     a.heal(70);
                     a.cleanse(); 
@@ -2446,6 +2753,7 @@ const SKILL_LOGIC = {
             } else { // [S2] 맹독 살포
                 game.log(`<b>[${atk.name}]</b> 맹독살포 ☠️`);
                 Common.forEachEnemy(atk, game, (e) => {
+                    UI.playVFX(e, 'poison');
                     e.addStatus('POISON', 3, 0, atk);
                     // [Balance] 힐 효율 20% 감소
                     e.addStatus('HEAL_DOWN', 3, 20, atk); 
@@ -2459,6 +2767,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 모래폭풍 🏜️`);
+                UI.playVFX(def, 'rock');
                 // 1. 체력 직접 타격 (쉴드 무시 1.3배)
                 const hpAct = Common.applyDamage(atk, def, 1.3, game, true);
                 
@@ -2476,6 +2785,7 @@ const SKILL_LOGIC = {
                 }
             } else {
                 game.log(`<b>[${atk.name}]</b> 모래지옥 ⏳`);
+                UI.playVFX(def, 'vortex');
                 // 속박(TRAP) 부여
                 def.addStatus('TRAP', 2, 60, atk); // 데미지 60 명시
                 
@@ -2490,6 +2800,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 고드름 ❄️`);
+                UI.playVFX(def, 'ice');
                 const act = Common.applyDamage(atk, def, 1.5, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
@@ -2503,6 +2814,7 @@ const SKILL_LOGIC = {
                 }
             } else {
                 game.log(`<b>[${atk.name}]</b> 절대영도 🥶`);
+                UI.playVFX(def, 'magic');
                 const act = Common.applyDamage(atk, def, 1.0, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
                 if (act !== -1 && game.netRandom() < 0.35) def.addStatus('FREEZE', 1, 0, atk);
@@ -2515,14 +2827,19 @@ const SKILL_LOGIC = {
             else if (sIdx === 1) {
                 // [Balance] 패시브(자가 화상) 삭제됨
                 game.log(`<b>[${atk.name}]</b> 흑염 🌑`);
+                UI.playVFX(def, 'fire');
                 const act = Common.applyDamage(atk, def, 1.0, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
-                    Common.forEachEnemy(atk, game, (e) => e.addStatus('BURN', 2, 0, atk));
+                    Common.forEachEnemy(atk, game, (e) => {
+                        UI.playVFX(e, 'fire');
+                        e.addStatus('BURN', 2, 0, atk);
+                    });
                 }
             } else {
                 // [Balance] 패시브(자가 화상) 삭제됨
                 game.log(`<b>[${atk.name}]</b> 소각 🔥`);
+                UI.playVFX(def, 'fire');
                 const act = Common.applyDamage(atk, def, 1.0, game);
                 if (act !== -1) {
                     // [Balance] 적 공격력만큼 추가 데미지
@@ -2542,12 +2859,14 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 가시찌르기 🌵`);
+                UI.playVFX(def, 'vortex');
                 const act = Common.applyDamage(atk, def, 1.5 + (atk.thornStack || 0), game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
             } else {
                 if (!def) return;
                 game.log(`<b>[${atk.name}]</b> 영혼결속 🔗`);
                 AudioSys.play('HEAL');
+                UI.playVFX(def, 'magic');
                 if (def.team === atk.team) {
                     atk.linkedAllyId = def.id;
                     def.addStatus('BIND', 99);
@@ -2561,6 +2880,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 전기충격 ⚡`);
+                UI.playVFX(def, 'lightning'); // ⚡ 번개 이펙트
                 const act = Common.applyDamage(atk, def, 1.5, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
@@ -2574,6 +2894,7 @@ const SKILL_LOGIC = {
             } else {
                 game.log(`<b>[${atk.name}]</b> 방전 🔌`);
                 Common.forEachEnemy(atk, game, (e) => {
+                    UI.playVFX(def, 'lightning'); // ⚡ 번개 이펙트
                     const act = Common.applyDamage(atk, e, 0.8, game);
                     if (act !== -1) Common.logAction(game, 'dmg', atk, e, act, "");
                     if (act !== -1 && game.netRandom() < 0.15) e.addStatus('STUN', 1, 0, atk);
@@ -2597,20 +2918,18 @@ const SKILL_LOGIC = {
                 const act = Common.applyDamage(atk, def, 2.35, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
                 
-                // [Balance] 반동 상태 추가 (정화 불가, 치유/실드 감소)
-                atk.addStatus('EARTH_RECOIL', 1, 0, atk);
-
+                // [Balance] 면역 제거
                 if (atk.hasStatus('IMMUNITY')) {
                     atk.status = atk.status.filter(s => s.type !== 'IMMUNITY');
                     UI.floatText(atk, "면역삭제", "ft-miss");
                 }
 
-                // 기절 부여
+                // 기절 부여 (2턴)
                 const ex = atk.status.find(s => s.type === 'STUN');
                 if (ex) ex.turn = 2;
                 else atk.status.push({ type: 'STUN', turn: 2, val: 0 });
 
-                // 반동 부여 (받는 피해 15 증가)
+                // 반동 부여 (받는 피해 15 증가, 2턴)
                 const recoil = atk.status.find(s => s.type === 'EARTH_RECOIL');
                 if (recoil) recoil.turn = 2;
                 else atk.status.push({ type: 'EARTH_RECOIL', turn: 2, val: 15 });
@@ -2625,12 +2944,14 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 신의심판 ⚡`);
+                UI.playVFX(def, 'magic');
                 const act = Common.applyDamage(atk, def, 1.5, game);
                 if (act !== -1) Common.logAction(game, 'dmg', atk, def, act, "");
             } else {
                 game.log(`<b>[${atk.name}]</b> 성역 🏰`);
                 AudioSys.play('HEAL');
                 Common.forEachAlly(atk, game, (a) => {
+                    UI.playVFX(a, 'heal');
                     // [Balance] 반동 상태 대상은 실드 획득 30% 감소
                     let sVal = 50;
                     if (a.hasStatus('EARTH_RECOIL')) sVal = Math.floor(sVal * 0.7);
@@ -2649,6 +2970,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 심연일격 🗡️`);
+                UI.playVFX(def, 'vortex');
                 const act = Common.applyDamage(atk, def, 0.8, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
@@ -2689,6 +3011,7 @@ const SKILL_LOGIC = {
 
                 // 3. 성공/실패 판정
                 if (game.netRandom() < chance) {
+                    UI.playVFX(def, 'mc-wave'); // 🧠 정신지배 파동
                     def.addStatus('MC_WAIT', 1, 0, atk, true); 
                     game.log(` 🌀 <b>[${def.name}]</b> 정신 지배 시작! (1턴 후 스킵, 그 다음 조종)`);
                     UI.floatText(def, "세뇌 대기", "ft-crit");
@@ -2936,6 +3259,11 @@ if (awakened) {
             if (typeof Game !== 'undefined' && Game.die) {
                 Game.die(this);
             }
+        }
+        
+        // [개선] 카드 흔들림 효과 적용 (도트 데미지 제외)
+        if (source && hpDmg > 0 && typeof UI !== 'undefined' && UI.shakeCard) {
+            UI.shakeCard(this, hpDmg + shieldDmg);
         }
 
         return hpDmg + shieldDmg;
@@ -3748,11 +4076,20 @@ const UI = {
     },
     // [수정] 이펙트를 화면 전체 좌표 기준으로 생성 (가려짐 방지)
     playVFX: function(unit, type) {
-        const id = unit.team === 0 ? `p-card-${unit.id}` : `e-card-${unit.id}`;
-        const el = document.getElementById(id);
-        if (!el) return;
+    const id = unit.team === 0 ? `p-card-${unit.id}` : `e-card-${unit.id}`;
+    const el = document.getElementById(id);
+    if (!el) return;
 
-        // 타겟 카드의 현재 화면상 위치(좌표)를 가져옴
+    // [신규] CSS 기반 특수 이펙트 (카드 내부에 직접 부착)
+    if (type === 'lightning' || type === 'mc-wave') {
+        const vfx = document.createElement('div');
+        vfx.className = (type === 'lightning') ? 'lightning-bolt' : 'mind-control-wave';
+        el.appendChild(vfx);
+        setTimeout(() => vfx.remove(), 1000);
+        return; // 특수 이펙트는 여기서 종료
+    }
+
+    // [기존] 이모지 기반 이펙트 (화면 좌표 기준 body에 부착)
         const rect = el.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
@@ -3766,13 +4103,24 @@ const UI = {
         
         switch(type) {
             case 'hit': vfx.innerText = '💥'; vfx.style.animation = 'vfx-boom 0.4s ease-out forwards'; break;
-            case 'slash': vfx.innerText = '⚔️'; vfx.style.animation = 'vfx-slash 0.3s ease-out forwards'; break;
-            case 'fire': vfx.innerText = '🔥'; vfx.style.animation = 'vfx-boom 0.6s ease-out forwards'; vfx.style.color = 'orange'; break;
-            case 'ice': vfx.innerText = '❄️'; vfx.style.animation = 'vfx-boom 0.5s ease-out forwards'; break;
-            case 'heal': vfx.innerText = '✨'; vfx.style.animation = 'vfx-heal 0.8s ease-out forwards'; break;
-            case 'rock': vfx.innerText = '🪨'; vfx.style.animation = 'vfx-boom 0.4s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards'; break;
-            case 'magic': vfx.innerText = '🌀'; vfx.style.animation = 'vfx-magic 0.7s ease-out forwards'; break;
-            default: vfx.innerText = '💥'; vfx.style.animation = 'vfx-boom 0.4s ease-out forwards'; break;
+        case 'slash': vfx.innerText = '⚔️'; vfx.style.animation = 'vfx-slash 0.3s ease-out forwards'; break;
+        case 'fire': vfx.innerText = '🔥'; vfx.style.animation = 'vfx-boom 0.6s ease-out forwards'; vfx.style.color = 'orange'; break;
+        // [Fix] 얼음: 색상 및 Glow 추가
+        case 'ice': vfx.innerText = '❄️'; vfx.style.animation = 'vfx-boom 0.5s ease-out forwards'; vfx.style.color = '#00bcd4'; vfx.style.textShadow = '0 0 10px #00bcd4'; break;
+        case 'heal': vfx.innerText = '✨'; vfx.style.animation = 'vfx-heal 0.8s ease-out forwards'; break;
+        // [Fix] 흙: 색상 추가 (갈색)
+        case 'rock': vfx.innerText = '🪨'; vfx.style.animation = 'vfx-boom 0.4s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards'; vfx.style.color = '#795548'; break;
+        case 'magic': vfx.innerText = '🌀'; vfx.style.animation = 'vfx-magic 0.7s ease-out forwards'; break;
+
+        // [Fix] 어둠: 블랙홀 (검정)
+        case 'vortex': vfx.innerText = '⚫'; vfx.style.animation = 'vfx-magic 1.0s ease-out forwards'; vfx.style.color = '#000'; vfx.style.fontSize = '120px'; vfx.style.filter = 'blur(2px)'; break;
+
+        // [New] 독: 독가스 (녹색 안개) - 확산(boom) 적용
+        case 'poison': vfx.innerText = '🌫️'; vfx.style.animation = 'vfx-boom 0.8s ease-out forwards'; vfx.style.color = '#76ff03'; vfx.style.filter = 'opacity(0.8) blur(2px)'; vfx.style.transform = 'scale(1.5)'; break;
+
+        // [New] 나무: 나뭇잎 (초록)
+        case 'leaf': vfx.innerText = '🍃'; vfx.style.animation = 'vfx-slash 0.5s ease-out forwards'; vfx.style.color = '#4caf50'; break;
+        default: vfx.innerText = '💥'; vfx.style.animation = 'vfx-boom 0.4s ease-out forwards'; break;
         }
         
         // 카드가 아닌 'body'에 직접 붙여서 가장 위에 표시
@@ -3962,8 +4310,9 @@ const UI = {
 
         this.showModal("Codex", header + html);
     },
-    // [신규] 투사체 발사 애니메이션
-    fireProjectile: function(atk, def, icon) {
+    // [Phase 1] 투사체 발사 애니메이션 (속성별 궤적 적용)
+    // [개선] 투사체 발사 - 스킬 등급별 크기/속도 차별화
+    fireProjectile: function(atk, def, icon, skillIdx = 0) {
     return new Promise(resolve => {
         const startId = atk.team === 0 ? `p-card-${atk.id}` : `e-card-${atk.id}`;
         const endId = def.team === 0 ? `p-card-${def.id}` : `e-card-${def.id}`;
@@ -3975,14 +4324,46 @@ const UI = {
         const sRect = sEl.getBoundingClientRect();
         const eRect = eEl.getBoundingClientRect();
 
+        // [개선] 속성별 비행 속도 차별화 (ms)
+        let flightDuration = 250; // 기본값
+        const base = atk.base;
+        
+        if (base === 'Metal' || base === 'Light') {
+            flightDuration = 180; // 빠름 (전기, 빛)
+        } else if (base === 'Fire' || base === 'Water' || base === 'Dark') {
+        flightDuration = 220; // 보통
+        } else if (base === 'Earth' || base === 'Tree' || base === 'Normal') {
+        flightDuration = 300; // 느림 (흙: 650ms -> 300ms 롤백)
+        }
+        
+        // [개선] 스킬 등급별 크기 및 이펙트
+        let projectileSize = 24; // 기본 (평타)
+        let glowEffect = '';
+        
+        if (skillIdx === 1) {
+            projectileSize = 32; // S1: 1.33배
+            glowEffect = 'filter: drop-shadow(0 0 8px rgba(255, 223, 0, 0.6));';
+        } else if (skillIdx === 2) {
+            projectileSize = 40; // S2: 1.67배  
+            glowEffect = 'filter: drop-shadow(0 0 12px rgba(255, 152, 0, 0.8));';
+        }
+
+        // [Phase 1] 속성별 궤적 타입 결정
+        let trajectoryClass = 'trajectory-straight';
+        
+        if (base === 'Fire') trajectoryClass = 'trajectory-arc'; // 불: 포물선
+        else if (base === 'Water') trajectoryClass = 'trajectory-wave'; // 물: 물결
+        else if (base === 'Tree') trajectoryClass = 'trajectory-spin'; // 나무: 회전
+        // [Fix] 흙(Earth)을 직선 궤적(Light와 동일)으로 변경하여 부드럽게 처리
+        else if (base === 'Metal' || base === 'Normal' || base === 'Earth' || base === 'Light' || base === 'Dark') trajectoryClass = 'trajectory-straight';
+
         const p = document.createElement('div');
-        p.className = 'projectile';
+        p.className = `projectile ${trajectoryClass}`;
         p.innerText = icon;
+        p.style.fontSize = `${projectileSize}px`;
+        p.style.cssText += glowEffect;
         p.style.left = (sRect.left + sRect.width/2) + 'px';
         p.style.top = (sRect.top + sRect.height/2) + 'px';
-
-        // 🟢 [속도 개선] CSS Transition 강제 덮어쓰기 (0.4s -> 0.25s)
-        p.style.transition = 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
 
         document.body.appendChild(p);
 
@@ -3991,27 +4372,293 @@ const UI = {
             p.style.top = (eRect.top + eRect.height/2) + 'px';
         });
 
-        // 🟢 [속도 개선] 대기 시간 단축 (400ms -> 250ms)
         setTimeout(() => {
             p.remove();
+            
+            // [개선] 스킬 등급별 임팩트 지속 시간
+            let impactDuration = 300; // 기본 (평타)
+            if (skillIdx === 1) impactDuration = 400; // S1
+            else if (skillIdx === 2) impactDuration = 500; // S2
+            
+            // [Phase 1] 속성별 임팩트 이펙트
             const boom = document.createElement('div');
             boom.className = 'impact-effect';
-            boom.innerText = '💥';
+            
+            // 속성별 임팩트 아이콘 결정
+            let impactIcon = '💥';
+            let impactClass = '';
+
+            // [Fix] 얼음(Water-Dark) 및 빛(Light) 스킬별 임팩트 커스텀
+            if (atk.base === 'Water' && atk.extra === 'Dark') {
+                if (skillIdx === 1) impactIcon = '💥'; // S1: 날아가는건 얼음 -> 터질땐 폭발
+                else if (skillIdx === 2) { impactIcon = '❄️'; impactClass = 'impact-water'; } // S2: 날아가는건 물 -> 터질땐 얼음
+            } else if (atk.base === 'Light' && !atk.extra && skillIdx === 1) {
+            impactIcon = '💥'; 
+            }
+            // [Fix] 투사체-타격 아이콘 일치화
+            else if (base === 'Tree') impactIcon = '🍃';
+            else if (base === 'Earth') impactIcon = '🪨';
+            else if (base === 'Water' && !atk.extra) { impactIcon = '💧'; impactClass = 'impact-water'; }
+
+            else if (base === 'Fire') {
+                impactIcon = '🔥';
+                impactClass = 'impact-fire';
+            } else if (base === 'Water') {
+                impactIcon = '💦';
+                impactClass = 'impact-water';
+            } else if (base === 'Tree') {
+                impactIcon = '🍃';
+                impactClass = 'impact-tree';
+            } else if (base === 'Metal') {
+                impactIcon = '✨';
+                impactClass = 'impact-metal';
+            } else if (base === 'Earth') {
+                impactIcon = '💥';
+            } else if (base === 'Light') {
+                impactIcon = '✨';
+            } else if (base === 'Dark') {
+                impactIcon = '💀';
+            }
+            
+            if (impactClass) {
+                boom.classList.add(impactClass);
+            }
+            boom.innerText = impactIcon;
             boom.style.left = (eRect.left + eRect.width/2) + 'px';
             boom.style.top = (eRect.top + eRect.height/2) + 'px';
             document.body.appendChild(boom);
-            setTimeout(() => boom.remove(), 300);
+            
+            // [개선] 속성별 지면/배경 효과 호출
+            UI.createElementalEffect(def, base);
+            
+            setTimeout(() => boom.remove(), impactDuration);
             resolve();
-        }, 250); // 0.25초 비행 (훨씬 빠름)
+        }, flightDuration);
     });
 },
 
-    // [기존 히트 스톱 기능 유지]
-    hitStop: function(duration = 150) {
+    // [Phase 1] 지면 균열 이펙트 생성
+    createGroundCrack: function(target) {
+        const cardId = target.team === 0 ? `p-card-${target.id}` : `e-card-${target.id}`;
+        const card = document.getElementById(cardId);
+        if (!card) return;
+        
+        const layer = card.querySelector('.ground-effect-layer');
+        if (!layer) return;
+        
+        // 간단한 균열선 3개 생성
+        for (let i = 0; i < 3; i++) {
+            const crack = document.createElement('div');
+            crack.className = 'ground-crack';
+            crack.style.animationDelay = `${i * 0.05}s`;
+            crack.style.transform = `translateX(-50%) rotate(${(i - 1) * 15}deg)`;
+            layer.appendChild(crack);
+            
+            setTimeout(() => crack.remove(), 500);
+        }
+    },
+    
+    // [신규] 속성별 지면/배경 효과 생성
+    createElementalEffect: function(target, element) {
+        const cardId = target.team === 0 ? `p-card-${target.id}` : `e-card-${target.id}`;
+        const card = document.getElementById(cardId);
+        if (!card) return;
+        
+        const layer = card.querySelector('.ground-effect-layer');
+        if (!layer) return;
+        
+        switch(element) {
+            case 'Fire':
+                // 화염 파티클 5-8개
+                const fireCount = 5 + Math.floor(Math.random() * 4);
+                for (let i = 0; i < fireCount; i++) {
+                    const flame = document.createElement('div');
+                    flame.className = 'fire-particle';
+                    flame.innerText = '🔥';
+                    flame.style.left = `${20 + Math.random() * 60}%`;
+                    flame.style.bottom = '0';
+                    flame.style.animationDelay = `${i * 0.05}s`;
+                    layer.appendChild(flame);
+                    setTimeout(() => flame.remove(), 450);
+                }
+                break;
+                
+            case 'Water':
+                // 물보라 3-5개 사방으로
+                const splashCount = 3 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < splashCount; i++) {
+                    const splash = document.createElement('div');
+                    splash.className = 'water-splash';
+                    splash.innerText = '💦';
+                    splash.style.left = '50%';
+                    splash.style.bottom = '10px';
+                    const angle = (Math.random() * 360) * Math.PI / 180;
+                    const distance = 30 + Math.random() * 20;
+                    splash.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
+                    splash.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
+                    layer.appendChild(splash);
+                    setTimeout(() => splash.remove(), 400);
+                }
+                break;
+                
+            case 'Water-Dark':
+                // 얼음 프레임 + 서리 파티클
+                const iceFrame = document.createElement('div');
+                iceFrame.className = 'ice-frame';
+                card.appendChild(iceFrame);
+                setTimeout(() => iceFrame.remove(), 450);
+                
+                // 서리 파티클 4-6개
+                const frostCount = 4 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < frostCount; i++) {
+                    const frost = document.createElement('div');
+                    frost.className = 'frost-particle';
+                    frost.innerText = '❄';
+                    frost.style.left = `${Math.random() * 100}%`;
+                    frost.style.top = `${Math.random() * 100}%`;
+                    const tx = (Math.random() - 0.5) * 40;
+                    const ty = -20 - Math.random() * 20;
+                    frost.style.setProperty('--tx', `${tx}px`);
+                    frost.style.setProperty('--ty', `${ty}px`);
+                    card.appendChild(frost);
+                    setTimeout(() => frost.remove(), 550);
+                }
+                break;
+                
+            case 'Metal-Dark':
+                // 전기 스파크 5-7개
+                const sparkCount = 5 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < sparkCount; i++) {
+                    const spark = document.createElement('div');
+                    spark.className = 'electric-spark';
+                    spark.style.left = `${20 + Math.random() * 60}%`;
+                    spark.style.bottom = '0';
+                    spark.style.transform = `rotate(${Math.random() * 40 - 20}deg)`;
+                    layer.appendChild(spark);
+                    setTimeout(() => spark.remove(), 300);
+                }
+                break;
+                
+            case 'Earth':
+                // 지면 균열 (기존)
+                this.createGroundCrack(target);
+                // 돌 파편 2-4개
+                const debrisCount = 2 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < debrisCount; i++) {
+                    const debris = document.createElement('div');
+                    debris.className = 'rock-debris';
+                    debris.innerText = '🪨';
+                    debris.style.left = '50%';
+                    debris.style.bottom = '10px';
+                    const tx = (Math.random() - 0.5) * 60;
+                    const ty = -40 - Math.random() * 30;
+                    debris.style.setProperty('--tx', `${tx}px`);
+                    debris.style.setProperty('--ty', `${ty}px`);
+                    layer.appendChild(debris);
+                    setTimeout(() => debris.remove(), 450);
+                }
+                break;
+                
+            // [Fix] Metal은 지면 균열 제거 (깔끔한 베기 연출 유지)
+            case 'Normal':
+                 // 지면 균열만 (기존 효과 유지)
+                this.createGroundCrack(target);
+                break;
+                
+            case 'Dark':
+                // 어둠의 소용돌이
+                const vortex = document.createElement('div');
+                vortex.className = 'dark-vortex';
+                card.appendChild(vortex);
+                setTimeout(() => vortex.remove(), 550);
+                break;
+                
+            case 'Light':
+                // 섬광 폭발
+                const flash = document.createElement('div');
+                flash.className = 'light-flash';
+                flash.style.left = '50%';
+                flash.style.top = '50%';
+                flash.style.transform = 'translate(-50%, -50%)';
+                card.appendChild(flash);
+                
+                // 십자 반짝임
+                const shine1 = document.createElement('div');
+                shine1.className = 'cross-shine';
+                card.appendChild(shine1);
+                
+                const shine2 = document.createElement('div');
+                shine2.className = 'cross-shine';
+                shine2.style.width = '100%';
+                shine2.style.height = '4px';
+                shine2.style.top = '50%';
+                shine2.style.left = '0';
+                shine2.style.transform = 'translateY(-50%)';
+                card.appendChild(shine2);
+                
+                setTimeout(() => {
+                    flash.remove();
+                    shine1.remove();
+                    shine2.remove();
+                }, 350);
+                break;
+        }
+    },
+
+    // [Phase 1] 데미지 비례 히트스톱 (기존 함수 개선)
+    // [개선] 히트스톱 - 조건부 적용으로 템포 최적화
+    hitStop: function(damage = 0, isAOE = false, isFirstHit = true, isKill = false) {
+        // 약한 공격은 스킵 (50 이하)
+        if (damage < 50) return;
+        
+        // 광역 공격의 2타 이후는 스킵 (킬 제외)
+        if (isAOE && !isFirstHit && !isKill) return;
+        
+        // 데미지에 비례한 히트스톱 시간 계산
+        let duration = 100; // 기본값
+        
+        if (isKill) {
+            duration = 250; // 킬 확정은 최대
+        } else if (damage >= 500) {
+            duration = 250; // 치명타급
+        } else if (damage >= 300) {
+            duration = 200; // 강한 공격
+        } else if (damage >= 100) {
+            duration = 150; // 중간 공격
+        } else {
+            duration = 100; // 약한 공격
+        }
+        
         document.body.classList.add('hit-stopped');
         setTimeout(() => {
             document.body.classList.remove('hit-stopped');
         }, duration);
+    },
+    
+    // [신규] 카드 흔들림 효과 - 타격감 강화
+    shakeCard: function(target, damage) {
+        const cardId = target.team === 0 ? `p-card-${target.id}` : `e-card-${target.id}`;
+        const card = document.getElementById(cardId);
+        if (!card) return;
+        
+        // 기존 애니메이션 클래스 제거
+        card.classList.remove('shake-light', 'shake-medium', 'shake-heavy');
+        
+        // 데미지별 흔들림 강도 결정
+        let shakeClass = 'shake-light';
+        if (damage >= 300) {
+            shakeClass = 'shake-heavy';
+        } else if (damage >= 100) {
+            shakeClass = 'shake-medium';
+        }
+        
+        // 애니메이션 적용
+        card.classList.add(shakeClass);
+        
+        // 애니메이션 종료 후 클래스 제거
+        setTimeout(() => {
+            card.classList.remove(shakeClass);
+        }, 250);
     },
 
     // [메뉴 열기/닫기 기능]
@@ -5164,6 +5811,7 @@ turn: function() {
                 }
 
                 // [체력바 UI 변경 핵심 부분] + 상성 뱃지(${matchupBadge}) 추가됨
+                // [Phase 1] 지면 이펙트 레이어 추가
                 const innerHTML = `
                     <div class="unit-img-bg" style="background-image: url('${imgUrl}');">
                         <div style="position:absolute; inset:0; background:${'transparent'};"></div>
@@ -5185,6 +5833,7 @@ turn: function() {
                             ${u.hp} / ${u.maxHp} ${u.shield > 0 ? `<span style="color:#e1bee7;">(+${u.shield})</span>` : ''}
                         </div>
                     </div>
+                    <div class="ground-effect-layer"></div>
                 `;
                 
                 if (d.innerHTML !== innerHTML) d.innerHTML = innerHTML;
@@ -5307,10 +5956,15 @@ endTurn: function(isFast = false) {
             
             // 특수 스킬 아이콘 오버라이드
             if (sIdx === 1 && atk.base === 'Metal-Light') pIcon = '☣️'; // 독가스
-            if (sIdx === 2 && atk.base === 'Water-Dark') pIcon = '❄️'; // 절대영도
+ 
+            // [Fix] 얼음(Water-Dark) 투사체 변경
+            if (atk.base === 'Water' && atk.extra === 'Dark') {
+                if (sIdx === 1) pIcon = '❄️'; // S1: 얼음 날리기
+                if (sIdx === 2) pIcon = '💧'; // S2: 물 날리기 (타격 시 얼음)
+            }
 
-            // 애니메이션 대기 (0.4초)
-            await UI.fireProjectile(atk, def, pIcon);
+            // [개선] 스킬 인덱스 전달
+            await UI.fireProjectile(atk, def, pIcon, sIdx);
         }
 		// 투사체 비행 중 게임이 리셋되었거나 종료되었다면 즉시 중단
         if (this.isOver || !this.pTeam.length) return;
