@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics v18.5 Music</title>
+    <title>Elemental Tactics v19.05 Effect</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -1633,17 +1633,24 @@
         .side-controls { transform: scale(0.8); left: 5px; top: 10px; } /* 메뉴 버튼 작게 */
     }
 
-    /* [신규] 보고서 기반 커스텀 이펙트 (전기 & 정신지배) */
+    /* [Fix] 전기 이펙트 강화: 더 밝고, 더 오래 지속되도록 변경 */
     .lightning-bolt {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        background: linear-gradient(to bottom, transparent, #ffeb3b, transparent);
-        animation: lightning-flash 0.2s ease-out forwards; pointer-events: none; z-index: 20;
-        border-radius: 15px; /* 카드 모양에 맞춤 */
+        /* 노란색 + 흰색 그라데이션으로 번개 느낌 강화 */
+        background: linear-gradient(135deg, transparent 40%, rgba(255, 235, 59, 0.8) 50%, #ffffff 60%, transparent 70%);
+        background-size: 200% 200%;
+        animation: lightning-flash 0.5s ease-out forwards; /* 0.2s -> 0.5s */
+        pointer-events: none; z-index: 20;
+        border-radius: 15px;
+        mix-blend-mode: hard-light; /* 배경과 강하게 합성 */
+        box-shadow: 0 0 20px #ffeb3b; /* 발광 효과 추가 */
     }
     @keyframes lightning-flash {
-        0% { opacity: 0; transform: scaleY(0); }
-        50% { opacity: 0.8; transform: scaleY(1); }
-        100% { opacity: 0; transform: scaleY(0.5); }
+        0% { opacity: 0; background-position: 0% 0%; }
+        20% { opacity: 1; background-position: 100% 100%; } /* 번개가 지나가는 연출 */
+        40% { opacity: 0.5; }
+        60% { opacity: 1; } /* 한 번 더 번쩍! */
+        100% { opacity: 0; }
     }
     .mind-control-wave {
         position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -1655,6 +1662,8 @@
         0% { width: 20px; height: 20px; opacity: 1; border-width: 4px; }
         100% { width: 200px; height: 200px; opacity: 0; border-width: 0px; }
     }
+	/* [신규] 빛의 폭발 (밝은 황금빛) */
+    .impact-light-hit { filter: brightness(2.0) sepia(1) hue-rotate(-50deg); }
 </style>
 <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -1679,7 +1688,7 @@
     <div id="selection-screen" class="screen">
         <div style="text-align:center; margin-bottom:15px;">
             <h1 style="margin:0 0 5px 0; color:var(--accent); font-size: 32px; text-shadow: 3px 3px 0 #fff;">🐾 Elemental Tactics</h1>
-            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v18.5 Fixed (Music)</p>
+            <p style="margin:0 0 5px 0; font-size:15px; color:#8d6e63;">v19.05 Fixed (Effect)</p>
             <p style="margin:0 0 15px 0; font-size:12px; color:#e57373; font-weight:bold;">※ 동일 영웅은 중복해서 선택할 수 없습니다.</p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button class="btn-restart" onclick="UI.showGuide()">📖 가이드북</button>
@@ -2471,7 +2480,7 @@ const SKILL_LOGIC = {
         useSkill: function(atk, def, sIdx, game) {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
-                game.log(`<b>[${atk.name}]</b> 암석투척 🪨`);
+                game.log(`<b>[${atk.name}]</b> 암석투척 🌑`);
                 UI.playVFX(def, 'rock');
                 
                 // [Balance] 버프 1개 파괴 (돌로 깨부수기)
@@ -2658,7 +2667,7 @@ const SKILL_LOGIC = {
                 }
             } else {
                 if (!def) return;
-                game.log(`<b>[${atk.name}]</b> 안개 🌫️`);
+                game.log(`<b>[${atk.name}]</b> 안개 ☣️`);
                 AudioSys.play('HEAL');
                 UI.playVFX(def, 'heal');
                 const healAmt = Math.floor((def.maxHp - def.hp) * 0.15);
@@ -2894,7 +2903,7 @@ const SKILL_LOGIC = {
             } else {
                 game.log(`<b>[${atk.name}]</b> 방전 🔌`);
                 Common.forEachEnemy(atk, game, (e) => {
-                    UI.playVFX(def, 'lightning'); // ⚡ 번개 이펙트
+                    UI.playVFX(e, 'lightning'); // [Fix] def -> e (각 적에게 개별 번개)
                     const act = Common.applyDamage(atk, e, 0.8, game);
                     if (act !== -1) Common.logAction(game, 'dmg', atk, e, act, "");
                     if (act !== -1 && game.netRandom() < 0.15) e.addStatus('STUN', 1, 0, atk);
@@ -4109,14 +4118,14 @@ const UI = {
         case 'ice': vfx.innerText = '❄️'; vfx.style.animation = 'vfx-boom 0.5s ease-out forwards'; vfx.style.color = '#00bcd4'; vfx.style.textShadow = '0 0 10px #00bcd4'; break;
         case 'heal': vfx.innerText = '✨'; vfx.style.animation = 'vfx-heal 0.8s ease-out forwards'; break;
         // [Fix] 흙: 색상 추가 (갈색)
-        case 'rock': vfx.innerText = '🪨'; vfx.style.animation = 'vfx-boom 0.4s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards'; vfx.style.color = '#795548'; break;
+        case 'rock': vfx.innerText = '🌑'; vfx.style.animation = 'vfx-boom 0.4s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards'; vfx.style.color = '#795548'; break;
         case 'magic': vfx.innerText = '🌀'; vfx.style.animation = 'vfx-magic 0.7s ease-out forwards'; break;
 
         // [Fix] 어둠: 블랙홀 (검정)
         case 'vortex': vfx.innerText = '⚫'; vfx.style.animation = 'vfx-magic 1.0s ease-out forwards'; vfx.style.color = '#000'; vfx.style.fontSize = '120px'; vfx.style.filter = 'blur(2px)'; break;
 
         // [New] 독: 독가스 (녹색 안개) - 확산(boom) 적용
-        case 'poison': vfx.innerText = '🌫️'; vfx.style.animation = 'vfx-boom 0.8s ease-out forwards'; vfx.style.color = '#76ff03'; vfx.style.filter = 'opacity(0.8) blur(2px)'; vfx.style.transform = 'scale(1.5)'; break;
+        case 'poison': vfx.innerText = '☣️'; vfx.style.animation = 'vfx-boom 0.8s ease-out forwards'; vfx.style.color = '#76ff03'; vfx.style.filter = 'opacity(0.8) blur(2px)'; vfx.style.transform = 'scale(1.5)'; break;
 
         // [New] 나무: 나뭇잎 (초록)
         case 'leaf': vfx.innerText = '🍃'; vfx.style.animation = 'vfx-slash 0.5s ease-out forwards'; vfx.style.color = '#4caf50'; break;
@@ -4388,17 +4397,22 @@ const UI = {
             let impactIcon = '💥';
             let impactClass = '';
 
-            // [Fix] 얼음(Water-Dark) 및 빛(Light) 스킬별 임팩트 커스텀
+            // [Fix] 특수 속성 타격 이펙트 (얼음, 빛, 전기)
             if (atk.base === 'Water' && atk.extra === 'Dark') {
-                if (skillIdx === 1) impactIcon = '💥'; // S1: 날아가는건 얼음 -> 터질땐 폭발
-                else if (skillIdx === 2) { impactIcon = '❄️'; impactClass = 'impact-water'; } // S2: 날아가는건 물 -> 터질땐 얼음
-            } else if (atk.base === 'Light' && !atk.extra && skillIdx === 1) {
-            impactIcon = '💥'; 
+                if (skillIdx === 1) impactIcon = '💥'; 
+                else if (skillIdx === 2) { impactIcon = '❄️'; impactClass = 'impact-water'; }
+            } 
+            else if (atk.base === 'Light') {
+                // Light S1 타격 시 '빛의 폭발' (노란색 보정)
+                if (skillIdx === 1) { impactIcon = '💥'; impactClass = 'impact-light-hit'; }
             }
-            // [Fix] 투사체-타격 아이콘 일치화
+            else if (atk.base === 'Metal' && atk.extra === 'Dark') { impactIcon = '⚡'; } // 전기 타격
+
+            // [Fix] 기본 속성 타격 아이콘 일치화
             else if (base === 'Tree') impactIcon = '🍃';
-            else if (base === 'Earth') impactIcon = '🪨';
+            else if (base === 'Earth') impactIcon = '🌑';
             else if (base === 'Water' && !atk.extra) { impactIcon = '💧'; impactClass = 'impact-water'; }
+            else if (base === 'Metal' && !atk.extra) impactIcon = '⚔️';
 
             else if (base === 'Fire') {
                 impactIcon = '🔥';
@@ -4547,7 +4561,7 @@ const UI = {
                 for (let i = 0; i < debrisCount; i++) {
                     const debris = document.createElement('div');
                     debris.className = 'rock-debris';
-                    debris.innerText = '🪨';
+                    debris.innerText = '🌑🪨';
                     debris.style.left = '50%';
                     debris.style.bottom = '10px';
                     const tx = (Math.random() - 0.5) * 60;
@@ -5946,21 +5960,23 @@ endTurn: function(isFast = false) {
             // 스킬 타입이 버프/힐이 아니거나, 힐이라도 적에게 쓸 때(세뇌)는 공격 이펙트
             // 간단하게 아이콘 매핑
             let pIcon = '✨';
+            // [Fix] 기본 속성 투사체 아이콘 정리
             if (atk.base === 'Fire') pIcon = '🔥';
             else if (atk.base === 'Water') pIcon = '💧';
             else if (atk.base === 'Tree') pIcon = '🍃';
             else if (atk.base === 'Metal') pIcon = '⚔️';
-            else if (atk.base === 'Earth') pIcon = '🪨';
+            else if (atk.base === 'Earth') pIcon = '🌑'; // PC 호환용 검은 바위
             else if (atk.base === 'Dark') pIcon = '💀';
             else if (atk.base === 'Normal') pIcon = '👊';
-            
-            // 특수 스킬 아이콘 오버라이드
-            if (sIdx === 1 && atk.base === 'Metal-Light') pIcon = '☣️'; // 독가스
- 
-            // [Fix] 얼음(Water-Dark) 투사체 변경
+    
+            // [Fix] 특수 스킬 투사체 오버라이드 (전기, 맹독, 얼음)
+            if (atk.base === 'Metal' && atk.extra === 'Dark') pIcon = '⚡'; // 전기
+            if (atk.base === 'Metal' && atk.extra === 'Light' && sIdx >= 1) pIcon = '☣️'; // 독가스/맹독
+            if (atk.base === 'Tree' && atk.extra === 'Dark' && sIdx === 1) pIcon = '☣️'; // 부식성 가시
+    
             if (atk.base === 'Water' && atk.extra === 'Dark') {
-                if (sIdx === 1) pIcon = '❄️'; // S1: 얼음 날리기
-                if (sIdx === 2) pIcon = '💧'; // S2: 물 날리기 (타격 시 얼음)
+                if (sIdx === 1) pIcon = '❄️'; // 얼음
+                if (sIdx === 2) pIcon = '💧'; // 물
             }
 
             // [개선] 스킬 인덱스 전달
