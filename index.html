@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elemental Tactics v19.05 Effect</title>
+    <title>Elemental Tactics v20.0 (Bug Fixed Edition)</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -616,7 +616,7 @@
 /* [수정] 강제 위치 고정(top:0) 제거 및 디자인 정의 */
 .settings-modal, .save-menu {
     position: absolute !important; /* 아이콘 근처에 붙도록 설정 */
-    z-index: 9999 !important;      /* 제일 위에 표시 */
+    z-index: 10000 !important;     /* 제일 위에 표시 (배속/자동버튼보다 위) */
 
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid var(--text-main);
@@ -1764,7 +1764,7 @@
                     <button id="btn-auto" class="btn-battle-toggle" onclick="Game.toggleAuto()">🤖</button>
                 </div>
 
-                <div style="position:absolute; right:5px; top:50%; transform:translateY(-50%); z-index: 100;">
+                <div style="position:absolute; right:5px; top:50%; transform:translateY(-50%); z-index: 102;">
                     <div class="side-btn main-menu-btn" onclick="UI.toggleDock()" style="width:32px; height:32px; font-size:16px; margin:0;" title="메뉴">⚙️</div>
                     
                     <div id="dock-folder" class="dock-folder" style="position:absolute; bottom:110%; right:0; flex-direction:column-reverse; background:transparent; padding-bottom:5px;">
@@ -1826,6 +1826,19 @@
 </div>
 
 <script>
+
+// ==========================================
+// 🎮 GAME CONFIGURATION (v20.0)
+// ==========================================
+const GAME_CONFIG = {
+    SAVE_VERSION: 'v7.0',
+    SCHEMA_VERSION: 2,
+    AI_THINK_TIME: 1000,
+    ANIMATION_DELAY: 300,
+    SUDDEN_DEATH_ROUND: 15,
+    MAX_LOG_ENTRIES: 50
+};
+
 let socket;
 // ==================== [시드 기반 난수 생성기] ====================
 class SeededRandom {
@@ -4804,6 +4817,8 @@ const Game = {
             if(u && u.team === 0 && !u.isDead && !this.isProcessing && !this.isMindControlling) {
                 this.noInput();
                 if(this.timer) clearTimeout(this.timer);
+                if (this.timer) clearTimeout(this.timer);
+
                 this.timer = setTimeout(() => this.ai(u), 500 * this.speedMultiplier);
             }
         } else {
@@ -5510,6 +5525,8 @@ const Game = {
 
         // [중요] 게임 루프 시작 (누락되었던 부분)
         this.render();
+        if (this.timer) clearTimeout(this.timer);
+
         this.timer = setTimeout(() => this.turn(), 1000);
     },
 
@@ -5746,6 +5763,8 @@ turn: function() {
             if (this.isAutoBattle && isMyTurn && !this.difficulty.includes('pvp') && this.difficulty !== 'local') {
                 this.noInput();
                 if (this.timer) clearTimeout(this.timer);
+                if (this.timer) clearTimeout(this.timer);
+
                 this.timer = setTimeout(() => this.ai(u), 800 * this.speedMultiplier);
             } else {
                 this.input(u);
@@ -5762,6 +5781,8 @@ turn: function() {
             if (this.mode !== 'pvp') {
                 if (this.timer) clearTimeout(this.timer);
                 // [Patch v19.14] AI 대기 시간 배속 적용
+                if (this.timer) clearTimeout(this.timer);
+
                 this.timer = setTimeout(() => this.ai(u), 800 * this.speedMultiplier);
             }
         }
@@ -7242,12 +7263,18 @@ ai: function(u) {
             mcCasterId: this.currentMCCasterId || null,
             mcTargetId: this.isMindControlling ? this.isMindControlling.id : null
         };
-        localStorage.setItem('et_save_v6', JSON.stringify(saveData));
+        const saveDataWithVersion = {
+            ...saveData,
+            version: GAME_CONFIG.SAVE_VERSION,
+            schemaVersion: GAME_CONFIG.SCHEMA_VERSION,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('et_save_' + GAME_CONFIG.SAVE_VERSION, JSON.stringify(saveDataWithVersion));
         UI.floatText(this.pTeam[0], "게임 저장됨!", "ft-heal");
         this.log("<span class='log-sys'>💾 게임 진행 상황이 저장되었습니다.</span>");
     },
     loadGame: function() {
-        const json = localStorage.getItem('et_save_v6');
+        const json = localStorage.getItem('et_save_' + GAME_CONFIG.SAVE_VERSION);
         const savedStage = localStorage.getItem('et_challenge_stage');
         if (savedStage) this.challengeStage = parseInt(savedStage);
         if (!json) {
@@ -7256,6 +7283,17 @@ ai: function(u) {
         }
         try {
             const data = JSON.parse(json);
+            
+            // 🔒 버전 및 스키마 검증
+            if (!data.version || data.version !== GAME_CONFIG.SAVE_VERSION) {
+                throw new Error('버전이 호환되지 않습니다. (저장: ' + (data.version || '알 수 없음') + ', 현재: ' + GAME_CONFIG.SAVE_VERSION + ')');
+            }
+            if (!data.schemaVersion || data.schemaVersion < GAME_CONFIG.SCHEMA_VERSION) {
+                console.warn('⚠️ 구버전 세이브 파일입니다. 일부 데이터가 손실될 수 있습니다.');
+            }
+            if (!data.pTeam || !data.eTeam) {
+                throw new Error('세이브 데이터가 손상되었습니다.');
+            }
             this.difficulty = data.difficulty;
             this.mode = data.mode;
             
@@ -7304,6 +7342,8 @@ ai: function(u) {
             document.getElementById('turn-indicator').innerText = `Turn ${Math.ceil(this.turnCount/6)} : ${turnName}`;
             if (u.team === 1 && this.mode !== 'pvp') {
                 this.noInput();
+                if (this.timer) clearTimeout(this.timer);
+
                 this.timer = setTimeout(() => this.ai(u), 1000);
             } else {
                 this.input(u);
