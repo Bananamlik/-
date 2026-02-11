@@ -64,41 +64,16 @@
             100% { transform: scale(1, 1); }
         }
 
-        /* [수정] 세뇌 카드 뒤집기 (360도 회전) */
+        /* 세뇌 카드 뒤집기 애니메이션 */
         @keyframes mind-control-flip {
             0% { transform: rotateY(0deg); }
-            100% { transform: rotateY(360deg); }
+            50% { transform: rotateY(90deg); }
+            100% { transform: rotateY(0deg); }
         }
 
         .mc-flip {
             animation: mind-control-flip 1s ease-in-out;
             transform-style: preserve-3d;
-        }
-
-        /* [신규] 카드 뒷면 스타일 (Back.png 실패 시 예쁜 연두색 패턴 자동 적용) */
-        .unit.show-back .unit-img-bg {
-            background-color: #f1f8e9 !important; /* 배경색 */
-            /* 1순위: 이미지, 2순위: 연두색 체크 패턴 (CSS 폴백) */
-            background-image: url('Back.png'), repeating-linear-gradient(45deg, #dcedc8 25%, #a5d6a7 25%, #a5d6a7 50%, #dcedc8 50%, #dcedc8 75%, #a5d6a7 75%, #a5d6a7 100%) !important;
-            background-size: cover, 20px 20px !important;
-            background-position: center !important;
-            filter: none !important; /* 흑백화/필터 해제 */
-            z-index: 20; /* 정보창보다 위에 표시 */
-            border-radius: 16px; /* 카드 둥글기 맞춤 */
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
-        }
-        
-        /* 뒷면일 때 내부 요소 숨김 */
-        .unit.show-back .unit-info-overlay,
-        .unit.show-back .card-badge,
-        .unit.show-back .card-atk,
-        .unit.show-back .elec-badge,
-        .unit.show-back .tree-badge,
-        .unit.show-back .fire-badge,
-        .unit.show-back .tag-container,
-        .unit.show-back .hp-preview {
-            opacity: 0;
-            transition: opacity 0.1s;
         }
 
         /* 공통 UI 컴포넌트 */
@@ -1689,34 +1664,6 @@
         60% { opacity: 1; } /* 한 번 더 번쩍! */
         100% { opacity: 0; }
     }
-
-    /* [신규] 고압 전류 (파란색 번개) - 풀스택용 */
-    .lightning-bolt.blue {
-        /* 기존 노란색 대신 시원한 파란색(Cyan) 계열 사용 */
-        background: linear-gradient(135deg, transparent 40%, rgba(0, 229, 255, 0.8) 50%, #ffffff 60%, transparent 70%);
-        box-shadow: 0 0 15px #00e5ff; /* 과하지 않은 은은한 발광 */
-    }
-
-    /* [신규] 임팩트 스파크 (짧고 간결한 타격감) */
-    @keyframes spark-pop {
-        0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
-        50% { opacity: 1; }
-        100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
-    }
-
-    .electric-spark {
-        position: absolute;
-        width: 60px; /* 크기를 작게 제한 (80px -> 60px) */
-        height: 60px;
-        /* 복잡한 그라데이션 대신 심플한 빛 덩어리 */
-        background: radial-gradient(circle, #fff 10%, #00e5ff 60%, transparent 70%);
-        border-radius: 50%;
-        z-index: 100;
-        pointer-events: none;
-        animation: spark-pop 0.25s ease-out forwards; /* 0.25초 만에 빠르게 사라짐 */
-        mix-blend-mode: screen;
-    }
-		
     .mind-control-wave {
         position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
         width: 20px; height: 20px; border: 4px solid #d500f9; border-radius: 50%;
@@ -1790,7 +1737,7 @@
         </div>
  
         <div style="display:flex; gap:10px; margin-top:10px;">
-            <button id="btn-online" class="btn-start" style="flex:1; background:linear-gradient(145deg, #b9f6ca 0%, #69f0ae 100%); color:#1b5e20; border:2px solid #a5d6a7; box-shadow: 0 5px 0 #388e3c, 0 10px 15px rgba(0, 0, 0, 0.1); font-size:16px; text-shadow: 0 1px 0 rgba(255,255,255,0.4);" onclick="UI.openOnlineModal()">
+            <button id="btn-online" class="btn-start" style="flex:1; background:#c1f0c1; font-size:16px;" onclick="UI.openOnlineModal()">
                 🌐 온라인 대전
             </button>
             <button id="btn-start" class="btn-start" style="flex:1; font-size:16px;" onclick="Game.start()" disabled>
@@ -2953,21 +2900,7 @@ const SKILL_LOGIC = {
             if (sIdx === 0) Common.basicAttack(atk, def, game);
             else if (sIdx === 1) {
                 game.log(`<b>[${atk.name}]</b> 전기충격 ⚡`);
-                
-                // [신규] 풀스택(3) 체크
-                // 주의: 지금 공격 후 스택이 쌓이므로, 현재 2스택 이상이면 이번 공격으로 3스택이 됨(이펙트 강화 대상)
-                // 혹은 이미 3스택인 경우를 포함하기 위해 >= 2 로 설정하면 '성장하는 느낌'을 줄 수 있음.
-                // 여기서는 깔끔하게 '이미 강력해진 상태(3)' 혹은 '이번에 완성되는 상태(2)'일 때 파란 번개를 씁니다.
-                const isHighVoltage = (atk.elecStacks >= 3); 
-                
-                if (isHighVoltage) {
-                    UI.playVFX(def, 'blue-lightning'); // 🔵 고압 전류 (파란색)
-                    // 0.1초 뒤 짧은 스파크 튐 (타격감 보조)
-                    setTimeout(() => UI.playVFX(def, 'spark'), 100);
-                } else {
-                    UI.playVFX(def, 'lightning'); // 🟡 일반 전류 (노란색)
-                }
-
+                UI.playVFX(def, 'lightning'); // ⚡ 번개 이펙트
                 const act = Common.applyDamage(atk, def, 1.5, game);
                 if (act !== -1) {
                     Common.logAction(game, 'dmg', atk, def, act, "");
@@ -2980,10 +2913,8 @@ const SKILL_LOGIC = {
                 }
             } else {
                 game.log(`<b>[${atk.name}]</b> 방전 🔌`);
-                
                 Common.forEachEnemy(atk, game, (e) => {
-                    // S2는 광역기이므로 시인성을 위해 일반 노란 번개 유지
-                    UI.playVFX(e, 'lightning'); 
+                    UI.playVFX(e, 'lightning'); // [Fix] def -> e (각 적에게 개별 번개)
                     const act = Common.applyDamage(atk, e, 0.8, game);
                     if (act !== -1) Common.logAction(game, 'dmg', atk, e, act, "");
                     if (act !== -1 && game.netRandom() < 0.15) e.addStatus('STUN', 1, 0, atk);
@@ -4169,46 +4100,20 @@ const UI = {
     const el = document.getElementById(id);
     if (!el) return;
 
-    // [수정] 세뇌 카드 뒤집기 효과 (뒷면 연출 타이밍 정밀 조정)
+    // [신규] 세뇌 카드 뒤집기 효과
     if (type === 'mc-flip') {
         el.classList.add('mc-flip');
-        
-        // 0~360도 회전 기준:
-        // 90도(0.25초): 앞면 안보임 -> 뒷면 표시 시작
-        setTimeout(() => {
-            el.classList.add('show-back');
-        }, 250); 
-
-        // 270도(0.75초): 뒷면 안보임 -> 다시 앞면(세뇌된 상태) 복구
-        setTimeout(() => {
-            el.classList.remove('show-back');
-        }, 750); 
-
-        // 애니메이션 종료 후 클래스 제거
-        setTimeout(() => {
-            el.classList.remove('mc-flip');
-        }, 1000);
+        setTimeout(() => el.classList.remove('mc-flip'), 1000);
         return;
     }
 
     // [신규] CSS 기반 특수 이펙트 (카드 내부에 직접 부착)
-    if (type === 'lightning' || type === 'blue-lightning' || type === 'mc-wave' || type === 'spark') {
+    if (type === 'lightning' || type === 'mc-wave') {
         const vfx = document.createElement('div');
-        
-        if (type === 'lightning') vfx.className = 'lightning-bolt';
-        else if (type === 'blue-lightning') vfx.className = 'lightning-bolt blue';
-        else if (type === 'spark') {
-            vfx.className = 'electric-spark';
-            // 스파크는 중앙 정렬
-            vfx.style.left = '50%';
-            vfx.style.top = '50%';
-        }
-        else vfx.className = 'mind-control-wave';
-
+        vfx.className = (type === 'lightning') ? 'lightning-bolt' : 'mind-control-wave';
         el.appendChild(vfx);
-        // 번개는 0.5초(CSS 애니메이션 시간), 스파크는 0.25초 뒤 제거
-        setTimeout(() => vfx.remove(), type === 'spark' ? 300 : 500);
-        return; 
+        setTimeout(() => vfx.remove(), 1000);
+        return; // 특수 이펙트는 여기서 종료
     }
 
     // [기존] 이모지 기반 이펙트 (화면 좌표 기준 body에 부착)
@@ -4951,19 +4856,11 @@ const Game = {
         document.getElementById('btn-start').innerText = "⚔️ 전투 시작 (0/3)";
         document.getElementById('btn-start').disabled = true;
 
-        // [UI 개선] 온라인 버튼 초기화
+        // [UI 개선] 온라인 버튼은 항상 활성화, 클릭 시 모달 처리
         const btnOnline = document.getElementById('btn-online');
         if (btnOnline) {
-            btnOnline.disabled = false;
-            // 혹시라도 남아있을 인라인 스타일 제거 (CSS 스타일 우선 적용)
-            btnOnline.style.background = ''; 
-            btnOnline.style.backgroundColor = '';
+            btnOnline.style.backgroundColor = '#7e57c2';
         }
-
-        // [신규] 리소스 프리로드 (세뇌 카드 뒷면 깜빡임 방지)
-        // Back.png를 미리 불러와서 애니메이션 시 즉시 보이게 합니다.
-        const preloadBack = new Image();
-        preloadBack.src = 'Back.png';
 
         this.checkMode();
     },
