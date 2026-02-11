@@ -76,6 +76,28 @@
             transform-style: preserve-3d;
         }
 
+        /* [신규] 카드 뒷면 스타일 (이미지 + CSS 패턴 폴백) */
+        .unit.show-back .unit-img-bg {
+            /* 1순위: Back.png, 2순위: 연두색 체크 패턴 (폴백) */
+            background-image: url('Back.png'), repeating-linear-gradient(45deg, #e8f5e9 25%, #c8e6c9 25%, #c8e6c9 50%, #e8f5e9 50%, #e8f5e9 75%, #c8e6c9 75%, #c8e6c9 100%) !important;
+            background-size: cover, 40px 40px !important;
+            filter: none !important; /* 흑백화 방지 */
+            z-index: 10;
+        }
+        
+        /* 뒷면일 때 내부 요소 숨김 */
+        .unit.show-back .unit-info-overlay,
+        .unit.show-back .card-badge,
+        .unit.show-back .card-atk,
+        .unit.show-back .elec-badge,
+        .unit.show-back .tree-badge,
+        .unit.show-back .fire-badge,
+        .unit.show-back .tag-container,
+        .unit.show-back .hp-preview {
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
         /* 공통 UI 컴포넌트 */
         button, .unit, .hero-card, .side-btn { /* 터치 대상들 추가 */
             touch-action: manipulation; /* [Fix] 더블탭 줌 방지 (반응속도 향상) */
@@ -1737,7 +1759,7 @@
         </div>
  
         <div style="display:flex; gap:10px; margin-top:10px;">
-            <button id="btn-online" class="btn-start" style="flex:1; background:#c1f0c1; font-size:16px;" onclick="UI.openOnlineModal()">
+            <button id="btn-online" class="btn-start" style="flex:1; background:linear-gradient(145deg, #b9f6ca 0%, #69f0ae 100%); color:#1b5e20; border:2px solid #a5d6a7; box-shadow: 0 5px 0 #388e3c, 0 10px 15px rgba(0, 0, 0, 0.1); font-size:16px; text-shadow: 0 1px 0 rgba(255,255,255,0.4);" onclick="UI.openOnlineModal()">
                 🌐 온라인 대전
             </button>
             <button id="btn-start" class="btn-start" style="flex:1; font-size:16px;" onclick="Game.start()" disabled>
@@ -4100,10 +4122,22 @@ const UI = {
     const el = document.getElementById(id);
     if (!el) return;
 
-    // [신규] 세뇌 카드 뒤집기 효과
+    // [신규] 세뇌 카드 뒤집기 효과 (뒷면 연출 포함)
     if (type === 'mc-flip') {
         el.classList.add('mc-flip');
-        setTimeout(() => el.classList.remove('mc-flip'), 1000);
+        
+        // 애니메이션 중간(90도 회전 시점, 약 0.25~0.75초 구간)에 뒷면 보여주기
+        setTimeout(() => {
+            el.classList.add('show-back');
+        }, 250); // 카드가 돌아가서 안 보이는 시점에 뒷면 적용
+
+        setTimeout(() => {
+            el.classList.remove('show-back');
+        }, 750); // 다시 돌아올 때 앞면 복구
+
+        setTimeout(() => {
+            el.classList.remove('mc-flip');
+        }, 1000);
         return;
     }
 
@@ -4859,7 +4893,8 @@ const Game = {
         // [UI 개선] 온라인 버튼은 항상 활성화, 클릭 시 모달 처리
         const btnOnline = document.getElementById('btn-online');
         if (btnOnline) {
-            btnOnline.style.backgroundColor = '#7e57c2';
+            // [Fix] 초기화 시 CSS에서 지정한 파스텔 연두색을 유지하도록 강제 색상 지정 로직 삭제
+            btnOnline.disabled = false;
         }
 
         this.checkMode();
