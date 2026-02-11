@@ -64,46 +64,19 @@
             100% { transform: scale(1, 1); }
         }
 
-        /* [수정] 세뇌 카드 뒤집기 (X축 회전 + 젤리 텐션 효과) */
-        @keyframes mind-control-flip {
-            0% { transform: rotateX(0deg) scale(1); }
-            15% { transform: rotateX(45deg) scale(1.1, 0.9); }   /* 찌그러짐 (준비 동작) */
-            40% { transform: rotateX(140deg) scale(0.8, 1.2); }  /* 늘어남 (빠른 회전 구간) */
-            60% { transform: rotateX(220deg) scale(0.8, 1.2); }  /* 늘어남 유지 */
-            85% { transform: rotateX(315deg) scale(1.1, 0.9); }  /* 찌그러짐 (착지 준비) */
-            100% { transform: rotateX(360deg) scale(1); }        /* 원상 복구 */
+        /* [신규] 세뇌 연출: 어둠의 침식 (Dark Corruption) */
+        @keyframes mc-corruption-anim {
+            0% { filter: brightness(1); transform: scale(1); }
+            30% { filter: brightness(0.2) grayscale(1); transform: scale(0.95); } /* 암전: 정신 붕괴 시작 */
+            50% { filter: brightness(0) grayscale(1); transform: scale(1.05); } /* 침식: 어둠이 꽉 참 */
+            70% { filter: brightness(1.5) hue-rotate(270deg) drop-shadow(0 0 20px #d500f9); transform: scale(1.15); } /* 폭발: 제어권 탈취 */
+            100% { filter: hue-rotate(270deg) sepia(1) saturate(3); transform: scale(1); } /* 완료: 세뇌된 상태 */
         }
 
-        .mc-flip {
-            /* 속도를 2초로 늦춰 중량감과 긴장감 부여 */
-            animation: mind-control-flip 2s ease-in-out;
-            transform-style: preserve-3d;
-        }
-
-        /* [신규] 카드 뒷면 스타일 (Back.png 실패 시 예쁜 연두색 패턴 자동 적용) */
-        .unit.show-back .unit-img-bg {
-            background-color: #f1f8e9 !important; /* 배경색 */
-            /* 1순위: 이미지, 2순위: 연두색 체크 패턴 (CSS 폴백) */
-            background-image: url('Back.png'), repeating-linear-gradient(45deg, #dcedc8 25%, #a5d6a7 25%, #a5d6a7 50%, #dcedc8 50%, #dcedc8 75%, #a5d6a7 75%, #a5d6a7 100%) !important;
-            background-size: cover, 20px 20px !important;
-            background-position: center !important;
-            filter: none !important; /* 흑백화/필터 해제 */
-            z-index: 20; /* 정보창보다 위에 표시 */
-            border-radius: 16px; /* 카드 둥글기 맞춤 */
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
-        }
-        
-        /* 뒷면일 때 내부 요소 숨김 */
-        .unit.show-back .unit-info-overlay,
-        .unit.show-back .card-badge,
-        .unit.show-back .card-atk,
-        .unit.show-back .elec-badge,
-        .unit.show-back .tree-badge,
-        .unit.show-back .fire-badge,
-        .unit.show-back .tag-container,
-        .unit.show-back .hp-preview {
-            opacity: 0;
-            transition: opacity 0.1s;
+        .mc-corruption {
+            animation: mc-corruption-anim 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            z-index: 50 !important; /* 연출 중엔 맨 위로 */
+            box-shadow: 0 0 30px #d500f9 !important; /* 강렬한 보라색 아우라 */
         }
 
         /* 공통 UI 컴포넌트 */
@@ -4198,25 +4171,20 @@ const UI = {
     const el = document.getElementById(id);
     if (!el) return;
 
-    // [수정] 세뇌 카드 뒤집기 효과 (2초 슬로우 모션 타이밍 적용)
-    if (type === 'mc-flip') {
-        el.classList.add('mc-flip');
+    // [수정] 세뇌 연출: 어둠의 침식 (타이밍 이슈 없음)
+    if (type === 'mc-corruption') {
+        // 기존 애니메이션 클래스가 있다면 제거 (중복 방지)
+        el.classList.remove('mc-corruption');
+        void el.offsetWidth; // 리플로우 강제 (애니메이션 리셋)
+        el.classList.add('mc-corruption');
         
-        // 전체 시간 2000ms (2초) 기준 비율 계산:
-        // 90도 시점 (25%): 500ms -> 뒷면 보이기 시작
-        setTimeout(() => {
-            el.classList.add('show-back');
-        }, 500); 
+        // 효과음: 강렬한 마법 폭발음 재생
+        AudioEngine.play('CRITICAL'); 
 
-        // 270도 시점 (75%): 1500ms -> 앞면 복구 (세뇌된 모습)
+        // 애니메이션 종료(1.2초) 후 클래스 제거 -> render()의 영구 상태가 이어받음
         setTimeout(() => {
-            el.classList.remove('show-back');
-        }, 1500); 
-
-        // 애니메이션 종료 (100%): 2000ms
-        setTimeout(() => {
-            el.classList.remove('mc-flip');
-        }, 2000);
+            el.classList.remove('mc-corruption');
+        }, 1200);
         return;
     }
 
@@ -5726,15 +5694,14 @@ turn: function() {
 
             isMyTurn = true;
             isPuppetTurn = true;
-            this.isMindControlling = u; // 전역 변수 설정
-            this.currentMCCasterId = caster.id; // [추가] 시전자 ID 저장 (사망 판정용)
+            this.isMindControlling = u; 
+            this.currentMCCasterId = caster.id; 
 
             this.log(`<span class='log-crit'>🧠 [${u.name}] 정신 지배 성공! 제어권을 탈취했습니다.</span>`);
 
                 UI.floatText(u, "제어권 획득", "ft-crit");
-                UI.playVFX(u, 'mc-flip'); // [신규] 카드 뒤집기 연출
+                UI.playVFX(u, 'mc-corruption'); // [수정] 어둠의 침식 연출 적용
                 
-                // 상태 제거 (이번 턴에 바로 행동하므로 상태 아이콘 삭제)
                 u.status = u.status.filter(s => s.type !== 'MC_WAIT');
             } 
             // 시전자가 적 팀이면 -> 적이 조종 (내 입력 차단)
@@ -5743,7 +5710,7 @@ turn: function() {
                 this.isMindControlling = u;
                 
                 this.log(`<span class='log-crit'>🧠 [${u.name}] 적에게 조종당합니다!</span>`);
-                UI.playVFX(u, 'mc-flip'); // [신규] 카드 뒤집기 연출
+                UI.playVFX(u, 'mc-corruption'); // [수정] 어둠의 침식 연출 적용
                 u.status = u.status.filter(s => s.type !== 'MC_WAIT');
             }
             // 시전자가 죽었으면 해제
