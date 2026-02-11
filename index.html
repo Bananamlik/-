@@ -1302,23 +1302,21 @@
 		/* [신규] 독가스 구름 (보라색 가스 + 녹색 독성 아우라) */
         @keyframes poison-cloud-anim {
             0% { transform: translate(-50%, -20%) scale(0.5); opacity: 0; filter: blur(2px); }
-            20% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.4); filter: blur(4px); } /* 확 피어오름 */
-            70% { opacity: 0.8; transform: translate(-50%, -70%) scale(1.6); filter: blur(6px); } /* 머무름 */
-            100% { opacity: 0; transform: translate(-50%, -100%) scale(2.0); filter: blur(10px); } /* 흩어짐 */
+            20% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.4); filter: blur(4px); }
+            70% { opacity: 0.8; transform: translate(-50%, -70%) scale(1.6); filter: blur(6px); }
+            100% { opacity: 0; transform: translate(-50%, -100%) scale(2.0); filter: blur(10px); }
         }
 
         .vfx-poison {
             position: absolute;
             left: 50%; top: 50%;
-            font-size: 70px; /* 크기 대폭 확대 */
+            font-size: 70px;
             color: #ba68c8; /* 보라색 구름 */
-            text-shadow: 0 0 15px #00e676, 0 0 30px #69f0ae; /* 녹색 형광 독성 효과 */
-            animation: poison-cloud-anim 2.5s ease-out forwards; /* 2.5초간 천천히 */
+            text-shadow: 0 0 15px #00e676, 0 0 30px #69f0ae; /* 녹색 형광 */
+            animation: poison-cloud-anim 2.5s ease-out forwards;
             pointer-events: none;
-            z-index: 25; /* 유닛보다 확실히 위에 */
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            z-index: 25;
+            display: flex; justify-content: center; align-items: center;
         }
         
         /* 돌 파편 */
@@ -2854,6 +2852,10 @@ const SKILL_LOGIC = {
                 game.log(`<b>[${atk.name}]</b> 맹독살포 ☠️`);
                 Common.forEachEnemy(atk, game, (e) => {
                     UI.playVFX(e, 'poison');
+                    
+                    // [신규] 가스 살포 효과음 (디버프 소리)
+                    AudioEngine.playSFX('debuff', 1.0);
+
                     e.addStatus('POISON', 3, 0, atk);
                     // [Balance] 힐 효율 20% 감소
                     e.addStatus('HEAL_DOWN', 3, 20, atk); 
@@ -4218,23 +4220,31 @@ const UI = {
         return;
     }
 
-    // [신규] CSS 기반 특수 이펙트 (카드 내부에 직접 부착)
-    if (type === 'lightning' || type === 'blue-lightning' || type === 'mc-wave' || type === 'spark') {
+    // [수정] 특수 이펙트 (전기, 독가스, 스파크 통합 처리)
+    const specialEffects = ['lightning', 'blue-lightning', 'mc-wave', 'spark', 'poison'];
+    if (specialEffects.includes(type)) {
         const vfx = document.createElement('div');
         
         if (type === 'lightning') vfx.className = 'lightning-bolt';
         else if (type === 'blue-lightning') vfx.className = 'lightning-bolt blue';
         else if (type === 'spark') {
             vfx.className = 'electric-spark';
-            // 스파크는 중앙 정렬
-            vfx.style.left = '50%';
-            vfx.style.top = '50%';
+            vfx.style.left = '50%'; vfx.style.top = '50%';
+        }
+        else if (type === 'poison') {
+            vfx.className = 'vfx-poison'; // 1단계에서 만든 CSS 클래스 적용
+            vfx.innerHTML = '☁️';         // 구름 이모지 사용
         }
         else vfx.className = 'mind-control-wave';
 
         el.appendChild(vfx);
-        // 번개는 0.5초(CSS 애니메이션 시간), 스파크는 0.25초 뒤 제거
-        setTimeout(() => vfx.remove(), type === 'spark' ? 300 : 500);
+        
+        // 지속 시간 설정 (CSS 애니메이션 시간에 맞춰 제거)
+        let duration = 500; 
+        if (type === 'spark') duration = 500;
+        if (type === 'poison') duration = 2500; // 독구름은 2.5초 유지
+
+        setTimeout(() => vfx.remove(), duration);
         return; 
     }
 
@@ -4264,9 +4274,7 @@ const UI = {
         // [Fix] 어둠: 블랙홀 (검정)
         case 'vortex': vfx.innerText = '⚫'; vfx.style.animation = 'vfx-magic 1.0s ease-out forwards'; vfx.style.color = '#000'; vfx.style.fontSize = '120px'; vfx.style.filter = 'blur(2px)'; break;
 
-        // [New] 독: 독가스 (녹색 안개) - 확산(boom) 적용
-        case 'poison': vfx.innerText = '☣️'; vfx.style.animation = 'vfx-boom 0.8s ease-out forwards'; vfx.style.color = '#76ff03'; vfx.style.filter = 'opacity(0.8) blur(2px)'; vfx.style.transform = 'scale(1.5)'; break;
-
+        
         // [New] 나무: 나뭇잎 (초록)
         case 'leaf': vfx.innerText = '🍃'; vfx.style.animation = 'vfx-slash 0.5s ease-out forwards'; vfx.style.color = '#4caf50'; break;
         default: vfx.innerText = '💥'; vfx.style.animation = 'vfx-boom 0.4s ease-out forwards'; break;
