@@ -64,10 +64,14 @@
             100% { transform: scale(1, 1); }
         }
 
-        /* [수정] 세뇌 카드 뒤집기 (X축 회전 - 위에서 내려다보는 시점) */
+        /* [수정] 세뇌 카드 뒤집기 (X축 회전 + 젤리 텐션 효과) */
         @keyframes mind-control-flip {
-            0% { transform: rotateX(0deg); }
-            100% { transform: rotateX(360deg); }
+            0% { transform: rotateX(0deg) scale(1); }
+            15% { transform: rotateX(45deg) scale(1.1, 0.9); }   /* 찌그러짐 (준비 동작) */
+            40% { transform: rotateX(140deg) scale(0.8, 1.2); }  /* 늘어남 (빠른 회전 구간) */
+            60% { transform: rotateX(220deg) scale(0.8, 1.2); }  /* 늘어남 유지 */
+            85% { transform: rotateX(315deg) scale(1.1, 0.9); }  /* 찌그러짐 (착지 준비) */
+            100% { transform: rotateX(360deg) scale(1); }        /* 원상 복구 */
         }
 
         .mc-flip {
