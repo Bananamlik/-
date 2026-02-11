@@ -1676,6 +1676,13 @@
     }
 	/* [신규] 빛의 폭발 (밝은 황금빛) */
     .impact-light-hit { filter: brightness(2.0) sepia(1) hue-rotate(-50deg); }
+	/* [Patch v19.14] 배속/오토 버튼 스타일 */
+    .battle-controls { position: absolute; right: 55px; top: 50%; transform: translateY(-50%); display: flex; gap: 5px; z-index: 101; }
+    .btn-battle-toggle { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s; color: #555; font-family: var(--font-main); min-width: 30px; }
+    /* [Fix v19.15] 버튼 눌림 효과 수정 (위치 이동 제거) */
+    .btn-battle-toggle:active { transform: scale(0.95); }
+    .btn-battle-toggle.active-speed { background: #ff9800; color: #fff; border-color: #f57c00; box-shadow: 0 0 8px #ffb74d; }
+    .btn-battle-toggle.active-auto { background: #4caf50; color: #fff; border-color: #388e3c; box-shadow: 0 0 8px #81c784; }
 </style>
 <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -1737,7 +1744,7 @@
         </div>
  
         <div style="display:flex; gap:10px; margin-top:10px;">
-            <button id="btn-online" class="btn-start" style="flex:1; background:#c1f0c1; font-size:16px;" onclick="UI.openOnlineModal()">
+            <button id="btn-online" class="btn-start" style="flex:1; font-size:16px; background: linear-gradient(135deg, #4db6ac 0%, #00897b 100%); color: white; box-shadow: 0 5px 0 #00695c, 0 10px 15px rgba(0, 105, 92, 0.3); border: 2px solid rgba(255,255,255,0.3);" onclick="UI.openOnlineModal()">
                 🌐 온라인 대전
             </button>
             <button id="btn-start" class="btn-start" style="flex:1; font-size:16px;" onclick="Game.start()" disabled>
@@ -1750,8 +1757,13 @@
         <div class="field-row" id="enemy-row"></div>
         <div class="control-panel">
             <div class="cp-header" style="position:relative; padding-right:50px;">
-                <span id="turn-indicator" style="font-weight:bold; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width: 100%;">Ready... 🐱</span>
+                <span id="turn-indicator" style="font-weight:bold; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width: 60%;">Ready... 🐱</span>
                 
+                <div class="battle-controls">
+                    <button id="btn-speed" class="btn-battle-toggle" onclick="Game.toggleSpeed()">▶</button>
+                    <button id="btn-auto" class="btn-battle-toggle" onclick="Game.toggleAuto()">🤖</button>
+                </div>
+
                 <div style="position:absolute; right:5px; top:50%; transform:translateY(-50%); z-index: 100;">
                     <div class="side-btn main-menu-btn" onclick="UI.toggleDock()" style="width:32px; height:32px; font-size:16px; margin:0;" title="메뉴">⚙️</div>
                     
@@ -4203,8 +4215,19 @@ const UI = {
         if (top < 10) top = rect.bottom + 10;
         if (left < 10) left = 10;
 
-        tooltip.style.top = top + 'px';
-        tooltip.style.left = left + 'px';
+        // [Patch] 화면 밖으로 나가지 않게 가로 위치 보정
+    const tipWidth = 220; // 툴팁 대략적 너비
+    const screenW = window.innerWidth;
+
+    // 오른쪽 끝 처리
+    if (left + tipWidth > screenW) {
+        left = screenW - tipWidth - 10;
+    }
+    // 왼쪽 끝 처리
+    if (left < 10) left = 10;
+
+    tooltip.style.top = top + 'px';
+    tooltip.style.left = left + 'px';
     },
     hideTooltip: function() {
         document.getElementById('tooltip-view').style.display = 'none';
@@ -4351,17 +4374,15 @@ const UI = {
         const sRect = sEl.getBoundingClientRect();
         const eRect = eEl.getBoundingClientRect();
 
-        // [개선] 속성별 비행 속도 차별화 (ms)
-        let flightDuration = 250; // 기본값
+        // [개선] 속성별 비행 속도 차별화 (ms) + 배속 적용
+        let flightDuration = 250; 
         const base = atk.base;
         
-        if (base === 'Metal' || base === 'Light') {
-            flightDuration = 180; // 빠름 (전기, 빛)
-        } else if (base === 'Fire' || base === 'Water' || base === 'Dark') {
-        flightDuration = 220; // 보통
-        } else if (base === 'Earth' || base === 'Tree' || base === 'Normal') {
-        flightDuration = 300; // 느림 (흙: 650ms -> 300ms 롤백)
-        }
+        if (base === 'Metal' || base === 'Light') flightDuration = 180;
+        else if (base === 'Fire' || base === 'Water' || base === 'Dark') flightDuration = 220;
+        else flightDuration = 300;
+
+        if (typeof Game !== 'undefined') flightDuration *= Game.speedMultiplier;
         
         // [개선] 스킬 등급별 크기 및 이펙트
         let projectileSize = 24; // 기본 (평타)
@@ -4389,10 +4410,21 @@ const UI = {
         p.innerText = icon;
         p.style.fontSize = `${projectileSize}px`;
         p.style.cssText += glowEffect;
+        
+        // [Patch v19.14] 배속 적용: CSS 트랜지션 속도 동기화
+        if (typeof Game !== 'undefined') {
+            const dur = (flightDuration / 1000) + 's';
+            p.style.transitionDuration = dur;
+            p.style.animationDuration = dur;
+        }
+
         p.style.left = (sRect.left + sRect.width/2) + 'px';
         p.style.top = (sRect.top + sRect.height/2) + 'px';
 
         document.body.appendChild(p);
+
+        // [Patch] 강제 리플로우(Reflow): 브라우저가 시작 위치를 인식하도록 강제함 (순간이동 방지)
+        void p.offsetWidth; 
 
         requestAnimationFrame(() => {
             p.style.left = (eRect.left + eRect.width/2) + 'px';
@@ -4742,8 +4774,42 @@ const Game = {
     mode: 'pve',
     isProcessing: false,
     challengeStage: 0,
-    isMindControlling: null, // [신규] 세뇌 조종 상태 플래그
+    isMindControlling: null, 
     currentMCCasterId: null,
+    
+    // [Patch v19.14] 편의성 변수 및 함수
+    speedMultiplier: 1,
+    isAutoBattle: false,
+    
+    toggleSpeed: function() {
+        this.speedMultiplier = this.speedMultiplier === 1 ? 0.5 : 1; // 0.5 = 2배속
+        const btn = document.getElementById('btn-speed');
+        if(this.speedMultiplier === 0.5) {
+            btn.innerHTML = "⏩";
+            btn.classList.add('active-speed');
+        } else {
+            btn.innerHTML = "▶";
+            btn.classList.remove('active-speed');
+        }
+    },
+    
+    toggleAuto: function() {
+        this.isAutoBattle = !this.isAutoBattle;
+        const btn = document.getElementById('btn-auto');
+        if(this.isAutoBattle) {
+            btn.classList.add('active-auto');
+            // 내 턴이고 입력 대기 중이면 즉시 AI 실행
+            const tVal = this.queue[this.curr];
+            const u = tVal % 2 === 0 ? this.pTeam[Math.floor(tVal / 2)] : this.eTeam[Math.floor((tVal - 1) / 2)];
+            if(u && u.team === 0 && !u.isDead && !this.isProcessing && !this.isMindControlling) {
+                this.noInput();
+                if(this.timer) clearTimeout(this.timer);
+                this.timer = setTimeout(() => this.ai(u), 500 * this.speedMultiplier);
+            }
+        } else {
+            btn.classList.remove('active-auto');
+        }
+    },
     cleanup: function() {
         console.log("🧹 Game cleanup started");
         
@@ -4911,11 +4977,28 @@ const Game = {
                 const key = u.getKey();
                 const info = SKILL_DB[key];
                 
-                // [1] 아이콘 생성 (전투 화면과 동일 로직)
+                // [Patch v19.08] 아이콘 개선: 오버레이(우측하단) + 노말(빛/어둠) 커스텀
                 let iconsHtml = '';
-                if (ATTR[u.base]) iconsHtml += `<div class="tiny-icon">${ATTR[u.base].i}</div>`;
-                if (u.extra && ATTR[u.extra]) iconsHtml += `<div class="tiny-icon">${ATTR[u.extra].i}</div>`;
-                if (iconsHtml === '' && info) iconsHtml = `<div class="tiny-icon">${info.icon}</div>`;
+                // 1. 기본/보조 속성 아이콘 결정
+                let baseI = ATTR[u.base] ? ATTR[u.base].i : (info.icon || '?');
+                let extraI = (u.extra && ATTR[u.extra]) ? ATTR[u.extra].i : null;
+                
+                // 2. [Patch v19.10] Normal 키값 및 대소문자 오류 수정
+                if (key === 'Normal') {
+                    baseI = ATTR['Light'].i;
+                    extraI = ATTR['Dark'].i;
+                }
+
+                // 3. 렌더링 (보조 속성은 우측 하단에 작은 원형 뱃지로 표시)
+                if (extraI) {
+                    iconsHtml = `
+                        <div style="position:relative; display:inline-block;">
+                            <div class="tiny-icon">${baseI}</div>
+                            <div class="tiny-icon" style="position:absolute; bottom:-5px; right:-5px; width:16px; height:16px; font-size:10px; z-index:5; border:1px solid #fff; background:rgba(255,255,255,0.9); border-radius:50%; display:flex; justify-content:center; align-items:center; box-shadow:0 1px 2px rgba(0,0,0,0.3);">${extraI}</div>
+                        </div>`;
+                } else {
+                    iconsHtml = `<div class="tiny-icon">${baseI}</div>`;
+                }
 
                 // [2] 이름 및 설명 간소화
                 // 이름에서 불필요한 괄호 제거 (예: "푸른불 (불+빛)" -> "푸른불")
@@ -5513,32 +5596,42 @@ turn: function() {
         }
         if (this.endCheck()) return;
 
-        // 5. [수정] 턴 시작 직후 도트 데미지 적용 (가장 먼저 실행)
+        // 5. [Patch] 도트 데미지 및 턴 시작 로직 최적화 (렉 방지)
         if (!u.isDead) {
             u.resetTurn();
             
-            // [중요] 도트 데미지(독, 화상) 적용 시점
+            // (1) 도트 데미지 계산 (렌더링 분리)
             const dotLogs = u.tickStatus();
-            dotLogs.forEach(log => this.log(log));
             
-            // ✅ [Fix] 도트 데미지가 발생했다면 즉시 화면(체력바)을 갱신합니다.
-            if (dotLogs.length > 0) this.render();
+            // (2) 로그 출력 및 렌더링 (변경사항이 있을 때만 1회 수행)
+            if (dotLogs.length > 0) {
+                dotLogs.forEach(log => this.log(log));
+                this.render(); // 여기서 1회만 렌더링
+            }
             
-            // 만약 도트 데미지로 사망했다면, 아무 행동도 못하고 턴 종료
+            // (3) 도트 데미지로 인한 사망 체크 (즉시 종료)
             if (u.isDead) {
-                this.log(`<span class='log-crit'>☠️ [${u.name}] 턴 시작과 동시에 쓰러졌습니다!</span>`);
-                this.endTurn(true);
+                this.log(`<span class='log-crit'>☠️ [${u.name}] 상태이상 피해로 쓰러졌습니다!</span>`);
+                // 약간의 딜레이를 주어 사망 연출을 볼 시간을 줌
+                setTimeout(() => this.endTurn(true), 500); 
                 return;
             }
 
-            // [후공 보정] 해제
+            // (4) [후공 보정] 해제 로직
             if (u.hasStatus('START_IMMUNITY')) {
                 const myTeam = u.team === 0 ? this.pTeam : this.eTeam;
+                let removed = false;
                 myTeam.forEach(member => {
-                    member.status = member.status.filter(s => s.type !== 'START_IMMUNITY');
+                    if(member.hasStatus('START_IMMUNITY')) {
+                        member.status = member.status.filter(s => s.type !== 'START_IMMUNITY');
+                        removed = true;
+                    }
                 });
-                this.log(`<span class='log-sys'>🔓 [${u.team===0?'아군':'적군'}] 후공 보호막 해제!</span>`);
-                this.render();
+                if (removed) {
+                    this.log(`<span class='log-sys'>🔓 [${u.team===0?'아군':'적군'}] 전술 보호막 해제</span>`);
+                    // 렌더링은 위에서 도트뎀으로 이미 했으면 생략하거나, 필요시에만 수행
+                    if (dotLogs.length === 0) this.render(); 
+                }
             }
         }
 
@@ -5649,21 +5742,27 @@ turn: function() {
 
         // 8. [입력 활성화 여부 결정]
         if (isMyTurn || this.difficulty === 'local') {
-            this.input(u);
-            // 만약 꼭두각시 턴이라면 툴팁 띄워주기
-            if (isPuppetTurn) {
-                setTimeout(() => {
-                    const cardId = u.team === 0 ? `p-card-${u.id}` : `e-card-${u.id}`;
-                    const el = document.getElementById(cardId);
-                    if(el) UI.showTooltip(u, el);
-                }, 100);
+            // [Patch v19.14] 오토 배틀 체크 (PVP/로컬 제외)
+            if (this.isAutoBattle && isMyTurn && !this.difficulty.includes('pvp') && this.difficulty !== 'local') {
+                this.noInput();
+                if (this.timer) clearTimeout(this.timer);
+                this.timer = setTimeout(() => this.ai(u), 800 * this.speedMultiplier);
+            } else {
+                this.input(u);
+                if (isPuppetTurn) {
+                    setTimeout(() => {
+                        const cardId = u.team === 0 ? `p-card-${u.id}` : `e-card-${u.id}`;
+                        const el = document.getElementById(cardId);
+                        if(el) UI.showTooltip(u, el);
+                    }, 100);
+                }
             }
         } else {
             this.noInput();
             if (this.mode !== 'pvp') {
-                // [Fix] 기존 타이머 제거 후 실행 (메모리 누수 방지)
                 if (this.timer) clearTimeout(this.timer);
-                this.timer = setTimeout(() => this.ai(u), 800);
+                // [Patch v19.14] AI 대기 시간 배속 적용
+                this.timer = setTimeout(() => this.ai(u), 800 * this.speedMultiplier);
             }
         }
     },
@@ -5729,16 +5828,31 @@ turn: function() {
                     if (u.team === 0) { UI.showEmoteMenu(u, d); e.stopPropagation(); }
                 };
 
-                // [신규] 모바일 2초 롱터치 구현
-                let longPressTimer = null;
-                let isTouching = false; // 터치 중인지 확인하는 플래그
+                // [Patch v19.11] 툴팁 UX 개선 (반응속도 0.5초 + 손 떼면 닫기)
+            let longPressTimer = null;
+            let isTouching = false;
 
-                d.ontouchstart = () => {
-                    isTouching = true;
-                    longPressTimer = setTimeout(() => {
-                        UI.showTooltip(u, d); // 2초 유지 시 툴팁 표시
-                    }, 2000);
-                };
+            d.ontouchstart = (e) => {
+                // 스크롤 중이 아닐 때만 작동하도록 기본 동작 유지
+                isTouching = true;
+                longPressTimer = setTimeout(() => {
+                    UI.showTooltip(u, d); // 0.5초면 충분함
+                    // 터치 시 진동 피드백 (지원 기기만)
+                    if (navigator.vibrate) navigator.vibrate(20); 
+                }, 500); 
+            };
+
+            d.ontouchend = () => {
+                if (longPressTimer) clearTimeout(longPressTimer);
+                UI.hideTooltip(); // [Fix] 손을 떼면 툴팁도 닫혀야 함
+                setTimeout(() => isTouching = false, 300);
+            };
+
+            d.ontouchcancel = () => { // 터치가 캔슬됐을 때(전화 등)도 처리
+                if (longPressTimer) clearTimeout(longPressTimer);
+                UI.hideTooltip();
+                isTouching = false;
+            };
 
                 d.ontouchend = () => {
                     if (longPressTimer) clearTimeout(longPressTimer); // 손 떼면 타이머 취소
@@ -5820,10 +5934,26 @@ turn: function() {
                     if (emo) displayName = `[${emo.t}] ${displayName}`;
                 }
 
+                // [Patch v19.08] 전투 아이콘 개선: 오버레이(우측하단) + 노말(빛/어둠) 커스텀
                 let iconsHtml = '';
-                if (ATTR[u.base]) iconsHtml += `<div class="tiny-icon">${ATTR[u.base].i}</div>`;
-                if (u.extra && ATTR[u.extra]) iconsHtml += `<div class="tiny-icon">${ATTR[u.extra].i}</div>`;
-                if (iconsHtml === '' && SKILL_DB[key]) iconsHtml = `<div class="tiny-icon">${SKILL_DB[key].icon}</div>`;
+                let baseI = ATTR[u.base] ? ATTR[u.base].i : (SKILL_DB[key] ? SKILL_DB[key].icon : '?');
+                let extraI = (u.extra && ATTR[u.extra]) ? ATTR[u.extra].i : null;
+
+                // [Patch v19.10] Normal 대소문자 오류 수정 (Crash Fix)
+                if (key === 'Normal') {
+                    baseI = ATTR['Light'].i;
+                    extraI = ATTR['Dark'].i;
+                }
+
+                if (extraI) {
+                    iconsHtml = `
+                        <div style="position:relative; display:inline-block;">
+                            <div class="tiny-icon">${baseI}</div>
+                            <div class="tiny-icon" style="position:absolute; bottom:-5px; right:-5px; width:16px; height:16px; font-size:10px; z-index:5; border:1px solid #fff; background:rgba(255,255,255,0.9); border-radius:50%; display:flex; justify-content:center; align-items:center; box-shadow:0 1px 2px rgba(0,0,0,0.3);">${extraI}</div>
+                        </div>`;
+                } else {
+                    iconsHtml = `<div class="tiny-icon">${baseI}</div>`;
+                }
 
                 // [신규] 상성 표시기 로직
                 // 현재 턴을 잡은 유닛(공격자)이 누구인지 확인
@@ -5868,8 +5998,59 @@ turn: function() {
                     </div>
                     <div class="ground-effect-layer"></div>
                 `;
-                
-                if (d.innerHTML !== innerHTML) d.innerHTML = innerHTML;
+
+                // [Patch v19.10] DOM Patching: HTML 전체 교체 대신 변경된 값만 업데이트 (애니메이션 보존)
+                // 1. 카드가 처음 생성되었거나 구조가 완전히 바뀐 경우에만 innerHTML 교체
+                if (!d.querySelector('.hp-fill') || d.dataset.key !== key) {
+                    d.innerHTML = innerHTML;
+                    d.dataset.key = key; 
+                } else {
+                    // 2. 그 외에는 스타일과 텍스트만 부드럽게 갱신 (Virtual DOM 흉내)
+                    
+                    // (1) 체력바 & 쉴드바 (CSS transition 작동 보장)
+                    const hpBar = d.querySelector('.hp-fill');
+                    const shieldBar = d.querySelector('.shield-fill');
+                    
+                    if (hpBar) {
+                        hpBar.style.width = `${hpPct}%`;
+                        hpBar.style.background = hpColor;
+                    }
+                    if (shieldBar) {
+                        shieldBar.style.width = `${Math.min(100, (u.shield/u.maxHp)*100)}%`;
+                    }
+
+                    // (2) 텍스트 정보 (HP 수치 등)
+                    const infoOverlay = d.querySelector('.unit-info-overlay');
+                    if (infoOverlay) {
+                        // 오버레이 내부 HTML 생성
+                        const newText = `
+                        <div class="card-name" style="${u.isSuper ? 'color:#ffd700;' : ''}">${displayName}</div>
+                        <div class="status-bar">
+                            <div class="hp-fill" style="width:${hpPct}%; background:${hpColor};"></div>
+                            <div class="shield-fill" style="width:${Math.min(100, (u.shield/u.maxHp)*100)}%"></div>
+                        </div>
+                        <div style="font-size:11px; font-weight:bold; text-align:right; color:#fff; text-shadow:1px 1px 1px rgba(0,0,0,0.8); margin-top:2px; letter-spacing:0.5px;">
+                            ${u.hp} / ${u.maxHp} ${u.shield > 0 ? `<span style="color:#e1bee7;">(+${u.shield})</span>` : ''}
+                        </div>`;
+                        
+                        // 텍스트가 다를 때만 갱신
+                        if (infoOverlay.innerHTML !== newText) infoOverlay.innerHTML = newText;
+                    }
+                    
+                    // (3) 상태이상 태그 업데이트
+                    const tagCont = d.querySelector('.tag-container');
+                    if (tagCont && tagCont.innerHTML !== tags) tagCont.innerHTML = tags;
+                    
+                    // (4) 특수 뱃지 (전기 등) 업데이트
+                    const existingElec = d.querySelector('.elec-badge');
+                    if (u.elecStacks > 0) {
+                        if (!existingElec) d.insertAdjacentHTML('beforeend', `<div class="elec-badge" style="top:30px;">⚡${u.elecStacks}</div>`);
+                        else existingElec.innerText = `⚡${u.elecStacks}`;
+                    } else if (existingElec) {
+                        existingElec.remove();
+                    }
+                    // (필요 시 나무/불 뱃지도 동일하게 추가 가능하나, 텍스트 갱신만으로 충분)
+                }
             });
         };
 
@@ -5931,13 +6112,14 @@ endTurn: function(isFast = false) {
         }
         
         this.render();
-        const delay = isFast ? 100 : 1500;
+        
+        // [Patch v19.14] 턴 종료 대기 시간 배속 적용
+        let delay = isFast ? 100 : 1500;
+        if (!isFast) delay *= this.speedMultiplier;
 
-        // [수정] 타이머 실행 직전에도 게임 종료 여부(Kill Switch) 확인
         if (this.isOver) return;
 
         this.timer = setTimeout(() => {
-            // [안전장치] 대기 시간 동안 게임이 리셋되었는지 한 번 더 확인
             if (this.isOver) return;
             this.turn();
         }, delay);
@@ -6655,6 +6837,11 @@ ai: function(u) {
             
                 // 🟢 Dark-Dark(심연) 세뇌 로직
                 if (u.getKey() === 'Dark-Dark' && skillIdx === 2) {
+                    // [Patch v19.06] 동족상잔 방지: 적이 Dark-Dark면 세뇌 시도 금지 (면역/효율 문제)
+                    if (target.getKey() === 'Dark-Dark') {
+                        return -9999;
+                    }
+
                     if (target.hasStatus('STUN') || target.hasStatus('FREEZE') || target.hasStatus('SLEEP') || target.hasStatus('EARTH_RECOIL')) {
                         score -= 10000;
                     } 
@@ -6889,22 +7076,30 @@ ai: function(u) {
         const el = document.getElementById(cardId);
         if (el) el.classList.add('dead');
 
-        // [수정] 1. 사망한 유닛(u)이 시전한 '세뇌 대기(MC_WAIT)' 상태 모두 제거
-        [...Game.pTeam, ...Game.eTeam].forEach(target => {
+        // [Patch v19.06] 예외 처리 강화: 시전자 사망 시 모든 세뇌 관련 상태 강제 정화
+        const allUnits = [...Game.pTeam, ...Game.eTeam];
+        allUnits.forEach(target => {
+            // 1. 대기 중인 세뇌(MC_WAIT) 해제
             const wait = target.status.find(s => s.type === 'MC_WAIT');
             if (wait && wait.sourceId === u.id) {
                 target.status = target.status.filter(s => s.type !== 'MC_WAIT');
                 Game.log(`<span class='log-sys'>🕊️ 시전자([${u.name}]) 사망으로 [${target.name}]의 세뇌 예약이 취소되었습니다.</span>`);
+                UI.floatText(target, "예약 취소", "ft-miss");
+            }
+            
+            // 2. 조종 준비 완료(MC_READY) 해제 (혹시 남아있을 경우)
+            const ready = target.status.find(s => s.type === 'MC_READY');
+            if (ready && ready.sourceId === u.id) {
+                target.status = target.status.filter(s => s.type !== 'MC_READY');
             }
         });
 
-        // [수정] 2. 현재 '조종 중'인 상태에서 시전자가 죽었을 때 강제 해제
-        // this.currentMCCasterId는 위에서 새로 추가한 변수입니다.
-        if (this.isMindControlling && (this.currentMCCasterId === u.id || !this.currentMCCasterId)) {
+        // 3. 현재 실시간 조종 중인 경우 제어권 반환
+        if (this.isMindControlling && this.currentMCCasterId === u.id) {
              const puppet = this.isMindControlling;
              
-             // 세뇌 상태 아이콘 제거 (MC_READY 등 잔여물)
-             puppet.status = puppet.status.filter(s => s.type !== 'MC_READY');
+             // 세뇌 상태 태그 정리
+             puppet.status = puppet.status.filter(s => s.type !== 'MC_READY' && s.type !== 'MC_WAIT');
              
              this.isMindControlling = null;
              this.currentMCCasterId = null;
@@ -6912,9 +7107,9 @@ ai: function(u) {
              Game.log(`<span class='log-sys'>🕊️ 시전자 사망! [${puppet.name}]의 정신 지배가 즉시 풀립니다.</span>`);
              UI.floatText(puppet, "지배 해제", "ft-heal");
              
-             // UI 복구
+             // UI 테두리 색상 복구
              const cp = document.querySelector('.control-panel');
-             if(cp) cp.style.borderTop = "5px solid #ff80ab"; 
+             if(cp) cp.style.borderTop = "5px solid #ff80ab"; // 기본 핑크색 복구
         }
 		
         u.status = [];
