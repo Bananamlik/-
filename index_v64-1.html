@@ -7954,57 +7954,7 @@ const UI = {
         const info = SKILL_DB[u.getKey()];
         const statusText = u.status.map(s => {
             const dmgPct  = Math.round((u.stats.dmg / maxDmg) * 100);
-            const healPct = Math.round(((u.stats.heal + u.stats.shieldGiven) / maxHeal) * 100);
-            const isMVP   = u.id === mvp.id;
-            const teamAccent = u.team === 0 ? '#4fc3f7' : '#ffb74d';
-            return `<div style="
-                margin-bottom:10px; padding:10px 12px;
-                background:rgba(255,255,255,.04);
-                border:1px solid rgba(255,255,255,.1);
-                border-left:3px solid ${teamAccent};
-                border-radius:10px; position:relative;">
-              ${isMVP ? '<span style="position:absolute;top:-8px;right:8px;font-size:20px;filter:drop-shadow(0 0 4px gold)">👑</span>' : ''}
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <div class="attr-icon" style="width:26px;height:26px;font-size:14px;flex-shrink:0;background:${ATTR[u.base].c}">${SKILL_DB[u.getKey()].icon||ATTR[u.base].i}</div>
-                <span style="font-weight:700;font-size:13px;color:#fff;">${u.name.split(' ')[0]}</span>
-                ${u.isDead ? '<span style="font-size:10px;color:#ef9a9a;margin-left:auto;">전사</span>' : '<span style="font-size:10px;color:#a5d6a7;margin-left:auto;">생존</span>'}
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:4px;">
-                <span style="width:24px;color:#90a4ae;font-family:monospace;">딜</span>
-                <div style="flex:1;background:rgba(255,255,255,.08);height:8px;border-radius:4px;overflow:hidden;">
-                  <div style="width:${dmgPct}%;background:#ef5350;height:100%;border-radius:4px;"></div>
-                </div>
-                <span style="width:36px;text-align:right;color:#ef9a9a;font-weight:700;">${u.stats.dmg}</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:11px;">
-                <span style="width:24px;color:#90a4ae;font-family:monospace;">힐</span>
-                <div style="flex:1;background:rgba(255,255,255,.08);height:8px;border-radius:4px;overflow:hidden;">
-                  <div style="width:${healPct}%;background:#26a69a;height:100%;border-radius:4px;"></div>
-                </div>
-                <span style="width:36px;text-align:right;color:#80cbc4;font-weight:700;">${u.stats.heal + u.stats.shieldGiven}</span>
-              </div>
-            </div>`;
-        };
-
-        let html = `
-        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.2em;
-            color:rgba(255,255,255,.4);text-align:center;margin-bottom:6px;text-transform:uppercase;">
-          BATTLE RESULT
-        </div>
-        <div style="font-family:'Black Han Sans',sans-serif;font-size:26px;font-weight:400;
-            text-align:center;letter-spacing:.02em;color:${accentColor};margin-bottom:16px;
-            text-shadow:0 0 20px ${accentColor}66;">
-          ${resultLabel} ${isDraw?'🤝':'🎉'}
-        </div>
-        <div style="max-height:52vh;overflow-y:auto;padding-right:2px;">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.15em;
-              color:#4fc3f7;margin-bottom:6px;text-transform:uppercase;">— Team 1 · 아군</div>
-          ${Game.pTeam.map(u => renderBar(u)).join('')}
-          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.15em;
-              color:#ffb74d;margin-bottom:6px;margin-top:14px;text-transform:uppercase;">— Team 2 · 적군</div>
-          ${Game.eTeam.map(u => renderBar(u)).join('')}
-        </div>`;
-
+            
         document.getElementById('modal-overlay').style.display = 'flex';
         document.getElementById('modal-body').innerHTML = html;
     },
